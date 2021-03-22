@@ -8,11 +8,19 @@ AnySim : root class implementing the Modified Born series iteration
      │
      └─ DiffuseSim : solves the diffusion equation
 
-Classes that implement the Medium interface
+Classes that implement the Medium interface:
+   TensorMedium: (not implemented yet) associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
+   DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
+   ScalarMedium: not implemented yet
+   
+Classes that implement the Transform interface:
+   FourierTransform
 
-TensorMedium: (not implemented yet) associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
-DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
-ScalarMedium: not implemented yet
+Helper classes:
+   SimGrid
+   DisplayCallback
+   Source
+   State
 ~~~
 
 ## Example: Diffusion equation
@@ -26,16 +34,16 @@ The general structure of the modified Born series algorithm is implemented alrea
 ### The constructor
 The constructor takes all information needed to describe a specific linear system (e. g. a refractive index map) and a set of options. The returned object fully describes the linear system and all details of the simulation. 
 
-The constructor should check the validity of all inputs and fill in defaults for missing options. Importantly, it should set the properties ~~~medium~~~, ~~~propagator~~~, and ~~~transform~~~. 
+The constructor should check the validity of all inputs and fill in defaults for missing options. Importantly, it should set the properties `medium`, `propagator`, and `transform`. 
 
-Medium: This object corresponds to operator G:= 1-V = 1-Tl (V_raw-V0) Tr, and typically is
+Medium: This object corresponds to operator `G:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
   implemented as a multiplication with a scattering potential in the 
   spatio-temporal domain.
   For the diffusion equation, for example, a DiffusionMedium object is used,
   which performs a multiplication with the absorption-(inverse)diffusion tensor.
   In preparing the medium, the scattering potential is first shifted by ~V0~ to minimze ‖V‖, and then scaled to have ‖V‖<1. The matrices responsible for this scaling (Tl and Tr) are stored in the Medium object.
 
-Propagator: This object corresponds to scaled operator Tl (L+1)^(-1) Tr, and typically
+Propagator: This object corresponds to scaled operator `Tl (L+1)^(-1) Tr`, and typically
   is implemented as a multiplication with a fixed function in the spatio-temporal frequency domain.
   For the diffusion equation, the DiffusePropagator object corresponds
   to a spatio-temporal differential operator, applied in the frequency
@@ -86,7 +94,7 @@ requires:
 1 propagator storage (Li, may be computed on the fly in some implementations!)
 
 
-= Bookkeeping = 
+### Bookkeeping
 While running the algorithm, a State object is passed to all operator
 function calls. The State object is of handle type (a reference) and
 contains bookkeeping information (such as the iteration number) and can be
@@ -95,25 +103,7 @@ used to store diagnostics and debugging information.
 
 ## GridSim
 ### Data Storage
-Grid-based simulations store data as multi-dimensional arrays, where the 
-dimensions correspond to spatial and temporal dimensions of the simulated
-problem. 
+All data is stored in 5-D arrays, with the first dimension corresponding to the elements of the vector data at each grid point (e. g. [I, Fx, Fy, Fz] for the diffusion equation). For scalar simulations, the first dimension must have size 1. The four other dimensions correspond to x,y,z,t, respectively.
 
 Each dimension may have a different pixel pitch and unit, this metadata
 is stored in a SimGrid object.
-
-When working with vector or tensor fields fields, the vector index/tensor
-index corresponds to the _first_ dimension in the array (first two
-dimensions for tensor array).
-For example, an NxM field of 3-element vectors is stored as a 3 x N x M
-multidimensional array. 
-This storage scheme has the advantage of better memory locality for matrix
-multiplications and it is slightly easier to program in MATLAB (e.g.
-one can use pagefun for gpu arrays). 
-The disadvantages are 1) if the vector length is not a power of 2, reads
-and writes are not aligned and not coalesced. (although the performance hit
-is not too bad on modern hardware?)
-2) the fft may be less efficient for strided data.
-
-
-See test_diffusion for an example 
