@@ -1,5 +1,7 @@
-Framework for solving arbitrary linear systems
+# AnySim - Framework for solving arbitrary linear systems
 
+## Class hierarchy
+~~~
 AnySim : root class implementing the Modified Born series iteration
  |
  |- GridSim : base class for all simulations on a grid
@@ -10,23 +12,14 @@ TensorMedium: object implementing the 'Medium' interface for tensor fields
  |
  |- DiffuseMedium : constructs a medium for DiffuseSim using absorption and
                     diffusion coefficients
+~~~
 
-
-== Programming guidelines ==
-= options are optional =
-- All required parameters must be passed explicitly, except for medium, transform and propagator
-- Objects should set sensible defaults for options. These defaults should not
-not change (because changing them will change the behavior of all code using
-the object).
-- Only the objects derived from AnySim set default options
-
-= Constructors fully initialize objects =
-- no 'prepare' or 'init' functions
-- subclasses don't modify/set properties of superclasses
-
-== General Structure ==
-To implement a simulation for a certain linear equation (such as the
-diffusion equation), one needs to implement four objects, corresponding
+## Implementing a solver
+The general structure of the modified Born series algorithm is implemented already. To implement a solver for a specific linear problem, one needs to implement a simulation object inheriting from AnySim or one of its derived classes (such as GridSim). See DiffuseSim for an example. The following methods should be implemented:
+  * The constructor
+  * AnalyzeDimensions
+  * Start
+  
 to four different operators:
 - Medium: This object corresponds to operator V, and typically is
   implemented as a multiplication with a scattering potential in the 
