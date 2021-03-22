@@ -1,0 +1,8 @@
+*.asv
+*.mat
+*.vcxproj.user
+*.vs
+x64
+*.mexw64
+*.pdb
+VTune*
