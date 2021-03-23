@@ -12,8 +12,8 @@ opt.pixel_size = {0.5 'um'};
 opt.N = [N, 1, 1, 1];
 opt.boundaries.periodic = true; % all boundaries periodic
 opt.gpu_enabled = false;
-opt.termination_condition.handle = @tc_fixed_iteration_count;
-opt.termination_condition.iteration_count = 100;
+opt.termination_condition.handle = @tc_relative_error;
+opt.termination_condition.relative_error_limit = 1E-12;
 opt.callback.interval = 10;
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);
@@ -27,7 +27,7 @@ sim = DiffuseSim(D, a, opt);
 
 %% Place a source in center and run simulation
 source = sim.define_source(ones(1,1,opt.N(2)), [4,ceil(N/2),1,1,1]);
-u = sim.exec(source);
+[u, state] = sim.exec(source);
 I = shiftdim(u(4,:), 1);
 
 %% Compute theoretical solution

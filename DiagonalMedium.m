@@ -82,12 +82,16 @@ classdef DiagonalMedium
             % used in this implementation.
             u = source.apply(obj.G .* u, state);
         end
-        function u = mix_field(obj, u, uprop, state) %#ok<INUSD>
+        function u = mix_field(obj, u, uprop, state)
             % MEDIUM.MIX_FIELD(U, UPROP, STATE) implements the
             % function U + G (UPROP - U), with G = 1-V and V the
             % STATE is a State object (see State), that is not
             % used in this implementation.
-            u = u + obj.G .* (uprop - u);
+
+            %u = u + obj.G .* (uprop - u);
+            uprop = obj.G .* (uprop - u);
+            state.store_diff(uprop);
+            u = u + uprop;
         end   
     end
 end

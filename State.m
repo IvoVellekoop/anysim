@@ -10,6 +10,7 @@ classdef State < dynamicprops
         callback_interval;
         callback;
         running;
+        diffs;
     end
     
     methods
@@ -20,6 +21,7 @@ classdef State < dynamicprops
             obj.running = true;
             obj.callback_interval = opt.callback.interval;
             obj.callback = opt.callback.handle(sim, opt.callback);
+            obj.diffs = [];
         end
         function next(obj, u)
             if mod(obj.iteration, obj.callback_interval) == 0
@@ -28,6 +30,12 @@ classdef State < dynamicprops
             end
             obj.iteration = obj.iteration + 1;
             obj.running = ~obj.termination_condition.handle(u, obj, obj.termination_condition);
+        end
+        function store_diff(obj, du)
+           % STATE.STORE_DIFF(DU) computes the norm^2 of du and stores
+           % that number in the .diffs property. This way the convergence
+           % of the algorithm can be monitored
+           obj.diffs = [obj.diffs, norm(du(:))^2];
         end
     end
     
