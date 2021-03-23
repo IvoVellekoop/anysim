@@ -67,8 +67,8 @@ classdef DiagonalMedium
             % Apply centering and scaling
             scale = opt.V_max./radii;
             obj.V0 = diag(centers);
-            obj.Tl = diag(sqrt(scale));
-            obj.Tr = diag(sqrt(scale));
+            obj.Tl = eye(4);
+            obj.Tr = diag(scale);
             V = scale .* (V_raw - centers); 
             obj.G = grid.pad(data_array(1- V, opt), 1);
         end   
