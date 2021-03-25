@@ -48,7 +48,6 @@ classdef DiffuseSim < GridSim
             %   absorption coefficients are possible.
             
             %% Set defaults
-            opt = set_defaults(DiffuseSim.defaults, opt);
             opt.real_signal = true;
             
             %% Construct base class

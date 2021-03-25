@@ -18,6 +18,7 @@ classdef Medium
         Tr % right scaling matrix
         centers
         radii
+        grid
     end
     
     methods
@@ -78,13 +79,35 @@ classdef Medium
                 warning('Slowing down simulation to prevent wrap-around artefacts')
             end
             obj.radii = max(radii, V_raw_min);
+            obj.grid = grid;
         end
         
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
+        function u = mix_source(obj, u, source, state)
+            % MEDIUM.MIX_SOURCE(U, SOURCE, STATE) implements the
+            % function G U + SOURCE, with G = 1-V and V the
+            % scattering potential. 
+            % SOURCE is a Source object (see Source)
+            % STATE is a State object (see State), that is not
+            % used in this implementation.
+            u = source.apply(obj.multiplyG(u), state);
         end
+        function u = mix_field(obj, u, uprop, state)
+            % MEDIUM.MIX_FIELD(U, UPROP, STATE) implements the
+            % function U + G (UPROP - U), with G = 1-V and V the
+            % STATE is a State object, that is notified
+            % about updates to the solution (see State).
+
+            %u = u + obj.G .* (uprop - u);
+            uprop = obj.multiplyG(uprop - u);
+            if state.needs_report % checks termination condition
+                M = norm(reshape(obj.grid.crop(uprop, 1), 1, []))^2;
+                state.report_diff(M);
+            end
+            u = u + uprop;
+        end 
+    end
+    methods (Abstract, Access=protected)
+        u = multiplyG(obj, u)
     end
 end
 

@@ -24,7 +24,31 @@ classdef (Abstract) AnySim < handle
         
     methods
         function obj = AnySim(opt)
-            obj.opt = opt;
+            % This function sets the default options for the simulation.
+            % Subclasses can override this function to set defaults for
+            % options they define. In that case, subclasses should
+            % call defaults() on the superclass here
+            % (e.g. opt = AnySim.defaults).
+            % All classes should call set_defaults(opt, ClassName.defaults)
+            % at the start of the constructor.
+            
+            % flag to determine if simulation are run
+            % on the GPU (default: run on GPU if we have one)
+            defaults.gpu_enabled = gpuDeviceCount > 0;
+
+            % flag to determine if single precision or 
+            % double precision calculations are used.
+            % Note that on a typical GPU, double
+            % precision calculations are about 10
+            % times as slow as single precision.
+            defaults.precision = 'single';
+            
+            % default termination condition (see tc_relative_error)
+            defaults.termination_condition.handle = @TerminationCondition;
+            defaults.termination_condition.interval = 16;
+            defaults.callback.handle = @(u, state, opt) disp(state.iteration);
+            defaults.callback.interval = 16;
+            obj.opt = set_defaults(defaults, opt);
         end
         
         function [u, state] = exec(obj, source)
@@ -72,34 +96,6 @@ classdef (Abstract) AnySim < handle
     methods (Abstract, Access=protected)
         [u, state] = start(obj)
         u = finalize(obj, u, state)
-    end
-    methods (Static)
-        function opt = defaults()
-            % This function sets the default options for the simulation.
-            % Subclasses can override this function to set defaults for
-            % options they define. In that case, subclasses should
-            % call defaults() on the superclass here
-            % (e.g. opt = AnySim.defaults).
-            % All classes should call set_defaults(opt, ClassName.defaults)
-            % at the start of the constructor.
-            
-            % flag to determine if simulation are run
-            % on the GPU (default: run on GPU if we have one)
-            opt.gpu_enabled = gpuDeviceCount > 0;
-
-            % flag to determine if single precision or 
-            % double precision calculations are used.
-            % Note that on a typical GPU, double
-            % precision calculations are about 10
-            % times as slow as single precision.
-            opt.precision = 'single';
-            
-            % default termination condition (see tc_relative_error)
-            opt.termination_condition.handle = @tc_relative_error;
-            opt.termination_condition.relative_error_limit = 1E-3;
-            opt.callback.handle = @(u, state, opt) disp(state.iteration);
-            opt.callback.interval = 16;
-        end
     end
 end
 

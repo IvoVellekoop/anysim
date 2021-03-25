@@ -8,12 +8,12 @@
 % Set up size of simulation domain and number of grid points in x,y,z,t 
 % dimensions.
 N = 256;
+opt = struct(); % clear any previous options
 opt.pixel_size = {0.5 'um'};
 opt.N = [N, 1, 1, 1];
 opt.boundaries.periodic = true; % all boundaries periodic
 opt.gpu_enabled = false;
-opt.termination_condition.handle = @tc_relative_error;
-opt.termination_condition.relative_error_limit = 1E-12;
+opt.termination_condition.relative_limit = 1E-12;
 opt.callback.interval = 10;
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);

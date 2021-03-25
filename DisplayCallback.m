@@ -23,6 +23,7 @@ classdef DisplayCallback
         coord2 % coordinates for 'y' axis
         label1 % label for 'x' axis
         label2 % label for 'y' axis
+        show_convergence % true to draw a graph of magnitude of each update step
     end
     
     methods
@@ -31,6 +32,7 @@ classdef DisplayCallback
             % see example in class documentation.
             default.cross_section = @(u) u;
             default.show_boundaries = false;
+            default.show_convergence = false;
             opt = set_defaults(default, opt);
             
             if ~isa(sim, 'GridSim')
@@ -39,6 +41,7 @@ classdef DisplayCallback
             obj.grid = sim.grid;
             obj.cross_section = opt.cross_section;
             obj.show_boundaries = opt.show_boundaries;
+            obj.show_convergence = opt.show_convergence;
             
             % find out which component the cross-section function is returning
             % and along which dimensions the data is cropped.
@@ -76,6 +79,13 @@ classdef DisplayCallback
         end
         
         function call(obj, u, state)
+            if obj.show_convergence && ~isempty(state.diffs)
+                subplot(2, 1, 1);
+                semilogy(state.diffs / max(state.diffs(:)));
+                xlabel('Interation');
+                ylabel('‖Δ𝜓‖^2 (normalized)'); 
+                subplot(2, 1, 2);
+            end
             if ~obj.show_boundaries
                 u = obj.grid.crop(u, 1);
             end

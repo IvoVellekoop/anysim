@@ -12,20 +12,19 @@
 % Set up size of simulation domain and number of grid points in x,y,z,t 
 % dimensions.
 N = 256;
+opt = struct(); % clear any previous options
 opt.pixel_size = {0.5 'um'};
 opt.N = [N, 128, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
 opt.boundaries.periodic = [false, true, true, true];
 opt.boundaries.width = 50;
 opt.boundaries.quality = 10;
 opt.gpu_enabled = false;
-opt.termination_condition.handle = @tc_fixed_iteration_count;
-opt.termination_condition.iteration_count = 400;
-opt.callback.interval = 10;
-opt.callback.handle = @DisplayCallback;
+opt.callback.handle = []; %@DisplayCallback;
 %opt.callback.cross_section = @(u) u(4,:,ceil(end/2));
 opt.callback.cross_section = @(u) u(4,:,:);
 opt.callback.show_boundaries = true;
-opt.V_max = 0.195;
+opt.callback.show_convergence = true;
+opt.V_max = 0.95;
 
 %% Construct medium 
 % Layered medium with constant absorption and diffusion coefficients

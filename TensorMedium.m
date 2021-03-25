@@ -31,27 +31,11 @@ classdef TensorMedium < Medium
             
             obj.G = grid.pad(data_array(1- V, opt), 2);
         end
-                
-        function u = mix_source(obj, u, source, state)
-            % MEDIUM.MIX_SOURCE(U, SOURCE, STATE) implements the
-            % function G U + SOURCE, with G = 1-V and V the
-            % scattering potential. 
-            % SOURCE is a Source object (see Source)
-            % STATE is a State object (see State), that is not
-            % used in this implementation.
-            u = source.apply(pagemtimes(obj.G, u), state);
+    end
+    methods (Access=protected)
+        function u = multiplyG(obj, u)
+            u = pagemtimes(obj.G, u);
         end
-        function u = mix_field(obj, u, uprop, state)
-            % MEDIUM.MIX_FIELD(U, UPROP, STATE) implements the
-            % function U + G (UPROP - U), with G = 1-V and V the
-            % STATE is a State object (see State), that is not
-            % used in this implementation.
-
-            %u = u + obj.G .* (uprop - u);
-            uprop = pagemtimes(obj.G, uprop - u);
-            state.store_diff(uprop);
-            u = u + uprop;
-        end   
     end
 end
 

@@ -21,7 +21,12 @@ classdef GridSim < AnySim
         % grid = SimGrid object containing grid spacings and dimensions
         % N_components = length of data vector stored at each grid point
         % opt = options
-            opt = set_defaults(GridSim.defaults, opt);
+            defaults.boundaries.periodic = "auto";
+            defaults.boundaries.extend = true;
+            defaults.boundaries.width = 32;
+            defaults.boundaries.filter = @wnd_nutall;
+            defaults.potential_type = "scalar";  
+            opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
             obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size);
             obj.N = [N_components obj.grid.N];
@@ -102,16 +107,6 @@ classdef GridSim < AnySim
         function u = finalize(obj, u, state)  %#ok<INUSD>
             u = obj.grid.crop(u, 1);
             u = pagemtimes(obj.medium.Tr, u);
-        end
-    end
-    methods (Static)
-        function opt = defaults
-            opt = AnySim.defaults;
-            opt.boundaries.periodic = "auto";
-            opt.boundaries.extend = true;
-            opt.boundaries.width = 32;
-            opt.boundaries.filter = @wnd_nutall;
-            opt.potential_type = "scalar";         
         end
     end
 end
