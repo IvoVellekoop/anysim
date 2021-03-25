@@ -13,18 +13,19 @@
 % dimensions.
 N = 256;
 opt.pixel_size = {0.5 'um'};
-opt.N = [N, 1, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
+opt.N = [N, 128, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
 opt.boundaries.periodic = [false, true, true, true];
-opt.boundaries.width = 500;
+opt.boundaries.width = 50;
 opt.boundaries.quality = 10;
 opt.gpu_enabled = false;
 opt.termination_condition.handle = @tc_fixed_iteration_count;
 opt.termination_condition.iteration_count = 400;
 opt.callback.interval = 10;
 opt.callback.handle = @DisplayCallback;
-opt.callback.cross_section = @(u) u(4,:,ceil(end/2));
+%opt.callback.cross_section = @(u) u(4,:,ceil(end/2));
+opt.callback.cross_section = @(u) u(4,:,:);
 opt.callback.show_boundaries = true;
-opt.V_max = 0.95;
+opt.V_max = 0.195;
 
 %% Construct medium 
 % Layered medium with constant absorption and diffusion coefficients
@@ -43,8 +44,8 @@ sim = DiffuseSim(D, a, opt);
 %clear mu_a D;
 
 %%
-source = sim.define_source(ones(1,1,opt.N(2)), [4,zl+z0,1,1,1]); % intensity-only source (isotropic) at t=0
-%source = sim.define_source(ones(1,1,opt.N(2)), [1,zl,1,1,1]); % intensity-only source (isotropic) at t=0
+source = sim.define_source(ones(1,1,1), [4,zl+z0,ceil(opt.N(2))/2,1,1]); % intensity-only source (isotropic) at t=0
+%source = sim.define_source(ones(1,1,opt.N(2)), [4,zl+z0,1,1,1]); % intensity-only source (isotropic) at t=0
 
 u = sim.exec(source);
 

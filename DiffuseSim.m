@@ -83,8 +83,7 @@ classdef DiffuseSim < GridSim
                 % 4*4*(Nx or 1)*(Ny or 1)*(Nz or 1)*(Nt or 1)
                 V = pagefun(@inv, D);
                 V(4,4,:,:,:,:) = 0; 
-                V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');
-                medium = makeMedium@GridSim(obj, V);
+                V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');                
             elseif obj.opt.potential_type == "diagonal"
                 validateattributes(D, {'numeric'}, {'nrows', 3});
                 % invert 'D', then convert 'V' and 'a' to dimension
@@ -92,7 +91,6 @@ classdef DiffuseSim < GridSim
                 V = 1./D;
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                medium = makeMedium@GridSim(obj, V);
             elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
                 % first convert scalar 'D' to 3x3 diagonal, then
                 % proceed as with diagonal 'D'
@@ -100,10 +98,10 @@ classdef DiffuseSim < GridSim
                 V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                medium = makeMedium@GridSim(obj, V);
             else
                 error('Incorrect option for potential_type');
             end
+            medium = makeMedium@GridSim(obj, V);
         end
         
         function Vmin = analyzeDimensions(obj, Vmax)

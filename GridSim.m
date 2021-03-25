@@ -46,12 +46,10 @@ classdef GridSim < AnySim
             elseif obj.opt.potential_type == "diagonal"
                 Vmax = max(Vraw, [], 2:ndims(Vraw));
                 Vmin = obj.analyzeDimensions(Vmax);
-                validateattributes(Vraw, {'numeric'}, {'nrows', Nc});
                 medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
             elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
                 Vmax = max(Vraw(:));
                 Vmin = obj.analyzeDimensions(Vmax);
-                validateattributes(Vraw, {'numeric'});
                 medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
             end
         end
