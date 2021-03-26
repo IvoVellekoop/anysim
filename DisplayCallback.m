@@ -22,7 +22,7 @@ classdef DisplayCallback
     %
     
     properties
-        grid % simulation grid
+        sim % simulation object (used for cropping etc.)
         Tr % scaling matrix: we want to plot the solution in non-scaled form  
         cross_section % handle of function to select data to display
         show_boundaries % when true, shows all simulation data. when false, removes the boundaries first
@@ -39,15 +39,16 @@ classdef DisplayCallback
         function obj = DisplayCallback(sim, opt)
             %DISPLAYCALLBACK Don't call this function directly
             % see example in class documentation.
+            if ~isa(sim, 'GridSim')
+                error("CB_IMAGE Feedback function can only be used with grid-based simulations");
+            end
+            
             default.cross_section = @(u) u;
             default.show_boundaries = false;
             default.show_convergence = true;
             opt = set_defaults(default, opt);
             
-            if ~isa(sim, 'GridSim')
-                error("CB_IMAGE Feedback function can only be used with grid-based simulations");
-            end
-            obj.grid = sim.grid;
+            obj.sim = sim;
             obj.cross_section = opt.cross_section;
             obj.show_boundaries = opt.show_boundaries;
             obj.show_convergence = opt.show_convergence;
@@ -55,7 +56,7 @@ classdef DisplayCallback
             %% find out which component the cross-section function is returning
             % and along which dimensions the data is cropped.
             % This is a bit of a hack!
-            hack = zeros(sim.N) + (1:sim.N(1)).';
+            hack = sim.to_external(zeros(sim.N) + (1:sim.N(1)).');
             hack = obj.cross_section(hack);
             obj.component = hack(1);
     
@@ -73,13 +74,13 @@ classdef DisplayCallback
             end
             
             %% Prepare labels and coordinates
-            obj.label1 = sprintf("x [%s]", obj.grid.unit(dims(1)));
-            obj.label2 = sprintf("y [%s]", obj.grid.unit(dims(2)));
-            obj.coord1 = obj.grid.coordinates(dims(1));
-            obj.coord2 = obj.grid.coordinates(dims(2));
+            obj.label1 = sprintf("x [%s]", sim.grid.unit(dims(1)));
+            obj.label2 = sprintf("y [%s]", sim.grid.unit(dims(2)));
+            obj.coord1 = sim.grid.coordinates(dims(1));
+            obj.coord2 = sim.grid.coordinates(dims(2));
             if ~obj.show_boundaries
-                obj.coord1 = obj.grid.crop(obj.coord1);
-                obj.coord2 = obj.grid.crop(obj.coord2);
+                obj.coord1 = sim.grid.crop(obj.coord1);
+                obj.coord2 = sim.grid.crop(obj.coord2);
             end
             
             obj.Tr = sim.medium.Tr(obj.component, obj.component);
@@ -97,9 +98,9 @@ classdef DisplayCallback
                 subplot(2, 1, 2);
             end
             if ~obj.show_boundaries
-                u = obj.grid.crop(u, 1);
+                u = obj.sim.grid.crop(u, 2);
             end
-            u = obj.Tr * squeeze(real(obj.cross_section(u)));
+            u = obj.Tr * squeeze(real(obj.cross_section(obj.sim.to_external(u))));
             if obj.imageplot
                 imagesc(obj.coord1, obj.coord2, u.');
                 xlabel(obj.label1);

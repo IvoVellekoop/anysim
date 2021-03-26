@@ -13,7 +13,7 @@ classdef DiagonalMedium < Medium
             obj.Tl = eye(4);
             obj.Tr = diag(scale);
             V = scale .* (V_raw - obj.centers); 
-            obj.G = grid.pad(data_array(1- V, opt), 1);
+            obj.G = grid.pad(data_array(1- V, opt), 2);
         end   
     end
     methods (Access=protected)

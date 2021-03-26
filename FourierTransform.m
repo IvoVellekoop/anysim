@@ -16,8 +16,8 @@ classdef FourierTransform
             opt = set_defaults(struct('real_signal', false), opt);
             obj.real_signal = opt.real_signal;
         end
-        function u = k2r(obj, u, state)  %#ok<INUSD,INUSL>
-            for d=2:ndims(u)
+        function u = k2r(obj, u, state)  %#ok<INUSD>
+            for d=3:ndims(u)
                 if size(u,d) > 1
                     u = ifft(u, [], d);
                 end
@@ -27,7 +27,7 @@ classdef FourierTransform
             end
         end
         function u = r2k(obj, u, state)  %#ok<INUSD,INUSL>
-            for d=2:ndims(u)
+            for d=3:ndims(u)
                 if size(u,d) > 1
                     u = fft(u, [], d);
                 end

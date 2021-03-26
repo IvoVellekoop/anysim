@@ -106,7 +106,18 @@ used to store diagnostics and debugging information.
 
 ## GridSim
 ### Data Storage
-All data is stored in 5-D arrays, with the first dimension corresponding to the elements of the vector data at each grid point (e. g. [I, Fx, Fy, Fz] for the diffusion equation). For scalar simulations, the first dimension must have size 1. The four other dimensions correspond to x,y,z,t, respectively.
+GridSim objects work with simulation data that can be represented on a
+regular grid. The data may be scalar, vector, or matrix-valued.
+
+Internally, all data is stored as a matrix field in an N-dimensional array 'u'.
+The first two dimensions of 'u' correspond to the size of a single value.
+For scalar simulations, these dimensions are [1,1]. For vector-valued
+data, the dimensions are [N_components,1], and for matrix-valued data
+they are [N, M]. Matrix-valued operators (G and V) follow the same data layout.
+
+When data is passed to the user (when returning from exec()), spurious
+dimensions are removed. So, a Nx x Ny scalar simulation will return a Nx x Ny
+array.
 
 Each dimension may have a different pixel pitch and unit, this metadata
 is stored in a SimGrid object.

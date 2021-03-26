@@ -7,8 +7,9 @@
 
 %% Set up simulation options
 opt = struct();                 % clear any previous options
-opt.N = [2048, 1, 1, 1];        % number of grid points in x,y,z,t 
+opt.N = [256, 1, 1, 1];         % number of grid points in x,y,z,t 
 opt.boundaries.periodic = true; % all boundaries periodic
+opt.pixel_size = {0.5 'um'};
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);
 

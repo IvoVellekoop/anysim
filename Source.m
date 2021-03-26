@@ -34,6 +34,8 @@ classdef Source
             % N = dimension of simulation grid
             %
             
+            validateattributes(position, {'numeric'}, {'positive', 'integer'});
+
             % extend position and size vectors to have length N_dims
             N_dims = length(N);
             position = [position(:); ones(N_dims-length(position), 1)];
