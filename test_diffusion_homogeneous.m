@@ -5,43 +5,32 @@
 % with absorption, and compares the result to the analytical solution
 %
 
-% Set up size of simulation domain and number of grid points in x,y,z,t 
-% dimensions.
-N = 2048;
-opt = struct(); % clear any previous options
-opt.pixel_size = {0.5 'um'};
-opt.N = [N, 1, 1, 1];
+%% Set up simulation options
+opt = struct();                 % clear any previous options
+opt.N = [2048, 1, 1, 1];        % number of grid points in x,y,z,t 
 opt.boundaries.periodic = true; % all boundaries periodic
-opt.gpu_enabled = false;
-opt.termination_condition.interval = 1;
-opt.termination_condition.relative_limit = 1E-12;
-%opt.termination_condition.absolute_limit = 0;%1E-12;
-%opt.termination_condition.iteration_count = 100;%1E-12;
-opt.callback.interval = 1;
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);
-opt.callback.show_convergence = true;
-opt.V_max = 0.95;
 
 %% Construct medium 
-a = 0.1; % absorption coefficient (1/um)
-D = 2; % diffusion coefficient
+a = 0.1;    % absorption coefficient [um^-1]
+D = 2;      % diffusion coefficient [um]
 
 sim = DiffuseSim(D, a, opt);
 
 %% Place a source in center and run simulation
-source = sim.define_source(ones(1,1,opt.N(2)), [4,ceil(N/2),1,1,1]);
+source = sim.define_source(ones(1,1,opt.N(2)), [4,ceil(opt.N(1)/2),1,1,1]);
 [u, state] = sim.exec(source);
 I = shiftdim(u(4,:), 1);
 
 %% Compute theoretical solution
 x = sim.coordinates(1);
-x = x - (ceil(N/2)-1) * (x(2)-x(1)); % shift coordinates relative to source
+x = x - (ceil(opt.N(1)/2)-1) * (x(2)-x(1)); % shift coordinates relative to source
 semilogy(x, I)
 hold on;
 
 mueff = sqrt(a/D);
-h = opt.pixel_size{1,1};
+h = sim.opt.pixel_size{1,1};
 hs = 1.0i * pi/h;
 
 % Analytical solution with sinc source.

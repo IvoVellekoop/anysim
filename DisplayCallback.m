@@ -1,15 +1,24 @@
 classdef DisplayCallback
-    %DISPLAYCALLBACK Callback for displaying the current value
-    %   of the solution. Options:
-    %   	CROSS_SECTION: vector with a number
+    %DISPLAYCALLBACK Callback for displaying the a cross section of
+    %   the current solution for a GridSim-based simulation
+    %   
+    %   Don't create an instance of this class directly, instead
+    %   specify it as a callback in the options passed to the Sim object.
+    %   For example: 
+    %     opt.callback = @DisplayCallback
+    %     opt.cross_section = @(u) u(3, :, end/2)
+    %     sim = DiffuseSim(D, a, opt)
     %
-    %   Example:
-    %   % Select this object as callback
-    %   opt.callback.handle = @DisplayCallback;
-    %
-    %   % Specify the cross section to show
-    %   % may return 1-D or 2-D data (resulting in line plot or image)
-    %   opt.callback.cross_section = [4, 0, 0.5]
+    %   Options:
+    %     cross_section    handle of function that crops 'u' to select the 
+    %                      data to display
+    %                      note: at the moment, cross_section can only crop
+    %                      'u' and should not perform any other processing
+    %                      such as scaling.
+    %     show_boundaries  when false (default), only shows the region of
+    %                      interest. When true, includes the boundaries.
+    %     show_convergence when true (default), shows a plot of ‖Δ𝜓‖^2 to
+    %                      monitor convergence
     %
     
     properties
@@ -32,7 +41,7 @@ classdef DisplayCallback
             % see example in class documentation.
             default.cross_section = @(u) u;
             default.show_boundaries = false;
-            default.show_convergence = false;
+            default.show_convergence = true;
             opt = set_defaults(default, opt);
             
             if ~isa(sim, 'GridSim')
@@ -43,15 +52,14 @@ classdef DisplayCallback
             obj.show_boundaries = opt.show_boundaries;
             obj.show_convergence = opt.show_convergence;
             
-            % find out which component the cross-section function is returning
+            %% find out which component the cross-section function is returning
             % and along which dimensions the data is cropped.
             % This is a bit of a hack!
             hack = zeros(sim.N) + (1:sim.N(1)).';
             hack = obj.cross_section(hack);
             obj.component = hack(1);
     
-            % find out in what dimensions the cross section was taken,
-            % and locate appropriate coordinates for plotting
+            %% find out in what dimensions the cross section was taken,
             dims = 0:length(sim.N);
             dims = dims(size(hack) > 1);
             if length(dims) > 2 || length(dims) < 1
@@ -63,6 +71,8 @@ classdef DisplayCallback
                 obj.imageplot = false;
                 dims(2) = dims(1);
             end
+            
+            %% Prepare labels and coordinates
             obj.label1 = sprintf("x [%s]", obj.grid.unit(dims(1)));
             obj.label2 = sprintf("y [%s]", obj.grid.unit(dims(2)));
             obj.coord1 = obj.grid.coordinates(dims(1));

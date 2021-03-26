@@ -8,7 +8,7 @@ classdef DiagonalMedium < Medium
             obj@Medium(V_raw, V_raw_min, grid, opt);
             
             %% Scale to have operator norm OPT.V_max
-            scale = opt.V_max./obj.radii;
+            scale = obj.V_max./obj.radii;
             obj.V0 = diag(obj.centers);
             obj.Tl = eye(4);
             obj.Tr = diag(scale);

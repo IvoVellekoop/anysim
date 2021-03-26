@@ -19,6 +19,7 @@ classdef Medium
         centers
         radii
         grid
+        V_max % maximum norm for scaled V
     end
     
     methods
@@ -49,8 +50,11 @@ classdef Medium
             %
             
             %% Set default options and validate input arguments
-            opt = set_defaults(struct('V_max', 0.95), opt);
+            defaults.V_max = 0.95;
+            opt = set_defaults(defaults, opt);
             validateattributes(opt.V_max, {'numeric'}, {'scalar', '>', 0, '<', 1}); 
+            obj.V_max = opt.V_max;
+
             sz = size(V_raw, 1+(1:grid.N_dim));
             if any(sz ~= grid.N_roi & sz ~= 1)
                 error('Incorrect size for potential array');

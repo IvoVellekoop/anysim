@@ -6,12 +6,14 @@ AnySim : root class implementing the Modified Born series iteration
  │
  └─ GridSim : base class for all simulations on a grid
      │
-     └─ DiffuseSim : solves the diffusion equation
+     ├─ DiffuseSim : solves the diffusion equation
+     └─ HelmholtzSim : solves the Helmholtz equation
 
-Classes that implement the Medium interface:
-   TensorMedium: (not implemented yet) associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
-   DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
-   ScalarMedium: not implemented yet
+Medium : root class implementing operator 1-G for grid-based potentials
+ │       also implements computation of centering & scaling matrices Tl Tr and V0
+ ├─ TensorMedium: associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
+ ├─ DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
+ └─ ScalarMedium: associates a scalar to each grid point
    
 Classes that implement the Transform interface:
    FourierTransform
@@ -19,6 +21,7 @@ Classes that implement the Transform interface:
 Helper classes:
    SimGrid
    DisplayCallback
+   TerminationCondition
    Source
    State
 ~~~

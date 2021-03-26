@@ -1,5 +1,5 @@
 %   Simple test of the DiffuseSim toolbox
-%   (c) 2019. Ivo Vellekoop
+%   (c) 2021. Ivo Vellekoop
 %
 
 % Note: in this simulation, all axes (including the time axis)
@@ -11,29 +11,20 @@
 
 % Set up size of simulation domain and number of grid points in x,y,z,t 
 % dimensions.
-N = 256;
 opt = struct(); % clear any previous options
 opt.pixel_size = {0.5 'um'};
-opt.N = [N, 128, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
+opt.N = [256, 128, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
 opt.boundaries.periodic = [false, true, true, true];
-opt.boundaries.width = 50;
-opt.boundaries.quality = 10;
-opt.gpu_enabled = false;
 opt.callback.handle = @DisplayCallback;
-opt.termination_criterion.interval = 1;
-%opt.callback.cross_section = @(u) u(4,:,ceil(end/2));
 opt.callback.cross_section = @(u) u(4,:,:);
-opt.callback.show_boundaries = true;
-opt.callback.show_convergence = true;
-opt.V_max = 0.95;
 
 %% Construct medium 
 % Layered medium with constant absorption and diffusion coefficients
 a = 0;%0.02;    % absorption coefficient (1/m)
 Dslab = 25;
-D = ones(N, 1, 1, 1) * Dslab;    % diffusion length (m)
+D = ones(opt.N(1), 1, 1, 1) * Dslab;    % diffusion length (m)
 zl = 20; % start of sample
-zr = N-20; % end of sample
+zr = opt.N(1)-20; % end of sample
 %z0 = 128-zl; % position of source relative to start of sample (transport length)
 z0 = 20;
 %z0 = zr-zl-15; % position of source relative to start of sample (transport length)
@@ -43,10 +34,8 @@ D((zr+1):end) = Inf;
 sim = DiffuseSim(D, a, opt);
 %clear mu_a D;
 
-%%
+%% Define source and run the simulation
 source = sim.define_source(ones(1,1,1), [4,zl+z0,ceil(opt.N(2))/2,1,1]); % intensity-only source (isotropic) at t=0
-%source = sim.define_source(ones(1,1,opt.N(2)), [4,zl+z0,1,1,1]); % intensity-only source (isotropic) at t=0
-
 u = sim.exec(source);
 
 %%
@@ -71,5 +60,5 @@ T = (ell+ze)/(L+2*ze);
 % theoretical maximum intensity (source amplitude = 1)
 Imaxth = opt.pixel_size{1,1}/Dslab * T * (L - ell + ze);
 
-I_th = interp1([zl-ze, zl+z0, zr+ze], [0, Imaxth,0], 1:N);
+I_th = interp1([zl-ze, zl+z0, zr+ze], [0, Imaxth,0], 1:opt.N(1));
 plot(z, I_th);

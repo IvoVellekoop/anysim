@@ -54,7 +54,12 @@ classdef SimGrid
                 boundaries.width = ~boundaries.periodic * boundaries.width;
             end
             if nargin > 2
-                validateattributes(pixel_size, {'cell'}, {});
+                if ~iscell(pixel_size)
+                    pixel_size = num2cell(pixel_size, 1);
+                    pixel_size(:,2) = {'-'};
+                else
+                    validateattributes(pixel_size, {'cell'}, {});
+                end
             else
                 pixel_size = {1, '-'};
             end

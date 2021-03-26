@@ -43,13 +43,15 @@ classdef DiffuseSim < GridSim
             %                   This option determines how the D array is
             %                   interpreted (see above)
             %   .pixel_size     Grid spacing, specified as, for example
-            %                   [5 'um', 10 'um', 5 'um']. 
+            %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
             %
             %   todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
             %% Set defaults
             opt.real_signal = true;
+            defaults.pixel_size = {1, '-'};
+            opt = set_defaults(defaults, opt);
             
             %% Construct base class
             obj = obj@GridSim(4, opt); 
