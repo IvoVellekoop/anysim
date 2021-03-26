@@ -81,10 +81,12 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
   %
   % iter: A scalar indicating the number of completed iterations.
   %
-  % resvec: A column vector with relative residual after each iteration, or
-  %    an nd-array of column vectors when the right-hand side is an
-  %    nd-array.
+  % resvec: A column vector with the absolute residuals after each iteration, or
+  %    an nd-array of column vectors when the right-hand side is an nd-array.
   %
+  
+  asymptotic_stop_criterion_enabled = false;  % Allow it to activate. TODO: fix
+  asymptotic_stop_criterion_active = false;  % Start inactive until condition is met
   
   % Default input arguments
   test_vector_length = 1000;
@@ -130,36 +132,36 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
   end
   
   problem_shape = size(b);
-  if any(norm2(b) < eps(class(b)))
-    error('The right hand side (b) contains a vector with a norm close to zero.');
+  
+  function n = norm_single(x)
+    n = norm(x);
   end
-    
-  % Define a function that calculates the relative norm column-by-column
-  function n = rel_norm_single(dx, x)
-    n = norm(dx) ./ norm(x);
-  end
-  function n = rel_norm_generic(dx, x)  % This can be significantly (>10%) slower
+  function n = norm_generic(x)  % This can be significantly (>10%) slower
     n = zeros(1, problem_shape(2));
     for problem_idx = [1:problem_shape(2)]
-      n(problem_idx) = norm(dx(:, problem_idx)) ./ norm(x(:, problem_idx));
+      n(problem_idx) = norm(x(:, problem_idx));
     end
   end
   if problem_shape(2) == 1
-      rel_norm = @rel_norm_single;
+      column_norm = @norm_single;
   else
-      rel_norm = @rel_norm_generic;
+      column_norm = @norm_generic;
   end
-
+  
+  if any(column_norm(b).^2 < eps(class(b)))
+    error('The right hand side (b) contains a vector with a norm close to zero.');
+  end
+    
   % If possible, avoid initial multiplications with 0
   if all(x0(:) == 0)
     % Short-cut the first iteration
     x = ImV(LpIinv(b));
-    relres = 1;
+    residue = column_norm(x);
     iter = 1;
   else
     x = x0;
     clear x0;
-    relres = Inf;
+    residue = Inf;
     iter = 0;
   end
   
@@ -179,67 +181,87 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
   end
   
   % Initialize iteration
-  dx = [];
   norm_dx = [];
   resvec = zeros([0, problem_shape(2:end)]);
   cont = true;
   while cont  % continue until the callback says otherwise
-%     prev_dx = dx;  % Only needed for the asymptotic stop criterion below
     % Calculate the correction dx = Gamma(1-V)x - (1-V)x + Gamma b
     dx = ImV(LpIinv(ImV(x) + b) - x);  % Gamma((1-V)x + b) - (1-V)x
     % Update solution  x = Gamma(V-1)x + Vx - Gamma b
     x = x + dx;  % Do not deallocate dx and temporary variable, we will recycle the allocated memory in the next loop
     iter = iter + 1;
+    relres = [];
+    norm_x = [];
     
     % Convergence check and feedback
-    previous_relres = relres;
-    relres = rel_norm(dx, x);
+    previous_residue = residue;
     
-%    % Asymptotic stop criterion
-%    % Insufficiently accurate at early iterations?
-%     norm_prev_dx = norm_dx;
-%     norm_dx = sqrt(norm2(dx));
-%     if ~isempty(norm_prev_dx)
-%         estimate_eig_M = norm_dx ./ norm_prev_dx;
-%         % norm_x = sqrt(norm2(x));
-%         % angle_between_update_and_solution = acos(abs(sum(conj(dx) .* x, 1)) ./ (norm_dx .* norm_x));
-%         angle_between_updates = acos(abs(sum(conj(dx) .* prev_dx, 1)) ./ (norm_dx .* norm_prev_dx));
-%         % logMessage('%0.1f degrees between update and solution. %0.1f degrees between current update and previous update.', [angle_between_update_and_solution, angle_between_updates] .* 180 ./ pi);
-%         estimate_residue = estimate_eig_M .* (1 - estimate_eig_M) .* norm_dx;
-%         norm_x = sqrt(norm2(x));
-%         relres_actual = estimate_residue ./ norm_x;
-%         % logMessage('Estimate of |E_M| = %0.6f, residue = %0.3e, relative residue = %0.3e', [estimate_eig_M, estimate_residue, relres]);
-%         if all(angle_between_updates < 0.1)
-%             % logMessage('Using asymptotic stop criterion.');
-%             relres = relres_actual;
-%         end
-%     end
-    
-    if nargout >= 5 
-      resvec(end+1, :) = relres(:, :);
+   % Asymptotic stop criterion
+   % Insufficiently accurate at early iterations?
+    norm_prev_dx = norm_dx;
+    norm_dx = column_norm(dx);
+    residue = norm_dx;  % Simple stop criterion
+    if asymptotic_stop_criterion_enabled
+      if ~isempty(norm_prev_dx)
+        norm_x = column_norm(x);
+        estimate_eig_M = norm_dx ./ norm_prev_dx;
+        if ~asymptotic_stop_criterion_active
+%           inner_product_update_and_solution = abs(dot(dx, x, 1));
+          % angle_between_update_and_solution = acos(inner_product_update_and_solution ./ (norm_dx .* norm_x));
+          inner_product_between_updates = abs(dot(dx, prev_dx, 1));
+          % angle_between_updates = acos(inner_product_between_updates ./ (norm_dx .* norm_prev_dx));            
+%           if all(inner_product_update_and_solution < 0.01 .* norm_dx .* norm_x)
+          if all(inner_product_between_updates > 0.9 .* norm_dx .* norm_prev_dx)
+            asymptotic_stop_criterion_active = true;
+            % logMessage('Estimate of |E_M| = %0.6f, residue = %0.3e, relative residue = %0.3e', [estimate_eig_M, estimate_residue, relres]);
+          end
+        end
+        if asymptotic_stop_criterion_active
+          residue = norm_dx ./ (estimate_eig_M.^-1 - 1);
+        end
+      end
+      prev_dx = dx;  % Only needed for the angle calculation above
     end
-    % Call callback function without redundant arguments
-    switch nargin(callback)
-      case 0
-        cont = callback();
-      case 1
-        cont = callback(iter);
-      case 2
-        cont = callback(iter, relres);
-      case 3
-        cont = callback(iter, relres, x);
-      otherwise
-        cont = callback(iter, relres, x, dx);
-    end  % switch
-    % Override callback when divergence detected
-    if any(relres > previous_relres)
+    
+    if nargout >= 5  % If requested, store all the residuals
+      resvec(end+1, :) = residue(:, :);
+    end
+    if all(residue <= previous_residue)
+        % Call callback function without redundant arguments
+        callback_args = {};
+        if nargin(callback) >= 1
+            callback_args{end+1} = iter;
+        end
+        if nargin(callback) >= 2
+            if isempty(norm_x)
+                norm_x = column_norm(x);
+            end
+            relres = residue ./ norm_x;
+            callback_args{end+1} = relres;
+        end
+        if nargin(callback) >= 3
+            callback_args{end+1} = x;
+        end
+        if nargin(callback) >= 4
+            callback_args{end+1} = dx;
+        end
+        cont = callback(callback_args{:});
+    else
+      % Override callback result when divergence detected
       warning('Divergence detected, either V is not a contraction, or the real part of (L+V) is not positive definite!');
       cont = false;
     end
   end  % while
   
+  if nargout >= 3 && isempty(relres)
+    if isempty(norm_x)
+      norm_x = column_norm(x);
+    end
+    relres = residue ./ norm_x;
+  end
+  
   % Report convergence as with other Matlab functions
-  if any(relres > previous_relres)
+  if any(residue > previous_residue)
     flag = 2;  % divergence detected
   elseif any(relres > tol)
     flag = 1;  % did not converge to tolerance before the maximum number of iterations reached
@@ -247,16 +269,4 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
     flag = 0;  % converged to tolerance
   end
   
-  % The resvec return argument contains absolute residues
-  if nargout >= 5 
-    resvec = resvec .* sqrt(norm2(x));
-  end
-  
 end  % function
-
-function n2 = norm2(x)
-  %
-  % Calculate the square of the l2-vector norm in parallel for all columns
-  %
-  n2 = sum(abs(x).^2, 1);
-end

@@ -56,9 +56,9 @@ function exampleScalar()
   axis equal tight;
   linkaxes(axs);
   % This function is called after every iteration
-  function display_function(it_idx, rms_error, E)
+  function display_function(it_idx, relres, E)
     if ~isempty(it_idx)
-      message = logMessage('Iteration %d: %0.3f%%', [it_idx, rms_error*100]);
+      message = logMessage('Iteration %d: %0.3f%%', [it_idx, relres*100]);
       set(gcf, 'Name', message);
     end
 
@@ -67,15 +67,15 @@ function exampleScalar()
     drawnow();
   end
   % This function is called after every iteration
-  function cont = progress_function(it_idx, residue, E)
+  function cont = progress_function(it_idx, relres, E)
     % Convert vector to array as necessary
     E = reshape(E, data_shape);
     
-    if mod(it_idx, 1000) == 0
-      display_function(it_idx, residue, E)
+    if mod(it_idx, 10) == 0
+      display_function(it_idx, relres, E)
     end
     
-    cont = residue > 1e-4 && it_idx < 500;  % Decides when to stop the iteration
+    cont = relres > 1e-4 && it_idx < 500;  % Decides when to stop the iteration
   end
 
   %
