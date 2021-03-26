@@ -32,33 +32,6 @@ classdef GridSim < AnySim
             obj.N = [N_components obj.grid.N];
         end
         
-        % Constructs the medium operator from the potential matrix Vraw
-        % The meaning of Vraw depends on opt.potential_type:
-        %   "scalar", Vraw has size N (after singleton dimension expansion)
-        %   "diagonal", Vraw has size N_components x N. The components are
-        %               elements of a diagonal matrix.
-        %   "tensor", Vraw has size N_components x N_components x N.
-        %               So, for each grid point we have a full matrix.
-        %
-        function medium = makeMedium(obj, Vraw)
-            Nc = obj.N(1);
-            % compute the current maximum value of V (before scaling),
-            if obj.opt.potential_type == "tensor"
-                Vmax = max(Vraw, [], 3:ndims(Vraw));
-                Vmin = obj.analyzeDimensions(Vmax);
-                validateattributes(Vraw, {'numeric'}, {'nrows', Nc, 'ncols', Nc});
-                medium = TensorMedium(Vraw, Vmin, obj.grid, obj.opt);
-            elseif obj.opt.potential_type == "diagonal"
-                Vmax = max(Vraw, [], 2:ndims(Vraw));
-                Vmin = obj.analyzeDimensions(Vmax);
-                medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
-            elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
-                Vmax = max(Vraw(:));
-                Vmin = obj.analyzeDimensions(Vmax);
-                medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
-            end
-        end
-        
         function S = define_source(obj, values, position)
             % SIM.DEFINE_SOURCE(VALUES, POSITION) Defines a source
             % with values specified in the VALUES array, and located
@@ -99,7 +72,34 @@ classdef GridSim < AnySim
             S = Source(values, pos, obj.N);
         end
     end
-    methods (Access=protected)
+    
+    methods (Access = protected)
+        % Constructs the medium operator from the potential matrix Vraw
+        % The meaning of Vraw depends on opt.potential_type:
+        %   "scalar", Vraw has size N (after singleton dimension expansion)
+        %   "diagonal", Vraw has size N_components x N. The components are
+        %               elements of a diagonal matrix.
+        %   "tensor", Vraw has size N_components x N_components x N.
+        %               So, for each grid point we have a full matrix.
+        %
+        function medium = makeMedium(obj, Vraw)
+            Nc = obj.N(1);
+            % compute the current maximum value of V (before scaling),
+            if obj.opt.potential_type == "tensor"
+                Vmax = max(Vraw, [], 3:ndims(Vraw));
+                Vmin = obj.analyzeDimensions(Vmax);
+                validateattributes(Vraw, {'numeric'}, {'nrows', Nc, 'ncols', Nc});
+                medium = TensorMedium(Vraw, Vmin, obj.grid, obj.opt);
+            elseif obj.opt.potential_type == "diagonal"
+                Vmax = max(Vraw, [], 2:ndims(Vraw));
+                Vmin = obj.analyzeDimensions(Vmax);
+                medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
+            elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
+                Vmax = max(Vraw(:));
+                Vmin = obj.analyzeDimensions(Vmax);
+                medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
+            end
+        end
         function [u, state] = start(obj)
             u = zero_array(obj.N, obj.opt);
             state = State(obj, obj.opt);
@@ -108,5 +108,14 @@ classdef GridSim < AnySim
             u = obj.grid.crop(u, 1);
             u = pagemtimes(obj.medium.Tr, u);
         end
+    end
+    methods (Abstract, Access = protected)
+        Vmin = analyzeDimensions(obj, Vmax)
+        % Analyzes the dimensions and spacings of the simulation
+        % grid. Issues a warning if the grid spacing is larger
+        % than the size of the smallest features.
+        % Also computes a minimum value for the scattering potential
+        % to ensure that the Green's function does not extend beyond
+        % the size of the simulation window.
     end
 end

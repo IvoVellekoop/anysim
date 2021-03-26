@@ -7,16 +7,20 @@
 
 % Set up size of simulation domain and number of grid points in x,y,z,t 
 % dimensions.
-N = 256;
+N = 2048;
 opt = struct(); % clear any previous options
 opt.pixel_size = {0.5 'um'};
 opt.N = [N, 1, 1, 1];
 opt.boundaries.periodic = true; % all boundaries periodic
 opt.gpu_enabled = false;
+opt.termination_condition.interval = 1;
 opt.termination_condition.relative_limit = 1E-12;
-opt.callback.interval = 10;
+%opt.termination_condition.absolute_limit = 0;%1E-12;
+%opt.termination_condition.iteration_count = 100;%1E-12;
+opt.callback.interval = 1;
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);
+opt.callback.show_convergence = true;
 opt.V_max = 0.95;
 
 %% Construct medium 
