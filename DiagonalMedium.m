@@ -10,7 +10,7 @@ classdef DiagonalMedium < Medium
             %% Scale to have operator norm OPT.V_max
             scale = obj.V_max./obj.radii;
             obj.V0 = diag(obj.centers);
-            obj.Tl = eye(4);
+            obj.Tl = eye(length(scale));
             obj.Tr = diag(scale);
             V = scale .* (V_raw - obj.centers); 
             obj.G = grid.pad(data_array(1- V, opt), 2);

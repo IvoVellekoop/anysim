@@ -61,7 +61,7 @@ classdef DisplayCallback
             obj.component = hack(1);
     
             %% find out in what dimensions the cross section was taken,
-            dims = 0:length(sim.N);
+            dims = 1:length(sim.N);
             dims = dims(size(hack) > 1);
             if length(dims) > 2 || length(dims) < 1
                 error('DisplayCallback: Cross section must be 1 or 2 dimensional');
