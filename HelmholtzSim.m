@@ -12,11 +12,12 @@ classdef HelmholtzSim < GridSim
             % with the specified refractive index N.
             %
             % Options:
-            % OPT.wavelength    wavelength. (default 1).
             % OPT.pixel_size    pixel pitch, may be different in different
             %                   dimensions (not recommended).
-            %                   Recommended: set actual SI units.
-            %                   (default 0.25)
+            %                   Recommended: set actual SI units ( e.g.
+            %                   0.25 'μm' )
+            %                   (default 0.25 [-])
+            % OPT.wavelength    wavelength. (default 1).
             % OPT.N             Number of pixels in the simulation.
             %                   (defaults to size(N), no need to set
             %                   explictly unless using singleton expansion)
@@ -36,9 +37,8 @@ classdef HelmholtzSim < GridSim
             obj = obj@GridSim([], opt); 
             
             %% Construct components: operators for medium, propagator and transform
-            obj.medium  = obj.makeMedium(n * 1i * (2*pi / opt.wavelength)^2);
-            obj.medium.Tl = obj.medium.Tl * 1i;
- %           obj.medium.Tr = obj.medium.Tr * -1;
+            obj.medium  = obj.makeMedium(1i * (n * 2*pi / opt.wavelength).^2);
+            obj.medium.Tl = obj.medium.Tl * 1i; % rotate source. Todo: sign??
             obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();
         end
@@ -56,7 +56,7 @@ classdef HelmholtzSim < GridSim
             
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
 %            Lr = obj.to_internal((1 + Tl*Tr*V0 - 1i*Tl*Tr*Lr).^(-1));
-            Lr = obj.to_internal((1 + 1i * Tl*Tr*V0 + Tl*Tr*Lr).^(-1));
+            Lr = obj.to_internal((1 + Tl*Tr*(Lr + 1.0i * V0)).^(-1));
             
             % point-wise multiplication
             propagator.apply = @(u, state) Lr .* u;
@@ -64,6 +64,9 @@ classdef HelmholtzSim < GridSim
     end
     methods (Access=protected)
         function Vmin = analyzeDimensions(obj, Vmax)
+            
+            %% The Green's function [L+1]^-1 decays exponentially
+            %% with a decay coefficient of 
             Vmin = 1
         end
     end
