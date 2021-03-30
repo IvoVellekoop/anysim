@@ -13,7 +13,7 @@ opt.callback.show_boundaries = true;
 opt.pixel_size = {0.1 "wavelengths"};
 
 %% create an AnySim object for a homogeneous sample
-n = 1; % refractive idex
+n = 0.9; % refractive idex
 sim = HelmholtzSim(n, opt);
 
 %% Define source and run the simulation
@@ -21,7 +21,7 @@ source = sim.define_source(ones(1,opt.N(2),1)); % intensity-only source (isotrop
 [E, state] = sim.exec(source);
 
 %% calculate exact solution analytically
-k = 2*pi/sim.opt.wavelength;
+k = n*2*pi/sim.opt.wavelength;
 x = abs(sim.coordinates(1));
 h = sim.grid.pixel_size(1);
 % To determine peak value at x=0, realize that Ei(x) ~ ln(x) for x close to

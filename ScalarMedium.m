@@ -8,9 +8,9 @@ classdef ScalarMedium < Medium
             
             %% Scale to have operator norm OPT.V_max
             scale = obj.V_max/obj.radii;
-            obj.V0 = obj.centers;
             obj.Tl = 1;
             obj.Tr = scale;
+            obj.V0 = obj.centers;
             V = scale * (V_raw - obj.centers); 
             obj.G = grid.pad(data_array(1 - V, opt), 2);
         end   

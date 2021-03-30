@@ -127,13 +127,12 @@ classdef DiffuseSim < GridSim
             
             % L' + 1 = Tl (L+V0) Tr + 1
             % simplified to: L' = Tl L Tr + Tl V0 Tr + 1
-            Lr = pagemtimes(pagemtimes(Tl, Lr), Tr);
-            Lr = Lr + Tl * V0 * Tr + eye(4);            
-            
+            Lr = pagemtimes(pagemtimes(Tl, Lr + V0), Tr);
+                        
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian to avoid
             % artefacts when N is even
-            Lr = pageminv(Lr);
+            Lr = pageminv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6); 
             
             % the propagator just performs a
