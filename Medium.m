@@ -19,6 +19,7 @@ classdef Medium
         centers
         radii
         grid
+        V_max % maximum norm for scaled V
     end
     
     methods
@@ -49,9 +50,12 @@ classdef Medium
             %
             
             %% Set default options and validate input arguments
-            opt = set_defaults(struct('V_max', 0.95), opt);
+            defaults.V_max = 0.95;
+            opt = set_defaults(defaults, opt);
             validateattributes(opt.V_max, {'numeric'}, {'scalar', '>', 0, '<', 1}); 
-            sz = size(V_raw, 1+(1:grid.N_dim));
+            obj.V_max = opt.V_max;
+
+            sz = size(V_raw, 2+(1:grid.N_dim));
             if any(sz ~= grid.N_roi & sz ~= 1)
                 error('Incorrect size for potential array');
             end
@@ -62,11 +66,14 @@ classdef Medium
             % tensor potentials, but not necessarily optimal for full
             % tensor fields.
             % Note that at the moment only real elements are supported!!!
-            Nc = size(V_raw, 1);
-            centers = zeros(Nc, 1);
-            radii = zeros(Nc, 1);
-            for r=1:Nc
-                [centers(r), radii(r)] = smallest_circle(V_raw(r, :));
+            N = size(V_raw, 1);
+            M = size(V_raw, 2);
+            centers = zeros(N, M);
+            radii = zeros(N, M);
+            for n=1:N
+                for m=1:M
+                    [centers(n,m), radii(n,m)] = smallest_circle(V_raw(n, m, :));
+                end
             end
             obj.centers = centers;
             
@@ -100,7 +107,7 @@ classdef Medium
             %u = u + obj.G .* (uprop - u);
             uprop = obj.multiplyG(uprop - u);
             if state.needs_report % checks termination condition
-                M = norm(reshape(obj.grid.crop(uprop, 1), 1, []))^2;
+                M = norm(reshape(obj.grid.crop(uprop, 2), 1, []))^2;
                 state.report_diff(M);
             end
             u = u + uprop;

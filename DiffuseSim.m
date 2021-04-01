@@ -43,13 +43,15 @@ classdef DiffuseSim < GridSim
             %                   This option determines how the D array is
             %                   interpreted (see above)
             %   .pixel_size     Grid spacing, specified as, for example
-            %                   [5 'um', 10 'um', 5 'um']. 
+            %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
             %
             %   todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
             %% Set defaults
             opt.real_signal = true;
+            defaults.pixel_size = {1, '-'};
+            opt = set_defaults(defaults, opt);
             
             %% Construct base class
             obj = obj@GridSim(4, opt); 
@@ -125,20 +127,17 @@ classdef DiffuseSim < GridSim
             
             % L' + 1 = Tl (L+V0) Tr + 1
             % simplified to: L' = Tl L Tr + Tl V0 Tr + 1
-            Lr = pagemtimes(pagemtimes(Tl, Lr), Tr);
-            Lr = Lr + Tl * V0 * Tr + eye(4);            
-            
+            Lr = pagemtimes(pagemtimes(Tl, Lr + V0), Tr);
+                        
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian to avoid
             % artefacts when N is even
-            Lr = pageminv(Lr);
+            Lr = pageminv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6); 
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication
-            propagator.apply = @(u, state) permute(...
-                pagemtimes(Lr, permute(u, [1,6,2,3,4,5])),...
-                [1,3,4,5,6,2]);
+            propagator.apply = @(u, state) pagemtimes(Lr, u);
         end
         
         function Vmin = analyzeDimensions(obj, Vmax)

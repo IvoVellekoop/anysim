@@ -13,14 +13,23 @@ classdef GridSim < AnySim
     %
     %   (c) 2019. Ivo Vellekoop
     properties
-       grid     % simulation grid
-       N        % dimensions of data array
+       grid      % simulation grid
+       N         % dimensions of data array + 2 leading dimensions for components (if N_components > 0)
+       value_dim % dimensionality of values stored at each grid point
+                 % 0 = scalar
+                 % 1 = vector
+                 % 2 = matrix                 
     end
     methods
         function obj = GridSim(N_components, opt)
         % grid = SimGrid object containing grid spacings and dimensions
         % N_components = length of data vector stored at each grid point
-        % opt = options
+        %                [] for scalar simulations. [N] for vector,
+        %                [N,M] for matrix.
+        % required options: 
+        %   opt.N
+        %   opt.pixel_size
+        %
             defaults.boundaries.periodic = "auto";
             defaults.boundaries.extend = true;
             defaults.boundaries.width = 32;
@@ -29,47 +38,90 @@ classdef GridSim < AnySim
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
             obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size);
-            obj.N = [N_components obj.grid.N];
+            obj.value_dim = length(N_components);
+            value_dims = [N_components, 1, 1];
+            obj.N = [value_dims(1:2), obj.grid.N];
         end
         
         function S = define_source(obj, values, position)
             % SIM.DEFINE_SOURCE(VALUES, POSITION) Defines a source
             % with values specified in the VALUES array, and located
             % at POSITION (in grid points). 
-            % The first element of POSITION specifies at what
-            % component of the vector data the source is placed.
+            % For vector simulations, the first element of POSITION
+            % specifies at what component of the vector data the source
+            % is placed. For inherently scalar simulations (e.g.
+            % Helmholtz), the POSITION vector just specifies coordinates
+            % (e.g. x,y,z,t)
+            % 
             % For example, to define an Ez-polarized light source
             % at location 10,10,10, in solving 3-D Maxwell's equations,
             % we'd write
             %   sim.define_source(1, [3, 10, 10, 10])
-            % For scalar simulations, the first element should be 1.
             %
             % Effectively, the data is stored at location
             % source(position(1) + (1:size(values,1)),
             %        position(2) + (1:size(values,2)),
             %        position(3) + (1:size(values,3)), etc.) = values
             %
-            
-            % scales the source values by -Tl
-            validateattributes(position, {'numeric'}, {'positive', 'integer'});
-            source_components = position(1)-1 + (1:size(values, 1)); 
-            if source_components(end) > obj.N(1)
-                error('Invalid position for source. Note: dimension should be N_components * Nx * Ny * Nz * Nt');
+            if nargin < 3
+                position = ones(1, length(obj.N));
+            else
+                position = [ones(1, obj.value_dim) position];
+                if obj.value_dim == 1
+                    position(1) = position(2);
+                    position(2) = 1;
+                end
             end
+            values = obj.to_internal(values);
             
-            % compute Tl * source
-            if ~isdiag(obj.medium.Tl)
-                error('only works for diagonal matrices!');
+            % scale source with matrix Tl. If only values for
+            % part of the components were specified, make sure
+            % to use the correct part of the matrix!
+            if ~isdiag(obj.medium.Tl) || obj.value_dim == 2
+                error('only works for diagonal matrices at the moment!');
+            end
+            source_components = position(1)-1+(1:size(values,1));
+            if source_components(end) > obj.N(1)
+                error("Specified more source components than possible");
             end
             scale = obj.medium.Tl(source_components, source_components);
             values = pagemtimes(scale, values);
-            
+                
             % translates the source to account for the boundaries in the grid
             % gives error if the source is completely outside the grid
             % todo: warn if source overlaps boundaries?
-            pos = [position(1) obj.grid.roi2full(position(2:end))];
-            
-            S = Source(values, pos, obj.N);
+            position = [position(1:2) obj.grid.roi2full(position(3:end))];
+            S = Source(values, position, obj.N);
+        end
+        function u = to_internal(obj, u)
+            % convert u from external to internal representation
+            % scalar:   internal:   [1  1  Nx Ny ...]
+            %           external:   [Nx Ny ...]
+            % vector:   internal:   [Nc 1  Nx Ny ...]
+            %           external:   [Nc Nx Ny ...]
+            % matrix:   internal:   [Nn Nm Nx Ny ...]
+            %           external:   [Nn Nm Nx Ny ...]
+            if obj.value_dim == 0
+                u = shiftdim(u, -2);
+            elseif obj.value_dim == 1
+                sz = size(u);
+                u = reshape(u, [sz(1), 1, sz(2:end)]);
+            end                
+        end
+        function u = to_external(obj, u)
+            % convert u from external to internal representation
+            % scalar:   internal:   [1  1  Nx Ny ...]
+            %           external:   [Nx Ny ...]
+            % vector:   internal:   [Nc 1  Nx Ny ...]
+            %           external:   [Nc Nx Ny ...]
+            % matrix:   internal:   [Nn Nm Nx Ny ...]
+            %           external:   [Nn Nm Nx Ny ...]
+            if obj.value_dim == 0
+                u = shiftdim(u, 2);
+            elseif obj.value_dim == 1
+                sz = size(u);
+                u = reshape(u, [sz(1), sz(3:end)]);
+            end                
         end
     end
     
@@ -84,19 +136,19 @@ classdef GridSim < AnySim
         %
         function medium = makeMedium(obj, Vraw)
             Nc = obj.N(1);
+            % convert to internal representation (with trailing 1
+            % dimensions for scalar)
+            Vraw = obj.to_internal(Vraw);
+            Vmax = max(Vraw, [], 3:max(ndims(Vraw), 3));
+            Vmin = obj.analyzeDimensions(Vmax);
+                
             % compute the current maximum value of V (before scaling),
             if obj.opt.potential_type == "tensor"
-                Vmax = max(Vraw, [], 3:ndims(Vraw));
-                Vmin = obj.analyzeDimensions(Vmax);
                 validateattributes(Vraw, {'numeric'}, {'nrows', Nc, 'ncols', Nc});
                 medium = TensorMedium(Vraw, Vmin, obj.grid, obj.opt);
             elseif obj.opt.potential_type == "diagonal"
-                Vmax = max(Vraw, [], 2:ndims(Vraw));
-                Vmin = obj.analyzeDimensions(Vmax);
                 medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
             elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
-                Vmax = max(Vraw(:));
-                Vmin = obj.analyzeDimensions(Vmax);
                 medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
             end
         end
@@ -105,8 +157,9 @@ classdef GridSim < AnySim
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
-            u = obj.grid.crop(u, 1);
+            u = obj.grid.crop(u, 2);
             u = pagemtimes(obj.medium.Tr, u);
+            u = obj.to_external(u); %remove spurious dimensions
         end
     end
     methods (Abstract, Access = protected)
