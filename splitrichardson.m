@@ -248,7 +248,7 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
         cont = callback(callback_args{:});
     else
       % Override callback result when divergence detected
-      warning('Divergence detected, either V is not a contraction, or the real part of (L+V) is not positive definite!');
+%       warning('Divergence detected, either V is not a contraction, or the real part of (L+V) is not positive definite!');
       cont = false;
     end
   end  % while
@@ -267,6 +267,9 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
     flag = 1;  % did not converge to tolerance before the maximum number of iterations reached
   else
     flag = 0;  % converged to tolerance
+  end
+  if nargout <= 1 && flag ~= 0
+      warning(sprintf('Input argument tol may not be achievable by splitrichardson.\n         Try to use a bigger tolerance.'));
   end
   
 end  % function
