@@ -173,7 +173,10 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
     if display_progress && mod(iter, 100) == 0
       fprintf('Iteration %d: error %0.6f%%.\n', [iter, 100*mean(relres(:))]);
     end
-    cont = iter < maxit && any(relres(:) > tol);
+    cont = iter < maxit;
+    if cont && tol > 0
+        cont = any(relres(:) > tol);
+    end
   end
   if isempty(callback)
     % Define the callback

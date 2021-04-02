@@ -1,23 +1,16 @@
-function compareSplitRichardson()
+function compareSplitRichardson(nb_vars)
     close all;
-    
-    sizes = [32, 128, 256, 512, 1024, 2048, 4096, 2^16, 2^20];
-%     sizes = [2^20];
-    sizes = [2^10];
-    
-    for size_idx = 1:numel(sizes)
-        analyze(sizes(size_idx));
+    if nargin < 1
+        nb_vars = 2^20;
     end
-end
-
-function analyze(nb_vars)
+    
     rng = RandStream('mt19937ar', 'Seed', 1);
     
     nb_vectors = min(nb_vars, 10);
-    nb_trials = 10;
-    maxit = 1e3;
-    tol = 1e-6;
-    restarts = [];  %min(10, nb_vars);
+    nb_trials = 100;
+    maxit = 10;
+    tol = eps('single');  % Smaller than achievable
+    restarts = [];  %min(10, nb_vars);  %default for gmres
     
     function result = rand_vec()
         result = (rng.randn(nb_vars, 1) + 1i * rng.randn(nb_vars, 1)) ./ sqrt(2);
@@ -128,8 +121,9 @@ function analyze(nb_vars)
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
             tic();
-            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, tol, maxit, [], ...
-                @(iter, relres, x, dx) generic_callback(iter, relres, x, dx, L_diag, V_diag, V_max, b, tol*norm_b));
+%             [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, tol, maxit, [], ...
+%                 @(iter, relres, x, dx) generic_callback(iter, relres, x, dx, L_diag, V_diag, V_max, b, tol*norm_b));
+            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, 0, 4*maxit);
             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
             times(trial_idx, vector_idx, plot_idx) = toc();
             psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
@@ -179,6 +173,7 @@ function analyze(nb_vars)
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
             tic();
+            warning('off', 'MATLAB:bicgstab:tooSmallTolerance')
             [psi, flag, relres, iter] = bicgstab(H_func, b, tol, min(maxit, nb_vars), prec_inv_func);
             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
             times(trial_idx, vector_idx, plot_idx) = toc();
@@ -271,9 +266,9 @@ function analyze(nb_vars)
     axs(3) = subplot(2, 4, 3);
     plot_hist(times);
     xlabel('t  [s]'); ylabel('#');
-    axs(4) = subplot(2, 4, 4);
-    plot_hist(evaluations(:,:,1) + cat(2, zeros(size(evaluations, 1), 1, 1), evaluations(:,2:end,2)), true);
-    xlabel('convs - criterion checks'); ylabel('#');
+%     axs(4) = subplot(2, 4, 4);
+%     plot_hist(evaluations(:,:,1) + 0*cat(2, zeros(size(evaluations, 1), 1, 1), evaluations(:,2:end,2)), true);
+%     xlabel('convs - criterion checks'); ylabel('#');
     axs(5) = subplot(2, 4, 5);
     plot_hist(evaluations(:,:,1), true);
     xlabel('H evals'); ylabel('#');
