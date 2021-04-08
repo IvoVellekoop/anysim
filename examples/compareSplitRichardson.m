@@ -1,23 +1,16 @@
-function compareSplitRichardson()
+function compareSplitRichardson(nb_vars)
     close all;
-    
-    sizes = [32, 128, 256, 512, 1024, 2048, 4096, 2^16, 2^20];
-%     sizes = [2^20];
-%     sizes = [2^10];
-    
-    for size_idx = 1:numel(sizes)
-        analyze(sizes(size_idx));
+    if nargin < 1
+        nb_vars = 2^20;
     end
-end
-
-function analyze(nb_vars)
+    
     rng = RandStream('mt19937ar', 'Seed', 1);
     
     nb_vectors = min(nb_vars, 10);
     nb_trials = 100;
-    maxit = 1e4;
-    tol = 1e-14;
-    restarts = [];  %min(10, nb_vars);
+    maxit = 10;
+    tol = eps('single');  % Smaller than achievable
+    restarts = [];  %min(10, nb_vars);  %default for gmres
     
     function result = rand_vec()
         result = (rng.randn(nb_vars, 1) + 1i * rng.randn(nb_vars, 1)) ./ sqrt(2);
@@ -49,13 +42,13 @@ function analyze(nb_vars)
         cont = mod(iter+1, 1) > 0 || norm(H_func_counter(x, H_diag, V_diag, V_max) - b) >= tol_x_b;
     end
     
-    nb_algorithms = 7;
+    max_nb_algorithms = 7;
     
-    psi_err = NaN(nb_trials, nb_vectors, nb_algorithms);
-    psi_rhs_err = NaN(nb_trials, nb_vectors, nb_algorithms);
-    times = NaN(nb_trials, nb_vectors, nb_algorithms);
-    evaluations = NaN(nb_trials, nb_vectors, nb_algorithms, numel(evals));
-    leg = {};
+    psi_err = NaN(nb_trials, nb_vectors, max_nb_algorithms);
+    psi_rhs_err = NaN(nb_trials, nb_vectors, max_nb_algorithms);
+    times = NaN(nb_trials, nb_vectors, max_nb_algorithms);
+    evaluations = NaN(nb_trials, nb_vectors, max_nb_algorithms, numel(evals));
+    legends = {};
     for trial_idx = 1:nb_trials
         logMessage('Trial %d/%d for %dx%d with %d random vectors...', [trial_idx, nb_trials, nb_vars, nb_vars, nb_vectors]);
         % Pick random matrices
@@ -68,8 +61,8 @@ function analyze(nb_vars)
 %         L_diag = 5 * (([1:numel(V_diag)].' - 1) ./ numel(V_diag)).^2;  % TODO: remove
         % Scale the problem
         scale = 0.5 ./ max(abs(V_diag));
-        L_diag = L_diag .* scale;
-        V_diag = V_diag .* scale;
+        L_diag = single(L_diag .* scale);
+        V_diag = single(V_diag .* scale);
         
         % Define functions
         H_func = @(x) H_func_counter(x, L_diag, V_diag, V_max);
@@ -128,13 +121,14 @@ function analyze(nb_vars)
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
             tic();
-            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, tol, maxit, [], ...
-                @(iter, relres, x, dx) generic_callback(iter, relres, x, dx, L_diag, V_diag, V_max, b, tol*norm_b));
+%             [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, tol, maxit, [], ...
+%                 @(iter, relres, x, dx) generic_callback(iter, relres, x, dx, L_diag, V_diag, V_max, b, tol*norm_b));
+            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, 0, 4*maxit);
             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
             times(trial_idx, vector_idx, plot_idx) = toc();
             psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'splitrichardson';
+            legends{plot_idx} = 'splitrichardson';
             
 %             plot_idx = plot_idx + 1;
 %             evals = [0, 0, 0];
@@ -146,55 +140,56 @@ function analyze(nb_vars)
 %             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
 %             leg{plot_idx} = 'GMRES';
 
-            plot_idx = plot_idx + 1;
-            evals = [0, 0, 0];
-            tic();
-            [psi, flag, relres, iter, resvec] = gmres(H_func, b, restarts, tol, min([maxit, nb_vars, floor(1e8 / nb_vars)]), prec_inv_func);
-            evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
-            times(trial_idx, vector_idx, plot_idx) = toc();
-            psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
-            psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'GMRES+\Gamma';
+%             plot_idx = plot_idx + 1;
+%             evals = [0, 0, 0];
+%             tic();
+%             [psi, flag, relres, iter, resvec] = gmres(H_func, b, restarts, tol, min([maxit, nb_vars, floor(1e8 / nb_vars)]), prec_inv_func);
+%             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
+%             times(trial_idx, vector_idx, plot_idx) = toc();
+%             psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
+%             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
+%             leg{plot_idx} = 'GMRES+\Gamma';
+% 
+%             plot_idx = plot_idx + 1;
+%             evals = [0, 0, 0];
+%             tic();
+%             [psi, flag, relres, iter] = bicg(H_func_with_transpose, b, tol, min(maxit, nb_vars), prec_inv_func_with_transpose);
+%             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
+%             times(trial_idx, vector_idx, plot_idx) = toc();
+%             psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
+%             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
+%             leg{plot_idx} = 'bicg+\Gamma';
+% 
+%             plot_idx = plot_idx + 1;
+%             evals = [0, 0, 0];
+%             tic();
+%             [psi, flag, relres, iter] = bicgstab(H_func, b, tol, min(maxit, nb_vars));
+%             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
+%             times(trial_idx, vector_idx, plot_idx) = toc();
+%             psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
+%             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
+%             leg{plot_idx} = 'bicgstab';
 
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
             tic();
-            [psi, flag, relres, iter] = bicg(H_func_with_transpose, b, tol, min(maxit, nb_vars), prec_inv_func_with_transpose);
-            evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
-            times(trial_idx, vector_idx, plot_idx) = toc();
-            psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
-            psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'bicg+\Gamma';
-
-            plot_idx = plot_idx + 1;
-            evals = [0, 0, 0];
-            tic();
-            [psi, flag, relres, iter] = bicgstab(H_func, b, tol, min(maxit, nb_vars));
-            evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
-            times(trial_idx, vector_idx, plot_idx) = toc();
-            psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
-            psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'bicgstab';
-
-            plot_idx = plot_idx + 1;
-            evals = [0, 0, 0];
-            tic();
+            warning('off', 'MATLAB:bicgstab:tooSmallTolerance')
             [psi, flag, relres, iter] = bicgstab(H_func, b, tol, min(maxit, nb_vars), prec_inv_func);
             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
             times(trial_idx, vector_idx, plot_idx) = toc();
             psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'bicgstab+\Gamma';
+            legends{plot_idx} = 'bicgstab+\Gamma';
             
-            plot_idx = plot_idx + 1;
-            evals = [0, 0, 0];
-            tic();
-            [psi, flag, relres, iter] = bicgstabl(H_func, b, tol, min(maxit, nb_vars), prec_inv_func);
-            evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
-            times(trial_idx, vector_idx, plot_idx) = toc();
-            psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
-            psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
-            leg{plot_idx} = 'bicgstab(l)+\Gamma';
+%             plot_idx = plot_idx + 1;
+%             evals = [0, 0, 0];
+%             tic();
+%             [psi, flag, relres, iter] = bicgstabl(H_func, b, tol, min(maxit, nb_vars), prec_inv_func);
+%             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
+%             times(trial_idx, vector_idx, plot_idx) = toc();
+%             psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
+%             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
+%             leg{plot_idx} = 'bicgstab(l)+\Gamma';
         end
     end
     
@@ -271,9 +266,9 @@ function analyze(nb_vars)
     axs(3) = subplot(2, 4, 3);
     plot_hist(times);
     xlabel('t  [s]'); ylabel('#');
-    axs(4) = subplot(2, 4, 4);
-    plot_hist(evaluations(:,:,1) + cat(2, zeros(size(evaluations, 1), 1, 1), evaluations(:,2:end,2)), true);
-    xlabel('convs - criterion checks'); ylabel('#');
+%     axs(4) = subplot(2, 4, 4);
+%     plot_hist(evaluations(:,:,1) + 0*cat(2, zeros(size(evaluations, 1), 1, 1), evaluations(:,2:end,2)), true);
+%     xlabel('convs - criterion checks'); ylabel('#');
     axs(5) = subplot(2, 4, 5);
     plot_hist(evaluations(:,:,1), true);
     xlabel('H evals'); ylabel('#');
@@ -286,7 +281,7 @@ function analyze(nb_vars)
     axs(8) = subplot(2, 4, 8);
     plot_hist(evaluations(:,:,1) + evaluations(:,:,2), true);
     xlabel('convs = H + inv(H+G)'); ylabel('#');
-    legend(leg);
+    legend(legends);
     
     drawnow();
     savefig(fig, 'compareSplitRichardson_result.fig')
