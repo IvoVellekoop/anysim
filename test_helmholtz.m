@@ -33,6 +33,8 @@ h = sim.grid.pixel_size(1);
 % note: h*k/pi = 2*h/lambda  ==> Sampling rate with respect to Nyquist
 % note: the Ei part (sol-plane wave component) is real and rapidly
 % oscillating
+% (note: bug in wavesim takes the other solution (where absorption is in
+% the positive imaginary part)
     x = abs(x);
     phi = k * x;
     E_theory = 1.0i*h/(2*k)*exp(1.0i * phi)... %<--propagating plane wave.

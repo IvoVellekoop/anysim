@@ -5,9 +5,12 @@ classdef HelmholtzSim < GridSim
     %   (c) 2021. Ivo Vellekoop
     methods
         function obj = HelmholtzSim(n, opt)
-            % HELMHOLTZSIM Simulation object for a solving the diffusion
+            % HELMHOLTZSIM Simulation object for a solving the Helmholtz
             % equation.
             %
+            % After rotation, the equation is given by:
+            % -i ∇² u + ⟨V⟩ u + ΔV u = i S 
+            % with V = -i ε k0²
             % sim = DiffuseSim(N, K0, OPT) contructs a new simulation object
             % with the specified refractive index N.
             %
@@ -37,8 +40,9 @@ classdef HelmholtzSim < GridSim
             obj = obj@GridSim([], opt); 
             
             %% Construct components: operators for medium, propagator and transform
-            obj.medium  = obj.makeMedium(1i * (n * 2*pi / opt.wavelength).^2);
-            obj.medium.Tl = obj.medium.Tl * 1i; % rotate source. Todo: sign??
+            % Note: V = -i ε k0² = -i n² k0²
+            obj.medium  = obj.makeMedium(-1i * (n * 2*pi / opt.wavelength).^2);
+            obj.medium.Tl = obj.medium.Tl * 1i; % include factor i to rotate source term
             obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();
         end
@@ -47,16 +51,16 @@ classdef HelmholtzSim < GridSim
             % Constructs the propagator (L'+1)^-1 = 
             % with L' = Tl(L + V0)Tr, and L the 
             % differential operator for the Helmholtz equation.
-            % In k-space, we simply have L=-(kx^2+ky^2+kz^2)
-            V0 = obj.medium.V0; % scaled background potential
-            Tl = obj.medium.Tl; % scaling factors for the
-            Tr = obj.medium.Tr; % L operator
+            % In k-space, we simply have L= i (kx^2+ky^2+kz^2)
+            V0 = -1i * obj.medium.V0; % raw (non-scaled) background potential. Compensate for factor i in Tl matrix
+            Tl = obj.medium.Tl; % scaling factor, contains factor i
+            Tr = obj.medium.Tr; % scaling factor (real)
             
+            % Compute -∇² in k-space   
             Lr = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
             
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
-%            Lr = obj.to_internal((1 + Tl*Tr*V0 - 1i*Tl*Tr*Lr).^(-1));
-            Lr = obj.to_internal((1 + Tl*Tr*(Lr + 1.0i * V0)).^(-1));
+            Lr = obj.to_internal((1 + Tl*Tr*(Lr + V0)).^(-1));
             
             % point-wise multiplication
             propagator.apply = @(u, state) Lr .* u;
@@ -66,7 +70,8 @@ classdef HelmholtzSim < GridSim
         function Vmin = analyzeDimensions(obj, Vmax)
             
             %% The Green's function [L+1]^-1 decays exponentially
-            %% with a decay coefficient of 
+            %% with a decay coefficient of sqrt(-k0^2 + i/scale)
+            
             Vmin = 1
         end
     end
