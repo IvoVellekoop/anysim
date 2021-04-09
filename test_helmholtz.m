@@ -6,7 +6,7 @@
 opt = struct(); % clear any previous options
 opt.N = [256, 1, 1];   % Nx, Ny, Nz   (constant in z)
 opt.boundaries.periodic = [false, true, true];
-opt.boundaries.width = 4*512;
+opt.boundaries.width = 2*512;
 opt.callback.handle = @DisplayCallback;
 opt.callback.show_boundaries = true;
 %opt.termination_condition.iteration_count = 1;
