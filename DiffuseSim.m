@@ -44,7 +44,14 @@ classdef DiffuseSim < GridSim
             %                   interpreted (see above)
             %   .pixel_size     Grid spacing, specified as, for example
             %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
-            %
+            %   .interfaces     Specification of the interfaces between
+            %                   the diffusive medium and the 'outside'
+            %                   This is a sparse [3, Nx, Ny, Nz, Nt] matrix
+            %                   with the three components indicating
+            %                   the outward pointing normal of the
+            %                   interface times 𝜏=(1+R)/(1-R), with
+            %                   R the angle-averaged reflectivity of the 
+            %                   interface
             %   todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
@@ -96,7 +103,6 @@ classdef DiffuseSim < GridSim
             else
                 error('Incorrect option for potential_type');
             end
-            
             % perform scaling so that ‖V‖ < 1
             medium = makeMedium@GridSim(obj, V);
         end
@@ -132,7 +138,7 @@ classdef DiffuseSim < GridSim
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian to avoid
             % artefacts when N is even
-            Lr = pageminv(Lr + eye(4));
+            Lr = pageinv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6); 
             
             % the propagator just performs a

@@ -8,7 +8,7 @@ classdef TensorMedium < Medium
             if size(V_raw, 2) ~= Nc
                 error('Tensors in scattering potential must be square')
             end
-            obj@Medium(reshape(V_raw, Nc * Nc, []), V_raw_min, grid, opt)
+            obj@Medium(V_raw, V_raw_min, grid, opt)
             
             %% Equilibrate matrix so that all elements have magnitude <= 1
             % note: this is not necessarily optimal, but it is a simple
@@ -24,8 +24,8 @@ classdef TensorMedium < Medium
             %% The procedure above does not guarantee that ||V||< OPT.V_max
             % In this final step, we compute the norm of V everywhere
             % and adjust the global scaling as needed
-            Vnorm = max(pagefun(@norm, V), [], 'all');
-            scale = opt.V_max./Vnorm;
+            Vnorm = max(pagenorm(V), [], 'all');
+            scale = obj.V_max./Vnorm;
             obj.Tl = obj.Tl * sqrt(scale);
             obj.Tr = obj.Tr * sqrt(scale);
             

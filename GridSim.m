@@ -72,7 +72,7 @@ classdef GridSim < AnySim
                     position(2) = 1;
                 end
             end
-            values = obj.to_internal(values);
+            values = obj.to_internal(values, obj.value_dim);
             
             % scale source with matrix Tl. If only values for
             % part of the components were specified, make sure
@@ -93,7 +93,7 @@ classdef GridSim < AnySim
             position = [position(1:2) obj.grid.roi2full(position(3:end))];
             S = Source(values, position, obj.N);
         end
-        function u = to_internal(obj, u)
+        function u = to_internal(obj, u, dim)
             % convert u from external to internal representation
             % scalar:   internal:   [1  1  Nx Ny ...]
             %           external:   [Nx Ny ...]
@@ -101,14 +101,18 @@ classdef GridSim < AnySim
             %           external:   [Nc Nx Ny ...]
             % matrix:   internal:   [Nn Nm Nx Ny ...]
             %           external:   [Nn Nm Nx Ny ...]
-            if obj.value_dim == 0
+            if nargin < 3
+                dim = obj.value_dim;
+            end
+            if dim == 0
                 u = shiftdim(u, -2);
-            elseif obj.value_dim == 1
+            elseif dim == 1
                 sz = size(u);
                 u = reshape(u, [sz(1), 1, sz(2:end)]);
+            %elseif dim == 2: no format change needed
             end                
         end
-        function u = to_external(obj, u)
+        function u = to_external(obj, u, dim)
             % convert u from external to internal representation
             % scalar:   internal:   [1  1  Nx Ny ...]
             %           external:   [Nx Ny ...]
@@ -116,11 +120,15 @@ classdef GridSim < AnySim
             %           external:   [Nc Nx Ny ...]
             % matrix:   internal:   [Nn Nm Nx Ny ...]
             %           external:   [Nn Nm Nx Ny ...]
-            if obj.value_dim == 0
+            if nargin < 3
+                dim = obj.value_dim;
+            end
+            if dim == 0
                 u = shiftdim(u, 2);
-            elseif obj.value_dim == 1
+            elseif dim == 1
                 sz = size(u);
                 u = reshape(u, [sz(1), sz(3:end)]);
+            %elsif dim == 2: no format change needed
             end                
         end
     end
@@ -138,7 +146,15 @@ classdef GridSim < AnySim
             Nc = obj.N(1);
             % convert to internal representation (with trailing 1
             % dimensions for scalar)
-            Vraw = obj.to_internal(Vraw);
+            if obj.opt.potential_type == "scalar" %convert to diagonal matrix
+                dim = 0;
+            elseif obj.opt.potential_type == "diagonal" %convert to diagonal matrix
+                dim = 1;
+            elseif obj.opt.potential_type == "tensor"
+                dim = 2;
+            end                
+            
+            Vraw = obj.to_internal(Vraw, dim);
             Vmax = max(Vraw, [], 3:max(ndims(Vraw), 3));
             Vmin = obj.analyzeDimensions(Vmax);
                 
@@ -159,7 +175,7 @@ classdef GridSim < AnySim
         function u = finalize(obj, u, state)  %#ok<INUSD>
             u = obj.grid.crop(u, 2);
             u = pagemtimes(obj.medium.Tr, u);
-            u = obj.to_external(u); %remove spurious dimensions
+            u = obj.to_external(u, obj.value_dim); %remove spurious dimensions
         end
     end
     methods (Abstract, Access = protected)
