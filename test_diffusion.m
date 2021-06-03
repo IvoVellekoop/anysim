@@ -18,6 +18,7 @@ opt.boundaries.periodic = true; %we manually define the boundaries inside the si
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:,:);
 opt.termination_condition.relative_limit = 1E-9;
+opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 
 %% Construct medium 
 N_boundary = 200;
@@ -80,4 +81,24 @@ legend('simulated', 'theoretical', 'sample boundaries', 'FontSize', 12);
 title('Intensity profile inside diffusing slab')
 %
 relerr = norm(Iz(z_indices).'-I_th(:))/norm(I_th(:));
-disp(['Relative error ' num2str(relerr)]);
+disp(['Relative error analytical ' num2str(relerr)]);
+
+%% Determine error ||A x - b|| / ||b||
+sz = size(u);
+A4D = sim.operator;
+A = @(x) reshape(A4D(reshape(x, sz)), [], 1);
+b = source.to_array(); %todo: remove need for squeeze
+b = b(:);
+
+relerrs = norm(A(u(:))-b) / norm(b);
+disp(['Relative error source ' num2str(relerrs)]);
+
+%% Solve the problem using standard algorithms
+disp('Running gmres without preconditioner');
+u_gmres = reshape(gmres(A, b, 10, 1E-3, 1000), sz);
+
+
+
+
+
+

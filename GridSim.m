@@ -167,6 +167,10 @@ classdef GridSim < AnySim
             elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
                 medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
             end
+            
+            if obj.opt.forward_operator
+                obj.operator = @(u) medium.V(u);
+            end
         end
         function [u, state] = start(obj)
             u = zero_array(obj.N, obj.opt);

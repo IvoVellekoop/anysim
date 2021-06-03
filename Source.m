@@ -5,19 +5,17 @@ classdef Source
     % to create a planar source at depth y:  s = source([1,y], ones(N,1));
     % etc.
     %
-    % Sources can be added together with the + operator
+    % todo: Sources can be added together with the + operator
     % for example:
-    %
     % two_points = source([x1,y1], 1) + source([x2, y2], 1);
+    % todo: allow for the use of arrays of source objects
     %
-    %
-    % Most functions allow for the use of arrays of source objects
-    %
-    % Ivo M. Vellekoop 2018
+    % Ivo M. Vellekoop 2021
     properties
         %don't access directly, implementation may change!
         ranges   % cell array of index ranges defining volume
         values   % complex amplitude of sources (3-D arrays, dimensions can be 1)
+        N        % dimension of the simulation grid
     end
     
     methods
@@ -37,6 +35,7 @@ classdef Source
             validateattributes(position, {'numeric'}, {'positive', 'integer'});
 
             % extend position and size vectors to have length N_dims
+            obj.N = N;
             N_dims = length(N);
             position = [position(:); ones(N_dims-length(position), 1)];
             sz = size(values);
@@ -61,6 +60,12 @@ classdef Source
             % todo: optimize (for some reason array indexing in Matlab is
             % incredibly slow!!!)
             u_r(obj.ranges{:}) = u_r(obj.ranges{:}) + obj.values;
+        end
+        
+        function b = to_array(obj)
+            % returns the source object as a full array
+            b = zeros(obj.N, 'like', obj.values);
+            b = obj.apply(b, []);
         end
     end
 end

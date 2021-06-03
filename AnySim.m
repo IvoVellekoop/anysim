@@ -20,6 +20,11 @@ classdef (Abstract) AnySim < handle
                     % Fourier-transformed space). The transform object
                     % transforms between both domains.
         opt;        % simulation options
+        operator;   % Function handle or matrix for the 
+                    % 'forward' operator A=L+V. 
+                    % Since this operator is not needed by anysim
+                    % itself, it is only generated when 
+                    % opt.forward_operator == true
     end
         
     methods
@@ -42,6 +47,12 @@ classdef (Abstract) AnySim < handle
             % precision calculations are about 10
             % times as slow as single precision.
             defaults.precision = 'single';
+            
+            % When set to 'true', the obj.operator
+            % property will hold the scaled forward operator
+            % A = L+V. Defaults to 'false' because this operator
+            % is not needed for regular use.
+            defaults.forward_operator = false;
             
             % default termination condition (see tc_relative_error)
             defaults.termination_condition.handle = @TerminationCondition;

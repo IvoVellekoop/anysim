@@ -111,7 +111,14 @@ classdef Medium
                 state.report_diff(M);
             end
             u = u + uprop;
-        end 
+        end
+        function u = V(obj, u)
+           % MEDIUM.V(U, STATE) implements the function
+           % V U
+           % Note that this is not used by the core algorithm,
+           % only for comparison with other algorithms.
+           u = u - multiplyG(obj, u);           
+        end
     end
     methods (Abstract, Access=protected)
         u = multiplyG(obj, u)

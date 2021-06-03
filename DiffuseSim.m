@@ -6,6 +6,9 @@ classdef DiffuseSim < GridSim
     %   Position-dependent diffusion tensor or scalar coefficient
     %
     %   (c) 2021. Ivo Vellekoop
+    properties
+        Linv % Scaled (L+1)^-1 operator
+    end    
     methods
         function obj = DiffuseSim(D, a, opt)
             % DIFFUSESIM Simulation object for a solving the diffusion
@@ -138,8 +141,18 @@ classdef DiffuseSim < GridSim
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian to avoid
             % artefacts when N is even
+            Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
+            if obj.opt.forward_operator
+                % At this point obj.operator holds a function handle
+                % for computing V u
+                % TODO: this is a bit of a hack and should be refactored
+                % to be included in AnySim as much as possible.
+                Vu = obj.operator;
+                operator_internal = @(u) obj.transform.k2r(pagemtimes(Lr, obj.transform.r2k(u))) + Vu(u);
+                obj.operator = @(u) obj.to_external(pagemtimes(inv(obj.medium.Tr), ...
+                    obj.grid.crop(operator_internal(obj.to_internal(u)), 2))); % L + V
+            end
             Lr = pageinv(Lr + eye(4));
-            Lr = SimGrid.fix_edges_hermitian(Lr, 3:6); 
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication
