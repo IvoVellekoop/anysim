@@ -131,7 +131,20 @@ classdef GridSim < AnySim
             %elsif dim == 2: no format change needed
             end                
         end
+        
+        function u = operator(obj, u)
+            % SIM.OPERATOR(U) Returns (L+V)U
+            %
+            % For compatibility with MATLAB built in algorithms
+            % such as GMRES, the input and output are column vectors
+            %
+            % Also see AnySim.operator
+            u = reshape(u, obj.N); 
+            u = operator@AnySim(obj, u);
+            u = u(:);
+        end
     end
+    
     
     methods (Access = protected)
         % Constructs the medium operator from the potential matrix Vraw
@@ -166,10 +179,6 @@ classdef GridSim < AnySim
                 medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
             elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
                 medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
-            end
-            
-            if obj.opt.forward_operator
-                obj.operator = @(u) medium.V(u);
             end
         end
         function [u, state] = start(obj)

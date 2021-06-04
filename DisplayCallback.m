@@ -92,8 +92,8 @@ classdef DisplayCallback
         function call(obj, u, state)
             if obj.show_convergence && ~isempty(state.diffs)
                 subplot(2, 1, 1);
-                semilogy(state.diffs / max(state.diffs(:)));
-                xlabel('Interation');
+                semilogy(state.diff_its, state.diffs / max(state.diffs));
+                xlabel('Iteration');
                 ylabel('‖Δ𝜓‖^2 (normalized)'); 
                 subplot(2, 1, 2);
             end

@@ -143,14 +143,7 @@ classdef DiffuseSim < GridSim
             % artefacts when N is even
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
-                % At this point obj.operator holds a function handle
-                % for computing V u
-                % TODO: this is a bit of a hack and should be refactored
-                % to be included in AnySim as much as possible.
-                Vu = obj.operator;
-                operator_internal = @(u) obj.transform.k2r(pagemtimes(Lr, obj.transform.r2k(u))) + Vu(u);
-                obj.operator = @(u) obj.to_external(pagemtimes(inv(obj.medium.Tr), ...
-                    obj.grid.crop(operator_internal(obj.to_internal(u)), 2))); % L + V
+                obj.L = @(u) pagemtimes (Lr, u);
             end
             Lr = pageinv(Lr + eye(4));
             

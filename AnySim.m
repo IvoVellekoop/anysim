@@ -20,9 +20,9 @@ classdef (Abstract) AnySim < handle
                     % Fourier-transformed space). The transform object
                     % transforms between both domains.
         opt;        % simulation options
-        operator;   % Function handle or matrix for the 
-                    % 'forward' operator A=L+V. 
-                    % Since this operator is not needed by anysim
+        L;          % Function handle or matrix for the 
+                    % 'forward' operator L.
+                    % Since this operators are not needed by anysim
                     % itself, it is only generated when 
                     % opt.forward_operator == true
     end
@@ -95,6 +95,32 @@ classdef (Abstract) AnySim < handle
             % + optional final processing (in grid-based simulations the solution
             % is cropped to the roi)
             u = obj.finalize(u, state);
+        end
+        
+        function u = operator(obj, u)
+            % SIM.OPERATOR(U) Returns (L+V)U
+            %
+            % U should be in the domain of V (typically real space)
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES), or to
+            % compute the final residual ‖(L+V)U - S‖
+            %
+            % Note: because this operator is usually not needed and 
+            % construction may be expensive, it is only constructed when
+            % the option .forward_operator == true
+            %
+            % Note: These are the scaled L and V, without
+            % preconditioner
+            %            
+            if isempty(obj.L) 
+                error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
+            end
+            Vu = obj.medium.V(u);
+            u = obj.transform.r2k(u);
+            u = obj.L(u);
+            u = obj.transform.k2r(u) + Vu;
         end
         
         function c = coordinates(obj, d)
