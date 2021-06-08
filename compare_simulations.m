@@ -19,6 +19,7 @@ function results = compare_simulations(sim, source, methods, varargin)
 %       .preconditioned
 
 defaults.analytical_solution = [];
+defaults.tol = []; % auto: use residual of AnySim as tolerance.
 defaults.preconditioned = false;
 opt = set_defaults(defaults, varargin{:});
 
@@ -26,17 +27,18 @@ opt = set_defaults(defaults, varargin{:});
 
 %% First run the AnySim simulation
 [u, state] = sim.exec(source);
+Nit = state.iteration;
 
 results(1).name = 'AnySim';
 results(1).value = gather(u);
 sz = size(u);
+counter = Counter();
 
-Nit = state.iteration;
 if opt.preconditioned
-    A = @(x) sim.preconditioner(sim.operator(x));   % scaled operator L'+V'
+    A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
     b = sim.preconditioner(source.to_array());      % returns s' = Tl s
 else
-    A = @(x) sim.operator(x);   % scaled operator L'+V'
+    A = @(x) sim.operator(counter.inc(x));   % scaled operator L'+V'
     b = source.to_array();      % returns s' = Tl s
 end
 b = b(:);
@@ -44,11 +46,28 @@ b = b(:);
 % Residue = ‖Ax-b‖
 up = pagemtimes(inv(sim.medium.Tr), u); % u' = Tr^(-1) u
 results(1).residual = norm(A(up(:))-b) / norm(b);
+results(1).iter = Nit;
+if isempty(opt.tol)
+    tol = results(1).residual;
+else
+    tol = opt.tol;
+end
 
 %% Run all other simulations
 for m_i = 1:length(methods)
     m = methods(m_i);
-    val = m.function(A, b, Nit);
+    % Determine the maximum number of iterations
+    % compensate for the fact that some methods
+    % perform multiple evaluations of 'A' per iteration
+    if isfield(m, 'itfactor')
+        itfactor = m.itfactor;
+    else
+        itfactor = 1;
+    end
+    counter.reset();
+    [val, flag, relres, iter] = m.function(A, b, tol, ceil(Nit / itfactor));
+    results(m_i+1).flag = flag;
+    results(m_i+1).iter = counter.i;
     results(m_i+1).name = m.name;
     results(m_i+1).value = gather(pagemtimes(sim.medium.Tr, reshape(val, sz))); % compensate for scaling of operator A
     
@@ -152,5 +171,3 @@ disp(struct2table(result_summary));
 %     sprintf('BICGSTAB %d it + precond', Nit_bicgstab), ...
 %     'analytical');
 
-
-end

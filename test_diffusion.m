@@ -25,10 +25,6 @@ Dslab = 2;          % diffusion length (m)
 aslab = 0;          % absorption coefficient (1/m)
 R = 0.5;            % angle-averaged reflection coefficient at interface.
 
-%% Options for other simulation algorithms to compare with
-N_restart_gmres = 10;
-
-
 %% Construct medium 
 D = ones(opt.N(1), 1, 1, 1) * Dslab;
 a = zeros(opt.N(1), 1) * aslab;
@@ -66,10 +62,9 @@ I_th = I0 * (-e1 * (L + 2*ze) * ell + e2 * (zz + ze) * (ell - ze) + (L - zz + ze
 %% Perform the different simulations and compare the results
 comp_opt.analytical_solution = nan([4, opt.N]);
 comp_opt.analytical_solution(4, z_indices) = I_th(:);
-simulations(1).name = 'gmres';
-simulations(1).function = @(A, b, Nit) gmres(A, b, N_restart_gmres, 1E-10, Nit);
-simulations(2).name = 'bicgstab';
-simulations(2).function = @(A, b, Nit) bicgstab(A, b, 1E-10, Nit);
+comp_opt.tol = [];
+
+simulations = default_simulations;
 
 comp_opt.preconditioned = false;
 bare = compare_simulations(sim, source, simulations, comp_opt);

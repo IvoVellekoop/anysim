@@ -34,7 +34,8 @@ classdef GridSim < AnySim
             defaults.boundaries.extend = true;
             defaults.boundaries.width = 32;
             defaults.boundaries.filter = @wnd_nutall;
-            defaults.potential_type = "scalar";  
+            defaults.potential_type = "scalar"; 
+            defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
             obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size);
@@ -196,7 +197,9 @@ classdef GridSim < AnySim
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
-            u = obj.grid.crop(u, 2);
+            if obj.opt.crop
+                u = obj.grid.crop(u, 2);
+            end
             u = pagemtimes(obj.medium.Tr, u);
             u = obj.to_external(u, obj.value_dim); %remove spurious dimensions
         end

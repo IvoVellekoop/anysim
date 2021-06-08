@@ -148,7 +148,9 @@ classdef DiffuseSim < GridSim
             Lr = pageinv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
-                % todo: this is very inefficient, and we only need to
+                % todo: this is very inefficient, we only need to do this
+                % at the edges
+                % todo: is this the best way to adjust the edges?
                 LL = pageinv(Lr)-eye(4);
                 obj.L = @(u) pagemtimes (LL, u);
             end

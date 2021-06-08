@@ -59,8 +59,13 @@ classdef HelmholtzSim < GridSim
             % Compute -∇²=‖p‖² in k-space   
             Lr = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
             
+            Lr = obj.to_internal(Tl*Tr*(Lr + V0));
+            if obj.opt.forward_operator
+                obj.L = @(u) pagemtimes (Lr, u);
+            end
+
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
-            Lr = obj.to_internal((1 + Tl*Tr*(Lr + V0)).^(-1));
+            Lr = 1./(1 +Lr);
             
             % point-wise multiplication
             propagator.apply = @(u, state) Lr .* u;
