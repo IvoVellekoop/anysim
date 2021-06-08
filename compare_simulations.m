@@ -35,7 +35,8 @@ sz = size(u);
 counter = Counter();
 
 if opt.preconditioned
-    A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
+    %A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
+    A = @(x) sim.preconditioned(counter.inc(x));   % scaled operator L'+V'
     b = sim.preconditioner(source.to_array());      % returns s' = Tl s
 else
     A = @(x) sim.operator(counter.inc(x));   % scaled operator L'+V'
@@ -86,6 +87,7 @@ if ~isempty(opt.analytical_solution)
 end
 
 result_summary = rmfield(results, 'value');
+result_summary = rmfield(result_summary, 'flag');
 disp(struct2table(result_summary));
 % 
 % plot(z, Iz, 'LineWidth', 1.5);

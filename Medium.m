@@ -120,7 +120,7 @@ classdef Medium
            u = u - multiplyG(obj, u);           
         end
     end
-    methods (Abstract, Access=protected)
+    methods (Abstract)
         u = multiplyG(obj, u)
     end
 end

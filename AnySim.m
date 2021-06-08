@@ -97,6 +97,36 @@ classdef (Abstract) AnySim < handle
             u = obj.finalize(u, state);
         end
         
+        function u = preconditioned(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1) (L+V) U
+            % which is the preconditioned operator operating on U
+            % Functionally equivalent (but more efficient) than
+            % preconditioner(operator(u))
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES)
+            %
+            % Note: (L+1)^(-1) L = 1-(L+1)^(-1)
+            % So: (1-V)(L+1)^(-1) (L+V)  
+            %  =  (1-V)[1 - (L+1)^(-1)] + (1-V)(L+1)^(-1) V 
+            %  =  (1-V)[1-(L+1)^(-1)(1-V)]
+            
+            % (1-V)u
+            t1 = obj.medium.multiplyG(u); 
+            
+            % (L+1)^(-1) (1-V)u
+            t1 = obj.transform.r2k(t1);
+            t1 = obj.propagator.apply(t1);
+            t1 = obj.transform.k2r(t1);
+            
+            % todo: can we implement wiggle boundaries in arbitrary
+            % algorithm?
+                
+            % (1-V) (u-t1)
+            u = obj.medium.multiplyG(u - t1);
+        end
+        
         function u = preconditioner(obj, u)
             % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
             %

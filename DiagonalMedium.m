@@ -15,8 +15,6 @@ classdef DiagonalMedium < Medium
             V = scale .* (V_raw - obj.centers); 
             obj.G = grid.pad(data_array(1- V, opt), 2);
         end   
-    end
-    methods (Access=protected)
         function u = multiplyG(obj, u)
             u = obj.G .* u;
         end  

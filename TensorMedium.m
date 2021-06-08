@@ -31,8 +31,6 @@ classdef TensorMedium < Medium
             
             obj.G = grid.pad(data_array(1- V, opt), 2);
         end
-    end
-    methods (Access=protected)
         function u = multiplyG(obj, u)
             u = pagemtimes(obj.G, u);
         end
