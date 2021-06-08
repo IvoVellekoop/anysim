@@ -131,7 +131,17 @@ classdef GridSim < AnySim
             %elsif dim == 2: no format change needed
             end                
         end
-        
+        function u = preconditioner(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
+            %
+            % For compatibility with MATLAB built in algorithms
+            % such as GMRES, the input and output are column vectors
+            %
+            % Also see AnySim.preconditioner
+            u = reshape(u, obj.N); 
+            u = preconditioner@AnySim(obj, u);
+            u = u(:);
+        end
         function u = operator(obj, u)
             % SIM.OPERATOR(U) Returns (L+V)U
             %

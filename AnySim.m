@@ -97,6 +97,19 @@ classdef (Abstract) AnySim < handle
             u = obj.finalize(u, state);
         end
         
+        function u = preconditioner(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES)
+            %
+            u = obj.transform.r2k(u);
+            u = obj.propagator.apply(u);
+            u = obj.transform.k2r(u);
+            u = u - obj.medium.V(u);
+        end
+        
         function u = operator(obj, u)
             % SIM.OPERATOR(U) Returns (L+V)U
             %
