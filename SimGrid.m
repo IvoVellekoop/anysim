@@ -269,7 +269,7 @@ classdef SimGrid
             for d=dimensions
                 N = size(L, d);
                 if mod(N, 2) == 0
-                    % condstruct indexing operation L(:,:,end/2+1,:)
+                    % construct indexing operation L(:,:,end/2+1,:)
                     ind.type = '()';
                     [ind.subs{1:ndims(L)}] = deal(':');
                     ind.subs{d} = N/2 + 1;

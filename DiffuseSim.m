@@ -125,7 +125,7 @@ classdef DiffuseSim < GridSim
             
             Lr = zero_array([4, 4, obj.grid.N], obj.opt);
             
-            % insert dx, dy, dz, dt
+            % construct matrix with ikx, iky, ikz and iω
             for d=1:4
                 location = zeros(4,4);
                 location(4, d) = 1.0i;
@@ -139,13 +139,19 @@ classdef DiffuseSim < GridSim
             Lr = pagemtimes(pagemtimes(Tl, Lr + V0), Tr);
                         
             % invert L to obtain dampened Green's operator
-            % then make x,y,z,t dimensions hermitian to avoid
-            % artefacts when N is even
+            % then make x,y,z,t dimensions hermitian (set kx,ky,kz,omega to 0)
+            % to avoid artefacts when N is even.
+            % Note that there is a difference between first
+            % taking the inverse and then taking the real partthen setting hermiIf we still need the forward operator Lr, 
+            % we have to take special care at the the edges.
+            % 
+            Lr = pageinv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
-                obj.L = @(u) pagemtimes (Lr, u);
+                % todo: this is very inefficient, and we only need to
+                LL = pageinv(Lr)-eye(4);
+                obj.L = @(u) pagemtimes (LL, u);
             end
-            Lr = pageinv(Lr + eye(4));
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication
