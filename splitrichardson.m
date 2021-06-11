@@ -190,6 +190,11 @@ function [x, flag, relres, iter, resvec] = splitrichardson(LpIinv, ImV, b, tol, 
   while cont  % continue until the callback says otherwise
     % Calculate the correction dx = Gamma(1-V)x - (1-V)x + Gamma b
     dx = ImV(LpIinv(ImV(x) + b) - x);  % Gamma((1-V)x + b) - (1-V)x
+%     dx = ImV(x);
+%     dx = dx + b;
+%     dx = LpIinv(dx);
+%     dx = dx - x;
+%     dx = ImV(dx);
     % Update solution  x = Gamma(V-1)x + Vx - Gamma b
     x = x + dx;  % Do not deallocate dx and temporary variable, we will recycle the allocated memory in the next loop
     iter = iter + 1;

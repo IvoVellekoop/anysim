@@ -10,7 +10,7 @@ function pantograph()
     s = 1/2;  % delay factor
     % Initial conditions  
     Dt_init = 1;  % Initial time period
-    Dt_total = 5;  % 150       % Total time period runs from [0, Dt]
+    Dt_total = 3*60;  % 5, 150, 3*60       % Total time period runs from [0, Dt]
     % The initial function on time interval [0, Dt_init]
     f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
     
@@ -67,7 +67,7 @@ function pantograph()
     % Define matrix multiplication operations without building the matrix in memory
     H_scaled = @(f_s) derivative(f_s)/scale - (a/scale) * f_s - (b/scale) * interpolate(f_s, s*t_range);
     G = @(f_s) f_s + (b/scale) * interpolate(f_s, s*t_range);
-    % LpI = @(f_s) derivative(f_s)/scale + (1 - a/scale) * f_s;  % = @(f_s) H_scaled(f_s) + G_scaled(f_s);
+    LpI = @(f_s) derivative(f_s)/scale + (1 - a/scale) * f_s;  % = @(f_s) H_scaled(f_s) + G_scaled(f_s);
     V = @(f_s) f_s - G(f_s);  % G = 1-V
     % Define the scaled right-hand side
     rhs_scaled_post = -H_scaled([f_init_sampled; zeros(nb_samples_total - nb_samples_init, 1)]);
@@ -97,11 +97,15 @@ function pantograph()
         % Note: only invert the problem after the initial period otherwise artefacts at the boundaries!
     end
     G_post = post(G);
+    prec_inv = @(x) G_post(LpIinv_post(x));
+    H_post = @(x) LpI(x) - G_post(x);
     
-    start_time = now();
+    start_time = cputime();
     [solution_post_sr, flag, relres, iter, resvec] = splitrichardson(@LpIinv_post, G_post, rhs_scaled_post, 1e-8, 1000, zeros(nb_samples_total-nb_samples_init, 1));  %, @callback);
-    total_time = now() - start_time;
+%     [solution_post_sr, flag, relres, iter, resvec] = bicgstab(@(x) prec_inv(H_post(x)), prec_inv(rhs_scaled_post));
+    total_time = cputime() - start_time;
     logMessage('SplitRichardson took %0.3fms', total_time*1e3);
+    relative_resvec = resvec ./ norm(solution_post_sr);
     
     solution_sr = [f_init_sampled; solution_post_sr];  % prepend the initial function
     
@@ -132,11 +136,11 @@ function pantograph()
     ylim([min(solution_sr), max(solution_sr)].*1.05);
     xlabel('t [s]', 'FontSize', 24);
     ylabel('f(t)  [a.u.]', 'FontSize', 24);
-    legend({'','', 'Matrix Inversion', 'SplitRichardson'});
+    legend({'', '', 'LU inverse solver', 'Split-Richardson'});
     
     ax(2) = subplot(2, 1, 2);
-    semilogy(resvec, 'LineWidth', 3);
-    xlim([1, numel(resvec)]);
+    semilogy(relative_resvec, 'LineWidth', 3);
+    xlim([1, numel(relative_resvec)]);
     ylim([1e-8, 1]);
     box off;
     xlabel('iteration #', 'FontSize', 24)
@@ -170,7 +174,7 @@ end
 
 function [solution_matlab, residue_function] = solve_with_matlab(H, f_init_sampled, nb_samples_total)
     nb_samples_init = numel(f_init_sampled);
-    H_sampled = zeros(nb_samples_total, nb_samples_total);
+    H_sampled = zeros(nb_samples_total, nb_samples_total, 'single');
     tmp = zeros(nb_samples_total, 1);
     for col_idx = [1:nb_samples_total]
         tmp(col_idx) = 1;
@@ -185,9 +189,9 @@ function [solution_matlab, residue_function] = solve_with_matlab(H, f_init_sampl
     rhs_post = -H([f_init_sampled; zeros(nb_samples_total - nb_samples_init, 1)]);
     rhs_post = rhs_post(nb_samples_init+1:end);
     
-    start_time = now();
+    start_time = cputime();
     solution_matlab_post = H_sampled_post_post \ rhs_post;
-    total_time = now() - start_time;
+    total_time = cputime() - start_time;
     logMessage('MATLAB took %0.3fms', total_time*1e3);
     solution_matlab = [f_init_sampled; solution_matlab_post];  % prepend the initial function
     
