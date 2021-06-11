@@ -34,7 +34,8 @@ classdef GridSim < AnySim
             defaults.boundaries.extend = true;
             defaults.boundaries.width = 32;
             defaults.boundaries.filter = @wnd_nutall;
-            defaults.potential_type = "scalar";  
+            defaults.potential_type = "scalar"; 
+            defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
             obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size);
@@ -72,7 +73,7 @@ classdef GridSim < AnySim
                     position(2) = 1;
                 end
             end
-            values = obj.to_internal(values);
+            values = obj.to_internal(values, obj.value_dim);
             
             % scale source with matrix Tl. If only values for
             % part of the components were specified, make sure
@@ -93,7 +94,7 @@ classdef GridSim < AnySim
             position = [position(1:2) obj.grid.roi2full(position(3:end))];
             S = Source(values, position, obj.N);
         end
-        function u = to_internal(obj, u)
+        function u = to_internal(obj, u, dim)
             % convert u from external to internal representation
             % scalar:   internal:   [1  1  Nx Ny ...]
             %           external:   [Nx Ny ...]
@@ -101,14 +102,18 @@ classdef GridSim < AnySim
             %           external:   [Nc Nx Ny ...]
             % matrix:   internal:   [Nn Nm Nx Ny ...]
             %           external:   [Nn Nm Nx Ny ...]
-            if obj.value_dim == 0
+            if nargin < 3
+                dim = obj.value_dim;
+            end
+            if dim == 0
                 u = shiftdim(u, -2);
-            elseif obj.value_dim == 1
+            elseif dim == 1
                 sz = size(u);
                 u = reshape(u, [sz(1), 1, sz(2:end)]);
+            %elseif dim == 2: no format change needed
             end                
         end
-        function u = to_external(obj, u)
+        function u = to_external(obj, u, dim)
             % convert u from external to internal representation
             % scalar:   internal:   [1  1  Nx Ny ...]
             %           external:   [Nx Ny ...]
@@ -116,14 +121,54 @@ classdef GridSim < AnySim
             %           external:   [Nc Nx Ny ...]
             % matrix:   internal:   [Nn Nm Nx Ny ...]
             %           external:   [Nn Nm Nx Ny ...]
-            if obj.value_dim == 0
+            if nargin < 3
+                dim = obj.value_dim;
+            end
+            if dim == 0
                 u = shiftdim(u, 2);
-            elseif obj.value_dim == 1
+            elseif dim == 1
                 sz = size(u);
                 u = reshape(u, [sz(1), sz(3:end)]);
+            %elsif dim == 2: no format change needed
             end                
         end
+        function u = preconditioner(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
+            %
+            % For compatibility with MATLAB built in algorithms
+            % such as GMRES, the input and output are column vectors
+            %
+            % Also see AnySim.preconditioner
+            u = reshape(u, obj.N); 
+            u = preconditioner@AnySim(obj, u);
+            u = u(:);
+        end
+        function u = preconditioned(obj, u)
+            % SIM.PRECONDITIONED(U)
+            %
+            % See AnySim.preconditioned
+            %
+            % For compatibility with MATLAB built in algorithms
+            % such as GMRES, the input and output are column vectors
+            %
+            % Also see AnySim.preconditioner
+            u = reshape(u, obj.N); 
+            u = preconditioned@AnySim(obj, u);
+            u = u(:);
+        end
+        function u = operator(obj, u)
+            % SIM.OPERATOR(U) Returns (L+V)U
+            %
+            % For compatibility with MATLAB built in algorithms
+            % such as GMRES, the input and output are column vectors
+            %
+            % Also see AnySim.operator
+            u = reshape(u, obj.N); 
+            u = operator@AnySim(obj, u);
+            u = u(:);
+        end
     end
+    
     
     methods (Access = protected)
         % Constructs the medium operator from the potential matrix Vraw
@@ -138,7 +183,15 @@ classdef GridSim < AnySim
             Nc = obj.N(1);
             % convert to internal representation (with trailing 1
             % dimensions for scalar)
-            Vraw = obj.to_internal(Vraw);
+            if obj.opt.potential_type == "scalar" %convert to diagonal matrix
+                dim = 0;
+            elseif obj.opt.potential_type == "diagonal" %convert to diagonal matrix
+                dim = 1;
+            elseif obj.opt.potential_type == "tensor"
+                dim = 2;
+            end                
+            
+            Vraw = obj.to_internal(Vraw, dim);
             Vmax = max(Vraw, [], 3:max(ndims(Vraw), 3));
             Vmin = obj.analyzeDimensions(Vmax);
                 
@@ -157,9 +210,11 @@ classdef GridSim < AnySim
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
-            u = obj.grid.crop(u, 2);
+            if obj.opt.crop
+                u = obj.grid.crop(u, 2);
+            end
             u = pagemtimes(obj.medium.Tr, u);
-            u = obj.to_external(u); %remove spurious dimensions
+            u = obj.to_external(u, obj.value_dim); %remove spurious dimensions
         end
     end
     methods (Abstract, Access = protected)

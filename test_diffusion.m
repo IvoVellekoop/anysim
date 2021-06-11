@@ -9,56 +9,69 @@
 % divide or multiply by c (in um/s)
 %
 
-% Set up size of simulation domain and number of grid points in x,y,z,t 
-% dimensions.
+%% Simulation parameters
 opt = struct(); % clear any previous options
-opt.pixel_size = {0.5 'um'};
-opt.N = [256, 128, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
-opt.boundaries.periodic = [false, true, true, true];
+opt.pixel_size = {1 'um'};
+opt.N = [256*4, 1, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
+opt.boundaries.periodic = true; %we manually define the boundaries inside the simulation domain
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:,:);
+opt.termination_condition.relative_limit = 1E-6;
+opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
+
+%% Medium parameters
+N_boundary = 200;   % boundary width in pixels
+Dslab = 2;          % diffusion length (m)
+aslab = 0;          % absorption coefficient (1/m)
+R = 0.5;            % angle-averaged reflection coefficient at interface.
 
 %% Construct medium 
-% Layered medium with constant absorption and diffusion coefficients
-a = 0;%0.02;    % absorption coefficient (1/m)
-Dslab = 25;
-D = ones(opt.N(1), 1, 1, 1) * Dslab;    % diffusion length (m)
-zl = 20; % start of sample
-zr = opt.N(1)-20; % end of sample
-%z0 = 128-zl; % position of source relative to start of sample (transport length)
-z0 = 20;
-%z0 = zr-zl-15; % position of source relative to start of sample (transport length)
+D = ones(opt.N(1), 1, 1, 1) * Dslab;
+a = zeros(opt.N(1), 1) * aslab;
 
-D(1:zl-1) = Inf;  % 'air'
-D((zr+1):end) = Inf;
+% construct boundary outside medium, with absorption coefficient
+% tuned to match mixed boundary conditions with extrapolation length
+%
+ze = 2*(1+R)/(1-R)*Dslab;       % extrapolation length
+a(1:N_boundary) = Dslab/ze^2;   % fill boundaries with matching absorption
+a((end-N_boundary+1):end) = Dslab/ze^2;
+
+%% Set up AnySim simulation with an exponentially decaying source
 sim = DiffuseSim(D, a, opt);
-%clear mu_a D;
 
-%% Define source and run the simulation
-source = sim.define_source(ones(1,1,1), [4,zl+z0,ceil(opt.N(2))/2,1,1]); % intensity-only source (isotropic) at t=0
-u = sim.exec(source);
-
-%%
+% Define source
 z = sim.grid.crop(sim.grid.coordinates(1));
-Iz = squeeze(u(4,:,ceil(end/2)));
-Fz = squeeze(u(1,:,ceil(end/2)));
-plot(z, Iz);
-hold on;
-% compute transmission coefficient (assuming no aborption)
-TsimI = Iz(end)/(Iz(1)+Iz(end));
-Tsim = Fz(end)/(-Fz(1)+Fz(end));
-disp(Tsim);
+
+ell = Dslab*3;
+z_indices = N_boundary+1:opt.N(1)-N_boundary;   % indices of slab
+z_inside = z(z_indices);                        % corresponding z-coordinates
+zl = z_inside(1) - 0.5 * opt.pixel_size{1};     % z-coordinate of left boundary
+zr = z_inside(end) + 0.5 * opt.pixel_size{1};   % z-coordinate of right boundary
+zz = z_inside-zl;                               % position with respect to sample start
+Isource = exp(-zz'/ell)/ell;                    % exponentially decaying source
+source = sim.define_source(Isource, [4, N_boundary+1,ceil(opt.N(2)/2),1,1]); % intensity-only source (isotropic) at t=0
+
+%% theoretical intensity distribution (normalized to same height as simulation):
+L = zr-zl;
+I0 = 1/Dslab/(L+2*ze);
+e1 = exp(-zz/ell);
+e2 = exp(-L/ell);
+I_th = I0 * (-e1 * (L + 2*ze) * ell + e2 * (zz + ze) * (ell - ze) + (L - zz + ze) * (ze + ell));
+
+
+%% Perform the different simulations and compare the results
+comp_opt.analytical_solution = nan([4, opt.N]);
+comp_opt.analytical_solution(4, z_indices) = I_th(:);
+comp_opt.tol = [];
+
+simulations = default_simulations;
+
+comp_opt.preconditioned = false;
+bare = compare_simulations(sim, source, simulations, comp_opt);
+
+%% Repeat with preconditioner
+comp_opt.preconditioned = true;
+precond = compare_simulations(sim, source, simulations, comp_opt);
 
 
 
-% theoretical intensity distribution (normalized to same height as simulation):
-ell = z0;
-ze = 2/3*ell;
-L = zr-zl-1;
-T = (ell+ze)/(L+2*ze);
-
-% theoretical maximum intensity (source amplitude = 1)
-Imaxth = opt.pixel_size{1,1}/Dslab * T * (L - ell + ze);
-
-I_th = interp1([zl-ze, zl+z0, zr+ze], [0, Imaxth,0], 1:opt.N(1));
-plot(z, I_th);

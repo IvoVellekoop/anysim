@@ -20,6 +20,11 @@ classdef (Abstract) AnySim < handle
                     % Fourier-transformed space). The transform object
                     % transforms between both domains.
         opt;        % simulation options
+        L;          % Function handle or matrix for the 
+                    % 'forward' operator L.
+                    % Since this operators are not needed by anysim
+                    % itself, it is only generated when 
+                    % opt.forward_operator == true
     end
         
     methods
@@ -42,6 +47,12 @@ classdef (Abstract) AnySim < handle
             % precision calculations are about 10
             % times as slow as single precision.
             defaults.precision = 'single';
+            
+            % When set to 'true', the obj.operator
+            % property will hold the scaled forward operator
+            % A = L+V. Defaults to 'false' because this operator
+            % is not needed for regular use.
+            defaults.forward_operator = false;
             
             % default termination condition (see tc_relative_error)
             defaults.termination_condition.handle = @TerminationCondition;
@@ -84,6 +95,75 @@ classdef (Abstract) AnySim < handle
             % + optional final processing (in grid-based simulations the solution
             % is cropped to the roi)
             u = obj.finalize(u, state);
+        end
+        
+        function u = preconditioned(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1) (L+V) U
+            % which is the preconditioned operator operating on U
+            % Functionally equivalent (but more efficient) than
+            % preconditioner(operator(u))
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES)
+            %
+            % Note: (L+1)^(-1) L = 1-(L+1)^(-1)
+            % So: (1-V)(L+1)^(-1) (L+V)  
+            %  =  (1-V)[1 - (L+1)^(-1)] + (1-V)(L+1)^(-1) V 
+            %  =  (1-V)[1-(L+1)^(-1)(1-V)]
+            
+            % (1-V)u
+            t1 = obj.medium.multiplyG(u); 
+            
+            % (L+1)^(-1) (1-V)u
+            t1 = obj.transform.r2k(t1);
+            t1 = obj.propagator.apply(t1);
+            t1 = obj.transform.k2r(t1);
+            
+            % todo: can we implement wiggle boundaries in arbitrary
+            % algorithm?
+                
+            % (1-V) (u-t1)
+            u = obj.medium.multiplyG(u - t1);
+        end
+        
+        function u = preconditioner(obj, u)
+            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES)
+            %
+            u = obj.transform.r2k(u);
+            u = obj.propagator.apply(u);
+            u = obj.transform.k2r(u);
+            u = u - obj.medium.V(u);
+        end
+        
+        function u = operator(obj, u)
+            % SIM.OPERATOR(U) Returns (L+V)U
+            %
+            % U should be in the domain of V (typically real space)
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES), or to
+            % compute the final residual ‖(L+V)U - S‖
+            %
+            % Note: because this operator is usually not needed and 
+            % construction may be expensive, it is only constructed when
+            % the option .forward_operator == true
+            %
+            % Note: These are the scaled L and V, without
+            % preconditioner
+            %            
+            if isempty(obj.L) 
+                error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
+            end
+            Vu = obj.medium.V(u);
+            u = obj.transform.r2k(u);
+            u = obj.L(u);
+            u = obj.transform.k2r(u) + Vu;
         end
         
         function c = coordinates(obj, d)

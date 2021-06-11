@@ -12,6 +12,7 @@ classdef State < dynamicprops
         callback;
         running;
         diffs;
+        diff_its; % iteration numbers at which diffs were reported
     end
     
     methods
@@ -46,6 +47,7 @@ classdef State < dynamicprops
             % This callback is called from the medium.apply function
             % when du = u^(k) - u^(k-1) is computed.
             obj.diffs = [obj.diffs, diff];
+            obj.diff_its = [obj.diff_its, obj.iteration];
             obj.running = ~obj.termination_condition.call(obj);
         end
     end

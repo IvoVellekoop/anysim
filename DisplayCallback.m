@@ -57,12 +57,12 @@ classdef DisplayCallback
             % and along which dimensions the data is cropped.
             % This is a bit of a hack!
             hack = sim.to_external(zeros(sim.N) + (1:sim.N(1)).');
-            hack = obj.cross_section(hack);
+            hack = sim.to_internal(obj.cross_section(hack));
             obj.component = hack(1);
     
             %% find out in what dimensions the cross section was taken,
             dims = 1:length(sim.N);
-            dims = dims(size(hack) > 1);
+            dims = dims(size(hack) > 1) - 2;
             if length(dims) > 2 || length(dims) < 1
                 error('DisplayCallback: Cross section must be 1 or 2 dimensional');
             end
@@ -92,8 +92,8 @@ classdef DisplayCallback
         function call(obj, u, state)
             if obj.show_convergence && ~isempty(state.diffs)
                 subplot(2, 1, 1);
-                semilogy(state.diffs / max(state.diffs(:)));
-                xlabel('Interation');
+                semilogy(state.diff_its, state.diffs / max(state.diffs));
+                xlabel('Iteration');
                 ylabel('‖Δ𝜓‖^2 (normalized)'); 
                 subplot(2, 1, 2);
             end

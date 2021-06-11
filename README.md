@@ -9,8 +9,8 @@ AnySim : root class implementing the Modified Born series iteration
      ├─ DiffuseSim : solves the diffusion equation
      └─ HelmholtzSim : solves the Helmholtz equation
 
-Medium : root class implementing operator 1-G for grid-based potentials
- │       also implements computation of centering & scaling matrices Tl Tr and V0
+Medium : root class implementing operator G=1-V for grid-based potentials
+ │      also implements computation of centering & scaling matrices Tl Tr and V0
  ├─ TensorMedium: associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
  ├─ DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
  └─ ScalarMedium: associates a scalar to each grid point
@@ -26,33 +26,45 @@ Helper classes:
    State
 ~~~
 
-## Example: Diffusion equation
-
 ## Implementing a solver
-The general structure of the modified Born series algorithm is implemented already. To implement a solver for a specific linear problem, one needs to implement a simulation object inheriting from AnySim or one of its derived classes (such as GridSim). See DiffuseSim for an example. The following methods should be implemented:
-  * The constructor
-  * AnalyzeDimensions
-  * Start
+The general structure of the modified Born series algorithm is implemented
+already. To implement a solver for a specific linear problem, one needs to
+implement a simulation object inheriting from AnySim or one of its derived
+classes (such as GridSim). See DiffuseSim for an example. The following
+methods should be implemented:
+  * The constructor. Processes options and sets 'medium', 'transform' and 
+    'propagator' properties to the correct operators.
+  * analyzeDimensions. Determines the limitations for scaling the equation.
+    Especially relevant for (nearly) homogeneous media on a grid. For these
+    media, the scaling is adjusted so that the Green's function (L+1)^-1 is not
+    wider than the boundaries.
  
 ### The constructor
-The constructor takes all information needed to describe a specific linear system (e. g. a refractive index map) and a set of options. The returned object fully describes the linear system and all details of the simulation. 
+The constructor takes all information needed to describe a specific linear
+system (e. g. a refractive index map) and a set of options. The returned
+object fully describes the linear system and all details of the simulation. 
 
-The constructor should check the validity of all inputs and fill in defaults for missing options. Importantly, it should set the properties `medium`, `propagator`, and `transform`. 
+The constructor should check the validity of all inputs and fill in
+defaults for missing options. Importantly, it should set the properties
+`medium`, `propagator`, and `transform`. 
 
-Medium: This object corresponds to operator `G:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
+`.medium`: An object deriving from the 'Medium' base class. This object
+  implements the operator `G:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
   implemented as a multiplication with a scattering potential in the 
   spatio-temporal domain.
   For the diffusion equation, for example, a DiffusionMedium object is used,
   which performs a multiplication with the absorption-(inverse)diffusion tensor.
-  In preparing the medium, the scattering potential is first shifted by ~V0~ to minimze ‖V‖, and then scaled to have ‖V‖<1. The matrices responsible for this scaling (Tl and Tr) are stored in the Medium object.
+  In preparing the medium, the scattering potential is first
+  shifted by ~V0~ to minimze ‖V‖, and then scaled to have ‖V‖<1. The matrices
+  responsible for this scaling (Tl and Tr) are stored in the Medium object.
 
-Propagator: This object corresponds to scaled operator `Tl (L+1)^(-1) Tr`, and typically
+`.propagator`: This object corresponds to scaled operator `Tl (L+1)^(-1) Tr`, and typically
   is implemented as a multiplication with a fixed function in the spatio-temporal frequency domain.
   For the diffusion equation, the DiffusePropagator object corresponds
   to a spatio-temporal differential operator, applied in the frequency
   domain.
 
-Transform: This operator transforms between the domains of V and L
+`.transform`: This operator transforms between the domains of V and L
   Typically, this is just a Fourier transform.
 
 
@@ -78,7 +90,7 @@ Transform: This operator transforms between the domains of V and L
     'scaling' structure property.
     The Medium operator stores V'
     The Source operator stores s'
-    The Propagator operator stores G' = (L' + 1)^(-1)
+    The Propagator operator stores (L' + 1)^(-1)
     After the iterations finishes, the algorithm returns u = Tr u'
 
 ### Iteration

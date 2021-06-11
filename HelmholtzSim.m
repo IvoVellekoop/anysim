@@ -56,11 +56,16 @@ classdef HelmholtzSim < GridSim
             Tl = obj.medium.Tl; % scaling factor, contains factor i
             Tr = obj.medium.Tr; % scaling factor (real)
             
-            % Compute -∇² in k-space   
+            % Compute -∇²=‖p‖² in k-space   
             Lr = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
             
+            Lr = obj.to_internal(Tl*Tr*(Lr + V0));
+            if obj.opt.forward_operator
+                obj.L = @(u) pagemtimes (Lr, u);
+            end
+
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
-            Lr = obj.to_internal((1 + Tl*Tr*(Lr + V0)).^(-1));
+            Lr = 1./(1 +Lr);
             
             % point-wise multiplication
             propagator.apply = @(u, state) Lr .* u;
@@ -69,10 +74,30 @@ classdef HelmholtzSim < GridSim
     methods (Access=protected)
         function Vmin = analyzeDimensions(obj, Vmax)
             
-            %% The Green's function [L+1]^-1 decays exponentially
-            %% with a decay coefficient of sqrt(-k0^2 + i/scale)
-            
-            Vmin = 1
+            % The Green's function [L+1]^-1 is given by
+            % 1/(i T (‖p‖² + V0) + 1)
+            % with T = Tr Tl / i the scaling coefficient and V0=-⟨ε⟩k0²
+            % Performing an 1-D inverse Fourier transform, we find
+            % that this function corresponds to a bidirectional decaying
+            % exponential with exponent α=sqrt(V0 + i/T))
+            % For low absorption, we can expand
+            % α ≈ sqrt(V0) + i/(2 T sqrt(V0)) 
+            %   = sqrt(V0) + 1/(2 T sqrt(-V0))
+            % 
+            % The damping is given by the real part of α
+            % α = Re(sqrt(V0) + 1/(2 T sqrt(-V0)))
+            %
+            % So, the minimum value for T to ensure a decay that is fast
+            % enough is given by
+            % T >= 1/2 Re(1/ sqrt(-V0)) / (α-Re(sqrt(V0)))
+            %
+            limiting_size = obj.grid.dimensions();
+            limiting_size = max(limiting_size(~obj.grid.boundaries.periodic));
+            alpha_min = 10 ./ limiting_size;
+            %Tmin = 
+            sV1 = real(sqrt(Vmax/1i));    %Re(sqrt(V0)
+            sV2 = real(1/sqrt(Vmax*1i));  %Re(1/ sqrt(-V0))
+            Vmin = 0.5 * sV2 / (alpha_min-sV1);
         end
     end
 end

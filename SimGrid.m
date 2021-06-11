@@ -149,13 +149,17 @@ classdef SimGrid
                 x = x(:, :, roi{:});
             end
         end
-        function M = pad(obj, M, element_dimension)
-            % GRID.CROP(DATA, SKIPDIM) appends boundaries to DATA
+        function M = pad(obj, M, element_dimension, padval)
+            % GRID.PAD(DATA, SKIPDIM) appends boundaries to DATA
             % the first SKIPDIM are left untouched (use SKIPDIM=1
             % if the data is a vector field, and 2 if it is a tensor field)
-            %
+            % PADVAL = padding value or padding method
+            % (circular,replicate,symmetric, see padarray)
             if nargin < 3
                 element_dimension = 0;
+            end
+            if nargin < 4
+                padval = 'replicate';
             end
             sz = size(M, element_dimension+(1:obj.N_dim));
             if any(sz ~= obj.N_roi & sz ~= 1)
@@ -167,8 +171,8 @@ classdef SimGrid
             expand = (obj.boundaries.width ~= 0) & (sz == 1);
             M = repmat(M, [ones(1, element_dimension) expand .* (obj.N_roi-1) + 1]); 
             width = [zeros(1, element_dimension) obj.boundaries.width];
-            M = padarray(M, floor(width), 'replicate', 'pre');
-            M = padarray(M, ceil(width), 'replicate', 'post');
+            M = padarray(M, floor(width), padval, 'pre');
+            M = padarray(M, ceil(width), padval, 'post');
 
             %% Construct absorption/anti-reflection filter along each of the dimensions
             for d=1:obj.N_dim
@@ -269,7 +273,7 @@ classdef SimGrid
             for d=dimensions
                 N = size(L, d);
                 if mod(N, 2) == 0
-                    % condstruct indexing operation L(:,:,end/2+1,:)
+                    % construct indexing operation L(:,:,end/2+1,:)
                     ind.type = '()';
                     [ind.subs{1:ndims(L)}] = deal(':');
                     ind.subs{d} = N/2 + 1;

@@ -6,6 +6,9 @@ classdef DiffuseSim < GridSim
     %   Position-dependent diffusion tensor or scalar coefficient
     %
     %   (c) 2021. Ivo Vellekoop
+    properties
+        Linv % Scaled (L+1)^-1 operator
+    end    
     methods
         function obj = DiffuseSim(D, a, opt)
             % DIFFUSESIM Simulation object for a solving the diffusion
@@ -44,7 +47,14 @@ classdef DiffuseSim < GridSim
             %                   interpreted (see above)
             %   .pixel_size     Grid spacing, specified as, for example
             %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
-            %
+            %   .interfaces     Specification of the interfaces between
+            %                   the diffusive medium and the 'outside'
+            %                   This is a sparse [3, Nx, Ny, Nz, Nt] matrix
+            %                   with the three components indicating
+            %                   the outward pointing normal of the
+            %                   interface times 𝜏=(1+R)/(1-R), with
+            %                   R the angle-averaged reflectivity of the 
+            %                   interface
             %   todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
@@ -96,7 +106,6 @@ classdef DiffuseSim < GridSim
             else
                 error('Incorrect option for potential_type');
             end
-            
             % perform scaling so that ‖V‖ < 1
             medium = makeMedium@GridSim(obj, V);
         end
@@ -116,7 +125,7 @@ classdef DiffuseSim < GridSim
             
             Lr = zero_array([4, 4, obj.grid.N], obj.opt);
             
-            % insert dx, dy, dz, dt
+            % construct matrix with ikx, iky, ikz and iω
             for d=1:4
                 location = zeros(4,4);
                 location(4, d) = 1.0i;
@@ -130,10 +139,21 @@ classdef DiffuseSim < GridSim
             Lr = pagemtimes(pagemtimes(Tl, Lr + V0), Tr);
                         
             % invert L to obtain dampened Green's operator
-            % then make x,y,z,t dimensions hermitian to avoid
-            % artefacts when N is even
-            Lr = pageminv(Lr + eye(4));
-            Lr = SimGrid.fix_edges_hermitian(Lr, 3:6); 
+            % then make x,y,z,t dimensions hermitian (set kx,ky,kz,omega to 0)
+            % to avoid artefacts when N is even.
+            % Note that there is a difference between first
+            % taking the inverse and then taking the real partthen setting hermiIf we still need the forward operator Lr, 
+            % we have to take special care at the the edges.
+            % 
+            Lr = pageinv(Lr + eye(4));
+            Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
+            if obj.opt.forward_operator
+                % todo: this is very inefficient, we only need to do this
+                % at the edges
+                % todo: is this the best way to adjust the edges?
+                LL = pageinv(Lr)-eye(4);
+                obj.L = @(u) pagemtimes (LL, u);
+            end
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication
