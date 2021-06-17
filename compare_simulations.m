@@ -20,6 +20,7 @@ function results = compare_simulations(sim, source, methods, varargin)
 
 defaults.analytical_solution = [];
 defaults.tol = []; % auto: use residual of AnySim as tolerance.
+defaults.iter = []; % auto: use same number of operator evaluations as AnySim
 defaults.preconditioned = false;
 opt = set_defaults(defaults, varargin{:});
 
@@ -27,7 +28,6 @@ opt = set_defaults(defaults, varargin{:});
 
 %% First run the AnySim simulation
 [u, state] = sim.exec(source);
-Nit = state.iteration;
 
 results(1).name = 'AnySim';
 results(1).value = gather(u);
@@ -47,11 +47,18 @@ b = b(:);
 % Residue = ‖Ax-b‖
 up = pagemtimes(inv(sim.medium.Tr), u); % u' = Tr^(-1) u
 results(1).residual = norm(A(up(:))-b) / norm(b);
-results(1).iter = Nit;
+results(1).iter = state.iteration;
 if isempty(opt.tol)
     tol = results(1).residual;
 else
     tol = opt.tol;
+end
+
+% Number of iterations (operator evaluations actually)
+if isempty(opt.iter)
+    Nit = state.iteration;
+else
+    Nit = opt.iter;
 end
 
 %% Run all other simulations

@@ -148,9 +148,11 @@ classdef DiffuseSim < GridSim
             Lr = pageinv(Lr + eye(4));
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
-                % todo: this is very inefficient, we only need to do this
-                % at the edges
-                % todo: is this the best way to adjust the edges?
+                % note: this is very inefficient, we only need to do this
+                % at the edges. However, the forward operator is only
+                % needed for debugging purposes and for showing that
+                % without preconditioner other methods (bicgstab, etc.) 
+                % perform badly. So we don't care about optimizing this.
                 LL = pageinv(Lr)-eye(4);
                 obj.L = @(u) pagemtimes (LL, u);
             end

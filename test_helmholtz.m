@@ -10,7 +10,7 @@ opt.boundaries.width = 2*512;
 opt.callback.handle = @DisplayCallback;
 opt.callback.show_boundaries = true;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.pixel_size = {0.1 "wavelengths"};
+opt.pixel_size = {0.25 "wavelengths"};
 opt.crop = false;
 
 %% create an AnySim object for a homogeneous sample
@@ -50,8 +50,8 @@ h = sim.grid.pixel_size(1);
 %% Compare to other methods and compute errors
 %% Perform the different simulations and compare the results
 comp_opt.analytical_solution = sim.grid.pad(E_theory, 0, nan);
-comp_opt.tol = 1E-10;%[]; % stop when reached same residual as anysim
-%comp_opt.Nit = []; % never use more than anysim
+comp_opt.tol = []; % []=stop when reached same residual as anysim
+comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
 
 comp_opt.preconditioned = false;

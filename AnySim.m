@@ -49,9 +49,11 @@ classdef (Abstract) AnySim < handle
             defaults.precision = 'single';
             
             % When set to 'true', the obj.operator
-            % property will hold the scaled forward operator
-            % A = L+V. Defaults to 'false' because this operator
-            % is not needed for regular use.
+            % property will hold the scaled  forward operator
+            % without preconditioning: H = L+V.
+            % Defaults to 'false' because this operator
+            % is not needed for regular use and may be expensive
+            % to generate.
             defaults.forward_operator = false;
             
             % default termination condition (see tc_relative_error)
@@ -61,6 +63,20 @@ classdef (Abstract) AnySim < handle
             defaults.callback.interval = 16;
             obj.opt = set_defaults(defaults, opt);
         end
+        
+        function b = preconditioner(obj, b)
+            % SIM.PRECONDITIONER(B) returns (1-V)(L+1)^(-1)B
+            %
+            % Note: this function is not used by the anysim
+            % algorithm itself, but it can be used to compare
+            % anysim so other algoriths (such as GMRES)
+            %
+            b = obj.transform.r2k(b);
+            b = obj.propagator.apply(b);
+            b = obj.transform.k2r(b);
+            b = b - obj.medium.V(b);
+        end
+        
         
         function [u, state] = exec(obj, source)
             % EXEC executes the simulation for the given source
@@ -125,19 +141,6 @@ classdef (Abstract) AnySim < handle
                 
             % (1-V) (u-t1)
             u = obj.medium.multiplyG(u - t1);
-        end
-        
-        function u = preconditioner(obj, u)
-            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
-            %
-            % Note: this function is not used by the anysim
-            % algorithm itself, but it can be used to compare
-            % anysim so other algoriths (such as GMRES)
-            %
-            u = obj.transform.r2k(u);
-            u = obj.propagator.apply(u);
-            u = obj.transform.k2r(u);
-            u = u - obj.medium.V(u);
         end
         
         function u = operator(obj, u)
