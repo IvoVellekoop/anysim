@@ -1,14 +1,14 @@
 function compareSplitRichardson(nb_vars)
     close all;
     if nargin < 1
-        nb_vars = 2^20;
+        nb_vars = 2^16;
     end
     
     rng = RandStream('mt19937ar', 'Seed', 1);
     
     nb_vectors = min(nb_vars, 10);
     nb_trials = 100;
-    maxit = 10;
+    maxit = 100;
     tol = eps('single');  % Smaller than achievable
     restarts = [];  %min(10, nb_vars);  %default for gmres
     
@@ -40,6 +40,13 @@ function compareSplitRichardson(nb_vars)
 
     function cont = generic_callback(iter, relres, x, dx, H_diag, V_diag, V_max, b, tol_x_b)
         cont = mod(iter+1, 1) > 0 || norm(H_func_counter(x, H_diag, V_diag, V_max) - b) >= tol_x_b;
+    end
+
+    % Auxiliary function
+    function memused = show_memory(label)
+%         [userview, systemview] = memory();
+%         memused = userview.MemUsedMATLAB;
+%         logMessage([label, ' %0.9f GiB'], memused / 2^30);
     end
     
     max_nb_algorithms = 7;
@@ -120,15 +127,17 @@ function compareSplitRichardson(nb_vars)
 
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
+            show_memory('before splitrichardson');
             tic();
 %             [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, tol, maxit, [], ...
 %                 @(iter, relres, x, dx) generic_callback(iter, relres, x, dx, L_diag, V_diag, V_max, b, tol*norm_b));
-            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, 0, 4*maxit);
+            [psi, flag, relres, iter, resvec] = splitrichardson(HpGinv_func, G_func, b, 0, maxit);  % Note the x4 !
             evaluations(trial_idx, vector_idx, plot_idx, :) = evals;
             times(trial_idx, vector_idx, plot_idx) = toc();
             psi_err(trial_idx, vector_idx, plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
             legends{plot_idx} = 'splitrichardson';
+            show_memory('after splitrichardson');
             
 %             plot_idx = plot_idx + 1;
 %             evals = [0, 0, 0];
@@ -172,6 +181,7 @@ function compareSplitRichardson(nb_vars)
 
             plot_idx = plot_idx + 1;
             evals = [0, 0, 0];
+            show_memory('before bicgstab+Gamma');
             tic();
             warning('off', 'MATLAB:bicgstab:tooSmallTolerance')
             [psi, flag, relres, iter] = bicgstab(H_func, b, tol, min(maxit, nb_vars), prec_inv_func);
@@ -180,6 +190,7 @@ function compareSplitRichardson(nb_vars)
             psi_err(trial_idx, vector_idx,plot_idx) = norm(psi - ground_truth) / norm(ground_truth);
             psi_rhs_err(trial_idx, vector_idx, plot_idx) = norm(H_func(psi) - b) / norm_b;
             legends{plot_idx} = 'bicgstab+\Gamma';
+            show_memory('after bicgstab+Gamma');
             
 %             plot_idx = plot_idx + 1;
 %             evals = [0, 0, 0];
