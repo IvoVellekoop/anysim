@@ -52,7 +52,7 @@ classdef GridSim < AnySim
             % specifies at what component of the vector data the source
             % is placed. For inherently scalar simulations (e.g.
             % Helmholtz), the POSITION vector just specifies coordinates
-            % (e.g. x,y,z,t)
+            % (e.g. x,y,z,t).
             % 
             % For example, to define an Ez-polarized light source
             % at location 10,10,10, in solving 3-D Maxwell's equations,
@@ -64,13 +64,20 @@ classdef GridSim < AnySim
             %        position(2) + (1:size(values,2)),
             %        position(3) + (1:size(values,3)), etc.) = values
             %
-            if nargin < 3
+            if nargin < 3 % defaults to pos = [1,1,1,1...]
                 position = ones(1, length(obj.N));
             else
-                position = [ones(1, obj.value_dim) position];
+                % convert to internal representation coordinates
+                % for scalar simulations: prepend 1,1
+                %   change from [x, y, ...] to [1, 1, x, y , ...]
+                %
+                % for vector simulations: 
+                %   change from [v, x, y, ...] to [v, 1, x, y , ...]
+                %
                 if obj.value_dim == 1
-                    position(1) = position(2);
-                    position(2) = 1;
+                    position = [position(1), 1, position(2:end)];
+                else % value_dim == 0
+                    position = [1, 1, position];
                 end
             end
             values = obj.to_internal(values, obj.value_dim);

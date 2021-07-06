@@ -28,25 +28,21 @@ classdef Source
             %
             % position = relative position of source within roi of the simulation
             %       Defaults to [1,1,1,1,...] (top-left corner)
-            %
-            % N = dimension of simulation grid
+            %       the position vector should have the same length as N
+            % N = dimension of simulation grid in internal representation
             %
             
             validateattributes(position, {'numeric'}, {'positive', 'integer'});
 
-            % extend position and size vectors to have length N_dims
-            obj.N = N;
-            N_dims = length(N);
-            position = [position(:); ones(N_dims-length(position), 1)];
-            sz = size(values);
-            sz = [sz(:); ones(N_dims-length(sz), 1)];
-            
-            if any(position > N)
+            obj.N = N(:).';
+            if any(position > obj.N)
                 error('The source object is completely outside the simulation grid')
             end
             
             % define index ranges
-            last = min(position + sz - 1, N(:));
+            N_dims = length(obj.N);
+            sz = size(values, 1:N_dims); % extend size vector to have length N_dims
+            last = min(position + sz - 1, obj.N);
             ranges = cell(N_dims, 1);
             for d=1:N_dims
                 ranges{d} = position(d):last(d); %corresponds to : operator
