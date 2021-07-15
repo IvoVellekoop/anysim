@@ -6,9 +6,6 @@ classdef DiffuseSim < GridSim
     %   Position-dependent diffusion tensor or scalar coefficient
     %
     %   (c) 2021. Ivo Vellekoop
-    properties
-        Linv % Scaled (L+1)^-1 operator
-    end    
     methods
         function obj = DiffuseSim(D, a, opt)
             % DIFFUSESIM Simulation object for a solving the diffusion
@@ -47,15 +44,8 @@ classdef DiffuseSim < GridSim
             %                   interpreted (see above)
             %   .pixel_size     Grid spacing, specified as, for example
             %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
-            %   .interfaces     Specification of the interfaces between
-            %                   the diffusive medium and the 'outside'
-            %                   This is a sparse [3, Nx, Ny, Nz, Nt] matrix
-            %                   with the three components indicating
-            %                   the outward pointing normal of the
-            %                   interface times 𝜏=(1+R)/(1-R), with
-            %                   R the angle-averaged reflectivity of the 
-            %                   interface
-            %   todo: allow indexed description for D (use an index to look up 
+            %
+            % todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
             %% Set defaults
