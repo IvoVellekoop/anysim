@@ -3,12 +3,12 @@ classdef TensorMedium < Medium
     %
     %   (c) 2021. Ivo Vellekoop
     methods
-        function obj = TensorMedium(V_raw, V_raw_min, grid, opt)
+        function obj = TensorMedium(V_raw, grid, opt)
             Nc = size(V_raw, 1);
             if size(V_raw, 2) ~= Nc
                 error('Tensors in scattering potential must be square')
             end
-            obj@Medium(V_raw, V_raw_min, grid, opt)
+            obj@Medium(V_raw, grid, opt)
             
             %% Equilibrate matrix so that all elements have magnitude <= 1
             % note: this is not necessarily optimal, but it is a simple

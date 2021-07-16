@@ -3,6 +3,9 @@ classdef HelmholtzSim < GridSim
     %   Built on the AnySim framework.
     %
     %   (c) 2021. Ivo Vellekoop
+    properties
+        k0
+    end
     methods
         function obj = HelmholtzSim(n, opt)
             % HELMHOLTZSIM Simulation object for a solving the Helmholtz
@@ -13,6 +16,9 @@ classdef HelmholtzSim < GridSim
             % with V = -i ε k0²
             % sim = DiffuseSim(N, K0, OPT) contructs a new simulation object
             % with the specified refractive index N.
+            %
+            % n: refractive index distribution. 
+            % The positive imaginary part corresponds to absorption.
             %
             % Options:
             % OPT.pixel_size    pixel pitch, may be different in different
@@ -41,7 +47,8 @@ classdef HelmholtzSim < GridSim
             
             %% Construct components: operators for medium, propagator and transform
             % Note: V = -i ε k0² = -i n² k0²
-            obj.medium  = obj.makeMedium(-1i * (n * 2*pi / opt.wavelength).^2);
+            obj.k0 = 2*pi/opt.wavelength;
+            obj.medium  = DiagonalMedium(-1i * obj.k0^2 * n.^2, obj.grid, obj.opt);
             obj.medium.Tl = obj.medium.Tl * 1i; % include factor i to rotate source term
             obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();
@@ -70,32 +77,35 @@ classdef HelmholtzSim < GridSim
         end
     end
     methods (Access=protected)
-        function Vmin = analyzeDimensions(obj, Vmax)
-            
-            % The Green's function [L+1]^-1 is given by
-            % 1/(i T (‖p‖² + V0) + 1)
-            % with T = Tr Tl / i the scaling coefficient and V0=-⟨ε⟩k0²
-            % Performing an 1-D inverse Fourier transform, we find
-            % that this function corresponds to a bidirectional decaying
-            % exponential with exponent α=sqrt(V0 + i/T))
-            % For low absorption, we can expand
-            % α ≈ sqrt(V0) + i/(2 T sqrt(V0)) 
-            %   = sqrt(V0) + 1/(2 T sqrt(-V0))
+        function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
             % 
-            % The damping is given by the real part of α
-            % α = Re(sqrt(V0) + 1/(2 T sqrt(-V0)))
+            % We have V_raw = -i n^2 k0^2
+            % n = sqrt(i V_raw) / k0
             %
-            % So, the minimum value for T to ensure a decay that is fast
-            % enough is given by
-            % T >= 1/2 Re(1/ sqrt(-V0)) / (α-Re(sqrt(V0)))
-            %
-            limiting_size = obj.grid.dimensions();
-            limiting_size = max(limiting_size(~obj.grid.boundaries.periodic));
-            alpha_min = 10 ./ limiting_size;
-            %Tmin = 
-            sV1 = real(sqrt(Vmax/1i));    %Re(sqrt(V0)
-            sV2 = real(1/sqrt(Vmax*1i));  %Re(1/ sqrt(-V0))
-            Vmin = 0.5 * sV2 / (alpha_min-sV1);
+            % The imaginary part of n corresponds to absorption
+            % The boundaries tend towards G=0 -> V_raw=centers+radii,
+            % so the absorption should be strong enough there
+            V_max_abs = centers + radii;
+            k1 = sqrt(1.0i * V_max_abs);
+            mu_min = max(obj.mu_min); % minimum required absorption coefficient
+            if imag(k1) < mu_min
+                % replace absorption by minimum required absorption
+                % and calculate what V_raw corresponds to this point
+                k2 = real(k1) + 1.0i * mu_min;
+                V_raw = -1.0i * k2^2; 
+                
+                % Adjust centers and radii so that new V_raw is included
+                %todo: not exactly optimal!
+                shift = V_max_abs - V_raw;
+                centers = centers - shift/2;
+                radii = radii + abs(shift)/2;
+                bclimited = true;
+            else
+                bclimited = false;
+            end
+            
+            %todo: not exact! Largest real part of n not necessarily reached at n0
+            feature_size = pi / real(k1);            
         end
     end
 end

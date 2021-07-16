@@ -26,9 +26,14 @@ classdef GridSim < AnySim
         % N_components = length of data vector stored at each grid point
         %                [] for scalar simulations. [N] for vector,
         %                [N,M] for matrix.
-        % required options: 
+        % required 'options': 
         %   opt.N
-        %   opt.pixel_size
+        %   opt.unit            e. g. 'mm' or 's'. All dimensions have the same
+        %                       unit
+        %   opt.pixel_size      size of a pixel (in units). Can be a scalar
+        %                       for isotropic pixels, or a vector for 
+        %                       anisotropic pixels (i. e. a grid with
+        %                       different pitch in different directions)
         %
             defaults.boundaries.periodic = "auto";
             defaults.boundaries.extend = true;
@@ -38,10 +43,11 @@ classdef GridSim < AnySim
             defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
-            obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size);
+            obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size, opt.pixel_unit);
             obj.value_dim = length(N_components);
             value_dims = [N_components, 1, 1];
             obj.N = [value_dims(1:2), obj.grid.N];
+            obj.opt.scale_adjuster = @(c, r) obj.adjustScale(c,r);
         end
         
         function S = define_source(obj, values, position)
@@ -175,42 +181,16 @@ classdef GridSim < AnySim
             u = u(:);
         end
     end
-    
-    
     methods (Access = protected)
-        % Constructs the medium operator from the potential matrix Vraw
-        % The meaning of Vraw depends on opt.potential_type:
-        %   "scalar", Vraw has size N (after singleton dimension expansion)
-        %   "diagonal", Vraw has size N_components x N. The components are
-        %               elements of a diagonal matrix.
-        %   "tensor", Vraw has size N_components x N_components x N.
-        %               So, for each grid point we have a full matrix.
+        % Inside the absorbing boundaries, the solution should
+        % decay sufficiently to avoid wrap-around artifacts. 
+        % Assumining exponential decay, this function returns
+        % the minimum decay coefficients needed.
         %
-        function medium = makeMedium(obj, Vraw)
-            Nc = obj.N(1);
-            % convert to internal representation (with trailing 1
-            % dimensions for scalar)
-            if obj.opt.potential_type == "scalar" %convert to diagonal matrix
-                dim = 0;
-            elseif obj.opt.potential_type == "diagonal" %convert to diagonal matrix
-                dim = 1;
-            elseif obj.opt.potential_type == "tensor"
-                dim = 2;
-            end                
-            
-            Vraw = obj.to_internal(Vraw, dim);
-            Vmax = max(Vraw, [], 3:max(ndims(Vraw), 3));
-            Vmin = obj.analyzeDimensions(Vmax);
-                
-            % compute the current maximum value of V (before scaling),
-            if obj.opt.potential_type == "tensor"
-                validateattributes(Vraw, {'numeric'}, {'nrows', Nc, 'ncols', Nc});
-                medium = TensorMedium(Vraw, Vmin, obj.grid, obj.opt);
-            elseif obj.opt.potential_type == "diagonal"
-                medium = DiagonalMedium(Vraw, Vmin, obj.grid, obj.opt);
-            elseif obj.opt.potential_type == "scalar" %convert to diagonal matrix
-                medium = ScalarMedium(Vraw, max(Vmin), obj.grid, obj.opt);
-            end
+        function mu_min = mu_min(obj)
+            mu_min = 10./(obj.grid.boundaries.width .* obj.grid.pixel_size);
+            mu_min(obj.grid.boundaries.width == 0) = 0;
+            mu_min = max(mu_min, 1E-3 ./ obj.grid.dimensions); % give tiny non-zero minimum value to prevent division by zero in homogeneous media
         end
         function [u, state] = start(obj)
             u = zero_array(obj.N, obj.opt);
@@ -225,12 +205,24 @@ classdef GridSim < AnySim
         end
     end
     methods (Abstract, Access = protected)
-        Vmin = analyzeDimensions(obj, Vmax)
-        % Analyzes the dimensions and spacings of the simulation
-        % grid. Issues a warning if the grid spacing is larger
-        % than the size of the smallest features.
-        % Also computes a minimum value for the scattering potential
-        % to ensure that the Green's function does not extend beyond
-        % the size of the simulation window.
+        % Absorbing boundaries are implemented by smoothly tapering
+        % G to 0 at the end of the simulation domain. A value of
+        % 0 corresponds to maximum absorption. The non-scaled interaction
+        % potential at the edges then equals V0+||V||. 
+        % However, in the case that the medium is homogeneous and non-
+        % absorbing, we have V0=||V||=0, and there would be no
+        % absorption at the edges.
+        %
+        % To fix this problem, we determine the minimum required value 
+        % for V0 + ||V|| to ensure sufficient absorption across
+        % a boundary with a user-specified width, and include this
+        % value as one of the points in V before performing the
+        % scaling.
+        %
+        % mu_min is the minimum absorption coefficient required 
+        % in each dimension. Vmax is the current value of
+        % V0 + ||V||. If it is already large enough, we just
+        % return Vmin = Vmax.
+        Vmin = adjustScale(obj, centers, radii)
     end
 end

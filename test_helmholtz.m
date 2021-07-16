@@ -10,7 +10,8 @@ opt.boundaries.width = 2*512;
 opt.callback.handle = @DisplayCallback;
 opt.callback.show_boundaries = true;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.pixel_size = {0.25 "wavelengths"};
+opt.pixel_size = 0.25;
+opt.pixel_unit = 'λ';
 opt.crop = false;
 
 %% create an AnySim object for a homogeneous sample

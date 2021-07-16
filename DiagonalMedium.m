@@ -1,11 +1,11 @@
 classdef DiagonalMedium < Medium
     %DIAGONALMEDIUM Helper class to implement a field potential of
-    %diagonal tensors
+    %diagonal tensors. Also used for scalar potentials.
     %
     %   (c) 2021. Ivo Vellekoop
     methods
-        function obj = DiagonalMedium(V_raw, V_raw_min, grid, opt)
-            obj@Medium(V_raw, V_raw_min, grid, opt);
+        function obj = DiagonalMedium(V_raw, grid, opt)
+            obj@Medium(V_raw, grid, opt);
             
             %% Scale to have operator norm OPT.V_max
             scale = obj.V_max./obj.radii;

@@ -50,7 +50,8 @@ classdef DiffuseSim < GridSim
             
             %% Set defaults
             opt.real_signal = true;
-            defaults.pixel_size = {1, '-'};
+            defaults.pixel_size = 1;
+            defaults.pixel_unit = 'm';
             opt = set_defaults(defaults, opt);
             
             %% Construct base class
@@ -78,7 +79,8 @@ classdef DiffuseSim < GridSim
                 validateattributes(D, {'numeric'}, {'nrows', 3, 'ncols', 3});
                 V = pagefun(@inv, D);
                 V(4,4,:,:,:,:) = 0; 
-                V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');                
+                V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');
+                medium = TensorMedium(obj.to_internal(V), obj.grid, obj.opt);
             elseif obj.opt.potential_type == "diagonal"
                 % combine scalar 'a' and diagonal matrix 'D' to 4-element
                 % diagonal matrix
@@ -86,6 +88,7 @@ classdef DiffuseSim < GridSim
                 V = 1./D;
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
+                medium = DiagonalMedium(obj.to_internal(V), obj.grid, obj.opt);
             elseif obj.opt.potential_type == "scalar" 
                 % combine scalar 'a' and scalar 'D' to 4-element diagonal
                 % matrix
@@ -93,11 +96,10 @@ classdef DiffuseSim < GridSim
                 V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
+                medium = DiagonalMedium(obj.to_internal(V), obj.grid, obj.opt);
             else
                 error('Incorrect option for potential_type');
             end
-            % perform scaling so that ‖V‖ < 1
-            medium = makeMedium@GridSim(obj, V);
         end
         
         function propagator = makePropagator(obj)
@@ -152,52 +154,42 @@ classdef DiffuseSim < GridSim
             propagator.apply = @(u, state) pagemtimes(Lr, u);
         end
         
-        function Vmin = analyzeDimensions(obj, Vmax)
-            % The scaled Green's function (L+1)^-1 decays exponentially in
-            % space and time. This decay should be fast enough to ensure
-            % convergence (this scaling is performed by makeMedium by
-            % ensuring that the scaled potential V has ||V||<1).
-            % The decay should also be fast enough to minimize wrap-around
-            % artefacts. For this reason, we require the decay length/time
-            % to be equal to a fraction of the size/duration of the
-            % simulation in each dimension.
-            % 
-            % The decay coefficient for the diffusion equation is given by
-            % mu_eff = sqrt(mu_a / D}        (assuming c=1)
-            % Or, in term of elements of the un-scaled potential: 
-            % mu_eff_j = sqrt(Vraw_t * Vraw_j)    
-            % with j=x,y,z, or t. So, Vraw_t = mu_eff_t
-            % and V_raw_j = mu_eff_j^2 / Vraw_t
-            %
-            % start by computing minimum required mu_eff in all dimensions
+        function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
+            % For the diffusion equation, the attenuation coefficient is
+            % given by sqrt(mu_a Q), so we have a choice whether to
+            % increase mu_a or Q. We want our choice to have as least 
+            % impact on the convergence rate as possible.
+            % To 'guess' an optimum, we choose the combination for which
+            % the decay along each dimensions is proportional
+            % to the size of the simulation domain.
+            
+            % determine required absorption coefficients
+            % so that solution decays sufficiently fast
+            if isvector(centers)
+                mu_min = obj.mu_min;
+                V_raw_max = centers + radii;
+                mu_current = sqrt(V_raw_max(4) * V_raw_max);% current maximum absorption coefficients
 
-            active = obj.grid.N ~= 1;
-            limiting_size = obj.grid.dimensions().';
-            % requires same pixel size in all dimensions?
-            limiting_size(obj.grid.boundaries.periodic) = max(limiting_size);
-            mu_eff_min = 10 ./ limiting_size;
-            
-            % special case for steady state (t-axis inactive)
-            if ~active(4)
-                mu_eff_min(4) = max(mu_eff_min);
-            end
-            Vmin = mu_eff_min.^2 / mu_eff_min(4);
-            
-            % Now, check if the resolution is high enough to resolve the
-            % smallest features
-            Vmax = max(Vmin, Vmax);
-            feature_size = 1./sqrt(Vmax(4) * Vmax(active)); %todo: correct for steady state?
-            pixel_size = obj.grid.pixel_size(active);
-            
-            if any(feature_size/2 < pixel_size)
-                res_limit = sprintf("%g ", feature_size/2);
-                res_current = sprintf("%g ", pixel_size);
-                warning("Resolution is too low to resolve the smallest features in the simulation. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
-            end
-            if any(feature_size/8 > pixel_size)
-                res_limit = sprintf("%g ", feature_size/2);
-                res_current = sprintf("%g ", pixel_size);
-                warning("Resolution seems to be on the high side. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
+                if any(mu_current < mu_min)
+                    % todo: not necessarily the optimal splitting between Vmin(4)
+                    %       and Vmin(1:3)
+                    % todo: untested code! test for mu_min > 0
+                    
+                    V_max_2(4) = max(mu_min(4), norm(V_max(1:3)));
+                    V_max_2(1:3) = mu_min(1:3).^2 / V_max_2(4);
+                    shift = V_max_2 - V_raw_max;
+                    centers = centers + shift/2;
+                    radii = radii + shift/2;
+                    bclimited = true;
+                    warning('untested code!');
+                else
+                    % no need to adjust
+                    bclimited = false;                    
+                end
+                feature_size = 1./sqrt(V_raw_max * V_raw_max(4)); %todo: correct for steady state?
+            else
+                % for tensors: only process diagonal
+                [centers, radii, feature_size, bclimited] = diag(obj.scale_adjuster(diag(centers), diag(radii)));
             end
         end
     end

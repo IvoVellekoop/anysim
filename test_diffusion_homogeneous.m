@@ -9,7 +9,8 @@
 opt = struct();                 % clear any previous options
 opt.N = [256, 1, 1, 1];         % number of grid points in x,y,z,t 
 opt.boundaries.periodic = true; % all boundaries periodic
-opt.pixel_size = {0.5 'um'};
+opt.pixel_size = 0.5;
+opt.pixel_unit = 'um';
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:);
 
@@ -31,7 +32,7 @@ semilogy(x, I)
 hold on;
 
 mueff = sqrt(a/D);
-h = sim.opt.pixel_size{1,1};
+h = sim.opt.pixel_size;
 hs = 1.0i * pi/h;
 
 % Analytical solution with sinc source.

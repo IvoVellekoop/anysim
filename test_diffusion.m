@@ -11,7 +11,8 @@
 
 %% Simulation parameters
 opt = struct(); % clear any previous options
-opt.pixel_size = {1 'um'};
+opt.pixel_size = 1;
+opt.pixel_unit = 'um';
 opt.N = [256*4, 1, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
 opt.boundaries.periodic = true; %we manually define the boundaries inside the simulation domain
 opt.callback.handle = @DisplayCallback;
@@ -45,8 +46,8 @@ z = sim.grid.crop(sim.grid.coordinates(1));
 ell = Dslab*3;
 z_indices = N_boundary+1:opt.N(1)-N_boundary;   % indices of slab
 z_inside = z(z_indices);                        % corresponding z-coordinates
-zl = z_inside(1) - 0.5 * opt.pixel_size{1};     % z-coordinate of left boundary
-zr = z_inside(end) + 0.5 * opt.pixel_size{1};   % z-coordinate of right boundary
+zl = z_inside(1) - 0.5 * opt.pixel_size;        % z-coordinate of left boundary
+zr = z_inside(end) + 0.5 * opt.pixel_size;      % z-coordinate of right boundary
 zz = z_inside-zl;                               % position with respect to sample start
 Isource = exp(-zz'/ell)/ell;                    % exponentially decaying source
 source = sim.define_source(Isource, [4, N_boundary+1,ceil(opt.N(2)/2),1,1]); % intensity-only source (isotropic) at t=0

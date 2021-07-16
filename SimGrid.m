@@ -13,11 +13,10 @@ classdef SimGrid
                    % ceil(boundaries)
         pixel_size  % vector with step size for all dimensions
         pixel_size_f % vector with step size in Fourier tranformed coordinates
-        pixel_size_unit % cell array with units for the dimensions
+        pixel_unit   % name of the unit of the dimensions (e. g. 'm')
     end
     methods
-    function obj = SimGrid(N, boundaries, pixel_size)
-        import utilities.*;
+    function obj = SimGrid(N, boundaries, pixel_size, pixel_unit)
             % Construct a wave simulation grid object with specified size
             % and boundary options. Automatically adjusts the boundary
             % widths to the closest efficient value.
@@ -30,15 +29,18 @@ classdef SimGrid
             % boundaries.extend   when true, boundaries may be made slightly larger
             %                     than specified to allow for an efficient fft.
 			%                     Periodic boundaries are never extended.
-			% pixel_size    cell array containing pixel sizes and units
-            %               e.g. {0.1 'm'; 1 's'}. If there are fewer
-            %               entries than dimensions, the last entry is
-            %               repeated so that. Defaults to {1 '-'}
+			% pixel_size    vector containing pixel sizes along the different
+            %               dimensions. If there are fewer
+            %               entries than dimensions.
+            % unit            e. g. 'mm' or 's'. All dimensions have the same
+            %                 unit
             
             %% Validate inputs
             validateattributes(N, {'numeric'}, {'positive', 'integer', 'vector'}); 
             validateattributes(boundaries.width, {'numeric'}, {'positive', 'integer'});
             validateattributes(boundaries.extend, {'logical'}, {}); 
+            validateattributes(pixel_size, {'numeric', 'vector'}, {'positive'});
+            validateattributes(pixel_unit, {'char', 'string'}, {'scalartext'});
             
             % By default, only consider boundaries periodic if the
             % corresponding dimension has size 1.
@@ -52,16 +54,6 @@ classdef SimGrid
             end
             if isscalar(boundaries.width) % when scalar boundary width is given, only apply to non-periodic boundaries
                 boundaries.width = ~boundaries.periodic * boundaries.width;
-            end
-            if nargin > 2
-                if ~iscell(pixel_size)
-                    pixel_size = num2cell(pixel_size, 1);
-                    pixel_size(:,2) = {'-'};
-                else
-                    validateattributes(pixel_size, {'cell'}, {});
-                end
-            else
-                pixel_size = {1, '-'};
             end
             
             %automatically extend to vector of correct size if only a scalar was passed
@@ -93,9 +85,8 @@ classdef SimGrid
             obj.boundaries.width = (obj.N - obj.N_roi)/2; %boundaries after correction
             
             % parse step size and units
-            obj.pixel_size = cell2mat(pixel_size(1,:));
-            validateattributes(obj.pixel_size, {'numeric'}, {'positive'}); 
-            obj.pixel_size_unit = pixel_size(2,:);
+            obj.pixel_size = pixel_size;
+            opt.pixel_unit = pixel_unit;
             obj.pixel_size_f = 2*pi./(obj.pixel_size .* obj.N);
             
             ranges = cell(obj.N_dim, 1);
@@ -195,10 +186,6 @@ classdef SimGrid
             % GRID.DIMENSIONS returns a vector with the total size of the
             % simulation grid (in units)
             d = obj.N .* obj.pixel_size;
-        end
-        function d = unit(obj, d)
-            % GRID.UNIT(D) returns the grid unit (a string) for dimension d
-            d = obj.pixel_size_unit{d};
         end
     end
 	methods(Static)

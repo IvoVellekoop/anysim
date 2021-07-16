@@ -1,4 +1,4 @@
-classdef Medium
+classdef Medium < handle
     %MEDIUM Abstract base class for grid-based media
     % Used internally by simulation objects to prepare:
     % * the scattering potential V =  Tl (V_raw-V0) Tr, scaled to have 
@@ -23,7 +23,7 @@ classdef Medium
     end
     
     methods
-        function obj = Medium(V_raw, V_raw_min, grid, opt)
+        function obj = Medium(V_raw, grid, opt)
             % Construct the medium object
             %
             % This base class for TensorMedium and Diagonal medium
@@ -51,9 +51,11 @@ classdef Medium
             
             %% Set default options and validate input arguments
             defaults.V_max = 0.95;
+            defaults.scale_adjuster = @(centers, radii) deal(centers, radii, false);
             opt = set_defaults(defaults, opt);
             validateattributes(opt.V_max, {'numeric'}, {'scalar', '>', 0, '<', 1}); 
             obj.V_max = opt.V_max;
+            obj.grid = grid;
 
             sz = size(V_raw, 2+(1:grid.N_dim));
             if any(sz ~= grid.N_roi & sz ~= 1)
@@ -75,18 +77,41 @@ classdef Medium
                     [centers(n,m), radii(n,m)] = smallest_circle(V_raw(n, m, :));
                 end
             end
-            obj.centers = centers;
+            
+            [c2, r2, feature_size, bclimited] = opt.scale_adjuster(centers, radii);
             
             % If some elements of the potential matrix are (near) constant, 
             % some radii will be very small or zero, which affects precision
             % (and may cause wrap-around artefacts in some simulations). 
             % Therefore, enforce a minimum value that is used as radius
             %
-            if any(radii < V_raw_min)
+            if bclimited
                 warning('Slowing down simulation to prevent wrap-around artefacts')
             end
-            obj.radii = max(radii, V_raw_min);
-            obj.grid = grid;
+            
+            % Now, check if the resolution is high enough to resolve the
+            % smallest features
+            active = obj.grid.N > 1;
+            pixel_size = obj.grid.pixel_size(active);
+            feature_size = feature_size(active);
+            
+            if any(feature_size < pixel_size)
+                res_limit = sprintf("%g ", feature_size);
+                res_current = sprintf("%g ", pixel_size);
+                warning("Resolution is too low to resolve the smallest features in the simulation. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
+            end
+            if any(feature_size/8 > pixel_size)
+                res_limit = sprintf("%g ", feature_size);
+                res_current = sprintf("%g ", pixel_size);
+                warning("Resolution seems to be on the high side. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
+            end
+            if any(r2 <= 1E-6 * c2)
+                % in case we have a completely homogeneous medium with all periodic boundaries, radii will be 0, which gives divergencies. Give it some number that makes sense (hopefully!)
+                warning('It seems the medium is completely homogeneous in at least one component.');
+                r2 = max(r2, 1E-6 * c2);
+            end
+            obj.centers = c2;
+            obj.radii = r2;
         end
         
         function u = mix_source(obj, u, source, state)

@@ -74,8 +74,8 @@ classdef DisplayCallback
             end
             
             %% Prepare labels and coordinates
-            obj.label1 = sprintf("x [%s]", sim.grid.unit(dims(1)));
-            obj.label2 = sprintf("y [%s]", sim.grid.unit(dims(2)));
+            obj.label1 = sprintf("x [%s]", sim.grid.pixel_unit);
+            obj.label2 = sprintf("y [%s]", sim.grid.pixel_unit);
             obj.coord1 = sim.grid.coordinates(dims(1));
             obj.coord2 = sim.grid.coordinates(dims(2));
             if ~obj.show_boundaries
