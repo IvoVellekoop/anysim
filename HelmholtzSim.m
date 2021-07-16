@@ -35,7 +35,8 @@ classdef HelmholtzSim < GridSim
             opt.real_signal = false;
             opt.potential_type = "scalar";
             defaults.wavelength = 1;
-            defaults.pixel_size = {0.25, '-'};
+            defaults.pixel_size = 0.25;
+            defaults.pixel_unit = 'λ';
             defaults.N = size(n);
             opt = set_defaults(defaults, opt);
             
