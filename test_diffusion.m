@@ -19,6 +19,7 @@ opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:,:);
 opt.termination_condition.relative_limit = 1E-6;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
+opt.V_max = 0.999; %0.618; % theoretical optimum
 
 %% Medium parameters
 N_boundary = 200;   % boundary width in pixels
@@ -74,5 +75,17 @@ bare = compare_simulations(sim, source, simulations, comp_opt);
 comp_opt.preconditioned = true;
 precond = compare_simulations(sim, source, simulations, comp_opt);
 
-
-
+%% Determine eigenvalues (should be between 0 and 2)
+GA = zeros(opt.N(1) * 4, opt.N(1) * 4);
+A = zeros(opt.N(1) * 4, opt.N(1) * 4);
+y = zeros(opt.N(1) * 4, 1);
+y(1) = 1;
+for n=1:opt.N(1)*4
+    GA(:,n) = sim.preconditioned(y);
+    A(:,n) = sim.operator(y);
+    y = circshift(y, [1,0]);
+end
+%GE = eig(GA);
+%E = eig(A);
+%%
+fprintf('||A^{-1}|| = %f\n', abs(1/min(E)))

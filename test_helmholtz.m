@@ -12,6 +12,9 @@ opt.callback.show_boundaries = true;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25;
 opt.crop = false;
+opt.V_max = 0.618034; % optimal in limit infitely large simulation: norm(E)->inf
+%0.562 (optimal for current situation: norm(E)/norm(source)=0.76;
+%opt.V_max = 0.95;
 
 %% create an AnySim object for a homogeneous sample
 n = 0.9; % refractive idex

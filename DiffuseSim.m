@@ -128,7 +128,7 @@ classdef DiffuseSim < GridSim
             
             % L' + 1 = Tl (L+V0) Tr + 1
             % simplified to: L' = Tl L Tr + Tl V0 Tr + 1
-            Lr = pagemtimes(pagemtimes(Tl, Lr + V0), Tr);
+            Lr = pagemtimes(pagemtimes(Tl, Lr), Tr) + (Tl * V0 * Tr + eye(4));
                         
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian (set kx,ky,kz,omega to 0)
@@ -137,7 +137,7 @@ classdef DiffuseSim < GridSim
             % taking the inverse and then taking the real partthen setting hermiIf we still need the forward operator Lr, 
             % we have to take special care at the the edges.
             % 
-            Lr = pageinv(Lr + eye(4));
+            Lr = pageinv(Lr);
             Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
                 % note: this is very inefficient, we only need to do this
