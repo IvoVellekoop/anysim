@@ -19,7 +19,7 @@ opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = @(u) u(4,:,:);
 opt.termination_condition.relative_limit = 1E-6;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.V_max = 0.999; %0.618; % theoretical optimum
+
 
 %% Medium parameters
 N_boundary = 200;   % boundary width in pixels

@@ -38,6 +38,7 @@ classdef HelmholtzSim < GridSim
             defaults.pixel_size = 0.25;
             defaults.pixel_unit = 'λ';
             defaults.N = size(n);
+            defaults.V_max = 0.618034; % optimal for V covering full unit disk. Todo: improve further?
             opt = set_defaults(defaults, opt);
             
             %% Construct base class

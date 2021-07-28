@@ -52,6 +52,7 @@ classdef DiffuseSim < GridSim
             opt.real_signal = true;
             defaults.pixel_size = 1;
             defaults.pixel_unit = 'm';
+            defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
             opt = set_defaults(defaults, opt);
             
             %% Construct base class
