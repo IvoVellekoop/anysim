@@ -16,4 +16,7 @@ function simulations = default_simulations(varargin)
     simulations(4).name = 'cgs';
     simulations(4).itfactor = 2;
     simulations(4).function = @(A, b, tol, Nit) cgs(A, b, tol, Nit);
+    simulations(5).name = 'pcg';
+    simulations(5).itfactor = 2;
+    simulations(5).function = @(A, b, tol, Nit) cgs(A, b, tol, Nit);
 end
