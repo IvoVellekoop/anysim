@@ -61,7 +61,7 @@ bare = compare_simulations(sim, source, simulations, comp_opt);
 comp_opt.preconditioned = true;
 precond = compare_simulations(sim, source, simulations, comp_opt);
 
-
+[L, GL] = simulation_eigenvalues(sim);
 
 
 

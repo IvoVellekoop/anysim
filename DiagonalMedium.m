@@ -1,7 +1,10 @@
 classdef DiagonalMedium < Medium
     %DIAGONALMEDIUM Helper class to implement a field potential of
     %diagonal tensors. Also used for scalar potentials.
-    %
+    %Note that the values are stored in internal representation
+    %For scalar media, the first two dimensions are 1,1
+    %For diagonal matrix media, the first two dimensions are N,1
+    %where N is the size of the matrix
     %   (c) 2021. Ivo Vellekoop
     methods
         function obj = DiagonalMedium(V_raw, grid, opt)

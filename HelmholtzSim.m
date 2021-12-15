@@ -38,7 +38,8 @@ classdef HelmholtzSim < GridSim
             defaults.pixel_size = 0.25;
             defaults.pixel_unit = 'λ';
             defaults.N = size(n);
-            defaults.V_max = 0.618034; % optimal for V covering full unit disk. Todo: improve further?
+            defaults.V_max = 0.95;
+            defaults.alpha = 1;%0.75;%real(1/(1 + 1.0i*defaults.V_max));
             opt = set_defaults(defaults, opt);
             
             %% Construct base class
@@ -50,7 +51,7 @@ classdef HelmholtzSim < GridSim
             %% Construct components: operators for medium, propagator and transform
             % Note: V = -i ε k0² = -i n² k0²
             obj.k0 = 2*pi/opt.wavelength;
-            obj.medium  = DiagonalMedium(-1i * obj.k0^2 * n.^2, obj.grid, obj.opt);
+            obj.medium  = DiagonalMedium(obj.to_internal(-1i * obj.k0^2 * n.^2), obj.grid, obj.opt);
             obj.medium.Tl = obj.medium.Tl * 1i; % include factor i to rotate source term
             obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();

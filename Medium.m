@@ -20,6 +20,7 @@ classdef Medium < handle
         radii
         grid
         V_max % maximum norm for scaled V
+        alpha % scale factor for complete preconditioner
     end
     
     methods
@@ -51,11 +52,13 @@ classdef Medium < handle
             
             %% Set default options and validate input arguments
             defaults.V_max = 0.95;
+            defaults.alpha = 1;
             defaults.scale_adjuster = @(centers, radii) deal(centers, radii, false);
             opt = set_defaults(defaults, opt);
             validateattributes(opt.V_max, {'numeric'}, {'scalar', '>', 0, '<', 1}); 
             obj.V_max = opt.V_max;
             obj.grid = grid;
+            obj.alpha = opt.alpha;
 
             sz = size(V_raw, 2+(1:grid.N_dim));
             if any(sz ~= grid.N_roi & sz ~= 1)
@@ -135,7 +138,7 @@ classdef Medium < handle
                 M = norm(reshape(obj.grid.crop(uprop, 2), 1, []))^2;
                 state.report_diff(M);
             end
-            u = u + uprop;
+            u = u + uprop * obj.alpha;
         end
         function u = V(obj, u)
            % MEDIUM.V(U, STATE) implements the function

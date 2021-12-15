@@ -53,6 +53,11 @@ classdef DiffuseSim < GridSim
             defaults.pixel_size = 1;
             defaults.pixel_unit = 'm';
             defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
+            defaults.alpha = 1;
+            
+            %defaults.V_max = 0.7208; %(sqrt(10)-1)/3
+            %defaults.alpha = 2/(1+0.7208);
+            
             opt = set_defaults(defaults, opt);
             
             %% Construct base class

@@ -70,13 +70,11 @@ defaults for missing options. Importantly, it should set the properties
 
 ## Algorithm implementation
 ### Preconditioning
-    The initial linear equation (L+V) u=s is first converted to
-    Tl^(-1) (L'+V') Tr^(-1) u = s
+    The initial linear equation (L_raw+V_raw) u_raw=s_raw
+    is first converted to (L+V) u = s
 
-    with: L' = Tl (L+V0) Tr       and   V' = Tl (V-V0) Tr
-    introducing: u' = Tr^(-1) u   and   s' = Tl s
-    we get the equation in the form:
-    (L'+V') u' = s'
+    with: L = Tl (L_raw+V_0) Tr     and   V = Tl (V_raw-V0) Tr
+    introducing: u = Tr^(-1) u_raw   and  s = Tl s_raw
 
     with Tl and Tr diagonal invertible pre-conditioning matrices. V0
     is an operator. Tl, Tr, and V0 are chosen such that
@@ -100,7 +98,7 @@ In the manuscript, the following iteration is derived:
 which is implemented as:
     t1 = G u + s            Medium.mix_source
     t1 -> Li t1             Propagator.propagate
-    u -> u + G (t1 - u)     Medium.mix_field
+    u -> u + alpha G (t1 - u)     Medium.mix_field
 
 requires:
 1 temporary storage (t1)
