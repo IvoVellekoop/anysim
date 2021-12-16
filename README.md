@@ -78,10 +78,9 @@ defaults for missing options. Importantly, it should set the properties
 
     with Tl and Tr diagonal invertible pre-conditioning matrices. V0
     is an operator. Tl, Tr, and V0 are chosen such that
-        % 1. L', V' and are dimensionless
+        % 1. L, V and are dimensionless
         % 2. The operator norm ||V-V0|| is minimized
-        % 3. ||V'|| < 1 (but as close to 1 as conveniently possible)
-        %
+        % 3. ||V|| < 1 (but as close to 1 as conveniently possible)
     
     Implementation:
     Tl, V0 and Tr are computed by the Medium object and stored in the

@@ -108,10 +108,10 @@ classdef Medium < handle
                 res_current = sprintf("%g ", pixel_size);
                 warning("Resolution seems to be on the high side. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
             end
-            if any(r2 <= 1E-6 * c2)
+            if any(r2 <= 1E-6 * abs(c2))
                 % in case we have a completely homogeneous medium with all periodic boundaries, radii will be 0, which gives divergencies. Give it some number that makes sense (hopefully!)
                 warning('It seems the medium is completely homogeneous in at least one component.');
-                r2 = max(r2, 1E-6 * c2);
+                r2 = max(r2, 1E-6 * abs(c2));
             end
             obj.centers = c2;
             obj.radii = r2;
