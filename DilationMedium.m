@@ -23,12 +23,12 @@ classdef DilationMedium < DiagonalMedium
             beta(1:opt.dilation_start) = 0;
             obj@DiagonalMedium(alpha, grid, opt);
             obj.coords = 1+(0:grid.N(1)-1).* s;
-            obj.beta = beta;
+            obj.beta = beta * obj.Tl * obj.Tr;
             obj.s = s;
         end   
         function u = multiplyG(obj, u)
             scaled = reshape(interp1(u(:), obj.coords, 'linear', 0), size(u));
-            u = obj.G .* u + obj.beta .* scaled;
+            u = obj.G .* u - obj.beta .* scaled;
         end  
     end
 end

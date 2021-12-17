@@ -25,10 +25,12 @@ classdef Pantograph < GridSim
             
             %% Set defaults
             defaults.pixel_size = {1, 's'};
+            defaults.alpha = 0.5;
+            defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
             opt = set_defaults(defaults, opt);
             
             %% Construct base class
-            obj = obj@GridSim(1, opt); 
+            obj = obj@GridSim([], opt); 
             
             %% Construct components: operators for medium, propagator and transform
             % note: change minus sign for alpha and beta, so that positive
@@ -58,8 +60,7 @@ classdef Pantograph < GridSim
             alpha = V0 + 1 / s;
             rate = exp(-alpha * obj.grid.pixel_size(1));
             start = obj.opt.dilation_start;
-            
-            propagator.apply = @(u, state) Pantograph.convolve(start, rate, u)/s; 
+            propagator.apply = @(u, state) Pantograph.convolve(start, rate, obj.grid.pixel_size(1), s/(s+1), u) / s; 
         end
         
         function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
@@ -72,9 +73,10 @@ classdef Pantograph < GridSim
         end
     end
     methods (Static)
-        function u = convolve(start, rate, u)
+        function u = convolve(start, rate, step, f, u)
+            u(1:start-1) = u(1:start-1) * f;
             for n=start:length(u)
-                u(n) = rate * u(n-1) + u(n);
+                u(n) = rate * u(n-1) + u(n) * step;
             end
         end
     end
