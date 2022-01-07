@@ -59,6 +59,7 @@ classdef Pantograph < GridSim
             s = obj.medium.Tl * obj.medium.Tr; % scaling factor
             alpha = V0 + 1 / s;
             rate = exp(-alpha * obj.grid.pixel_size(1));
+ %           rate = 1 - alpha * obj.grid.pixel_size(1); % finite difference
             start = obj.opt.dilation_start;
             propagator.apply = @(u, state) Pantograph.convolve(start, rate, obj.grid.pixel_size(1), s/(s+1), u) / s; 
         end

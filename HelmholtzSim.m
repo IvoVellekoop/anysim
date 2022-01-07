@@ -39,7 +39,7 @@ classdef HelmholtzSim < GridSim
             defaults.pixel_unit = 'λ';
             defaults.N = size(n);
             defaults.V_max = 0.95;
-            defaults.alpha = 1;%0.75;%real(1/(1 + 1.0i*defaults.V_max));
+            defaults.alpha = 0.75;%real(1/(1 + 1.0i*defaults.V_max));
             opt = set_defaults(defaults, opt);
             
             %% Construct base class

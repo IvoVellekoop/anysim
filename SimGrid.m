@@ -169,7 +169,7 @@ classdef SimGrid
             for d=1:obj.N_dim
                 w = obj.boundaries.width(d);
                 if w>0 % construct vector with boundaries on both sides, and 1 in between
-                    left_boundary = obj.boundaries.filter(ceil(w));
+                    left_boundary = obj.boundaries.filter(floor(w));
                     right_boundary = obj.boundaries.filter(ceil(w));
                     full_filter = [left_boundary(:); ones(obj.N(d)-floor(w)-ceil(w), 1); flipud(right_boundary(:))];
 

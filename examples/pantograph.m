@@ -22,7 +22,7 @@ function pantograph()
     t_range = ([1:nb_samples_total]-1) * dt;
     f_init_sampled = f_init(t_range(1:nb_samples_init).');
     
-    logMessage('Solving df(t)/dt = %0.1f f(t) + %0.1f f(%0.1ft) for f(t) on interval [%ds, %ds]', [a, b, s, Dt_init, Dt_total]);
+    %logMessage('Solving df(t)/dt = %0.1f f(t) + %0.1f f(%0.1ft) for f(t) on interval [%ds, %ds]', [a, b, s, Dt_init, Dt_total]);
     
     %
     % Define some functions to do continuous operations on sampled functions
@@ -104,20 +104,20 @@ function pantograph()
     [solution_post_sr, flag, relres, iter, resvec] = splitrichardson(@LpIinv_post, G_post, rhs_scaled_post, 1e-8, 1000, zeros(nb_samples_total-nb_samples_init, 1));  %, @callback);
 %     [solution_post_sr, flag, relres, iter, resvec] = bicgstab(@(x) prec_inv(H_post(x)), prec_inv(rhs_scaled_post));
     total_time = cputime() - start_time;
-    logMessage('SplitRichardson took %0.3fms', total_time*1e3);
+    %logMessage('SplitRichardson took %0.3fms', total_time*1e3);
     relative_resvec = resvec ./ norm(solution_post_sr);
     
     solution_sr = [f_init_sampled; solution_post_sr];  % prepend the initial function
     
-    logMessage('SplitRichardson forward residue %0.6f and inverse residue %0.6f.', forward_inverse_residue_func(solution_sr));
+    %logMessage('SplitRichardson forward residue %0.6f and inverse residue %0.6f.', forward_inverse_residue_func(solution_sr));
     
     % Double check M
     M = @(f_s) G_post(LpIinv_post(G_post(f_s))) + f_s - G_post(f_s);
     if nb_samples_total < 1024
         % Build the matrices just to check everything is as expected
         [norm_M, max_eig_M, min_Rayleigh_Mr, max_Rayleigh_Mr, min_Rayleigh_Mi, max_Rayleigh_Mi] = check_matrix_op(M, nb_samples_total - nb_samples_init);
-        logMessage('|M| = %0.3f, %0.3f Re<x,Mx> < %0.3f, %0.3f Im<x,Mx> %0.3f,  max(|eig(M)|) = %0.3f',...
-            [norm_M, min_Rayleigh_Mr, max_Rayleigh_Mr, min_Rayleigh_Mi, max_Rayleigh_Mi, max_eig_M]);
+        %logMessage('|M| = %0.3f, %0.3f Re<x,Mx> < %0.3f, %0.3f Im<x,Mx> %0.3f,  max(|eig(M)|) = %0.3f',...
+        %    [norm_M, min_Rayleigh_Mr, max_Rayleigh_Mr, min_Rayleigh_Mi, max_Rayleigh_Mi, max_eig_M]);
     end
     
     %
@@ -192,7 +192,7 @@ function [solution_matlab, residue_function] = solve_with_matlab(H, f_init_sampl
     start_time = cputime();
     solution_matlab_post = H_sampled_post_post \ rhs_post;
     total_time = cputime() - start_time;
-    logMessage('MATLAB took %0.3fms', total_time*1e3);
+    %logMessage('MATLAB took %0.3fms', total_time*1e3);
     solution_matlab = [f_init_sampled; solution_matlab_post];  % prepend the initial function
     
     % Define a residue function to check against later
@@ -203,7 +203,7 @@ function [solution_matlab, residue_function] = solve_with_matlab(H, f_init_sampl
     end
     residue_function = @calc_residues;
     
-    logMessage('MATLAB forward residue %0.6f and inverse residue %0.6f', residue_function(solution_matlab));    
+    %logMessage('MATLAB forward residue %0.6f and inverse residue %0.6f', residue_function(solution_matlab));    
 end
 
 function x = tridiagtoeplitz(below, on, above, y)

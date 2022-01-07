@@ -95,17 +95,15 @@ classdef Medium < handle
             % Now, check if the resolution is high enough to resolve the
             % smallest features
             active = obj.grid.N > 1;
-            pixel_size = obj.grid.pixel_size(active);
-            feature_size = feature_size(active);
             
-            if any(feature_size < pixel_size)
+            if any(feature_size < obj.grid.pixel_size & active)
                 res_limit = sprintf("%g ", feature_size);
-                res_current = sprintf("%g ", pixel_size);
+                res_current = sprintf("%g ", obj.grid.pixel_size);
                 warning("Resolution is too low to resolve the smallest features in the simulation. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
             end
-            if any(feature_size/8 > pixel_size)
+            if any(feature_size/8 > obj.grid.pixel_size & active)
                 res_limit = sprintf("%g ", feature_size);
-                res_current = sprintf("%g ", pixel_size);
+                res_current = sprintf("%g ", obj.grid.pixel_size);
                 warning("Resolution seems to be on the high side. Minimum pixel size: [%s] Current pixel size: [%s]", res_limit, res_current);
             end
             if any(r2 <= 1E-6 * abs(c2))
