@@ -42,7 +42,7 @@ a((end-N_boundary+1):end) = Dslab/ze^2;
 sim = DiffuseSim(D, a, opt);
 
 % Define source
-z = sim.grid.crop(sim.grid.coordinates(1));
+z = sim.coordinates(1);
 
 ell = Dslab*3;
 z_indices = N_boundary+1:opt.N(1)-N_boundary;   % indices of slab

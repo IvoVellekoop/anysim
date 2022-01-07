@@ -59,7 +59,7 @@ classdef (Abstract) AnySim < handle
             % default termination condition (see tc_relative_error)
             defaults.termination_condition.handle = @TerminationCondition;
             defaults.termination_condition.interval = 16;
-            defaults.callback.handle = @(u, state, opt) disp(state.iteration);
+            defaults.callback.handle = @PrintIterationCallback;
             defaults.callback.interval = 16;
             obj.opt = set_defaults(defaults, opt);
         end
@@ -167,13 +167,6 @@ classdef (Abstract) AnySim < handle
             u = obj.transform.r2k(u);
             u = obj.L(u);
             u = obj.transform.k2r(u) + Vu;
-        end
-        
-        function c = coordinates(obj, d)
-            % SIM.COORDINATES(D) returns the coordinates in dimension
-            % D, cropped to the region of interest. Coordinates are 0 for
-            % the start of the ROI, and increasing.
-            c = obj.grid.crop(obj.grid.coordinates(d));
         end
     end
     methods (Abstract, Access=protected)

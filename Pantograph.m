@@ -6,7 +6,7 @@ classdef Pantograph < GridSim
     %   (c) 2021. Ivo Vellekoop & Tom Vettenburg
     %
     properties
-        alpha, beta, s % coefficients of the differential equation
+        r_dil   % norm of V_raw, excluding the variations in a
     end
     methods
         function obj = Pantograph(alpha, beta, s, opt)
@@ -24,16 +24,20 @@ classdef Pantograph < GridSim
             %                   [5 'ms']. (default 1 's')
             
             %% Set defaults
-            opt.real_signal = true;
             defaults.pixel_size = {1, 's'};
+            defaults.alpha = 0.5;
+            defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
             opt = set_defaults(defaults, opt);
             
             %% Construct base class
-            obj = obj@GridSim(1, opt); 
+            obj = obj@GridSim([], opt); 
             
             %% Construct components: operators for medium, propagator and transform
-            obj.medium  = obj.makeMedium(alpha, beta, s);
-            obj.transform  = FourierTransform(obj.opt);
+            % note: change minus sign for alpha and beta, so that positive
+            % alpha corresponds to absorption (consistent with A)
+            obj.r_dil = max(abs(beta(:))) / sqrt(s);
+            obj.medium  = obj.makeMedium(-alpha, -beta, s);
+            obj.transform  = NoTransform();
             obj.propagator = obj.makePropagator();
         end
     end
@@ -43,74 +47,37 @@ classdef Pantograph < GridSim
             % perform scaling so that ‖V‖ < 1
             medium = DilationMedium(alpha, beta, s, obj.grid, obj.opt);
         end
-        
+
         function propagator = makePropagator(obj)
-            % Constructs the propagator (L'+1)^-1 = 
-            % with L' = Tl(L + V0)Tr, and L = -iω  
-            %
+            % L + 1 = Tl (dt + V0) Tr + 1
+            % Now construct (L+1)^-1 u = 
+            % (conv(u, exp(-α t)) + u(t0) exp(-α t)) / (Tl Tr)  
+            % with α = V0 + 1/Tl Tr
+            % approximate finite difference: each dx = pixel-size
+            % step, decrease signal by exp(-α dx)
             V0 = obj.medium.V0; % scaled background potential
-            Tl = obj.medium.Tl; % scaling matrices for the
-            Tr = obj.medium.Tr; % L operator
-            
-            Lr = shiftdim(obj.grid.coordinates_f(1), -2);
-            
-            % L' + 1 = Tl (L+V0) Tr + 1
-            % simplified to: L' = Tl L Tr + Tl V0 Tr + 1
-            Lr = Tl * Tr * (Lr + V0) + 1;
-                        
-            % invert L to obtain dampened Green's operator
-            % then make x,y,z,t dimensions hermitian (set kx,ky,kz,omega to 0)
-            % to avoid artefacts when N is even.
-            % Note that there is a difference between first
-            % taking the inverse and then taking the real partthen setting hermiIf we still need the forward operator Lr, 
-            % we have to take special care at the the edges.
-            % 
-            Lr = 1./ Lr;
-            Lr = SimGrid.fix_edges_hermitian(Lr, 2);
-            if obj.opt.forward_operator
-                % note: this is very inefficient, we only need to do this
-                % at the edges. However, the forward operator is only
-                % needed for debugging purposes and for showing that
-                % without preconditioner other methods (bicgstab, etc.) 
-                % perform badly. So we don't care about optimizing this.
-                LL = 1./Lr-1;
-                obj.L = @(u) LL .* u;
-            end
-            
-            % the propagator just performs a
-            % point-wise multiplication
-            propagator.apply = @(u, state) Lr .* u;
+            s = obj.medium.Tl * obj.medium.Tr; % scaling factor
+            alpha = V0 + 1 / s;
+            rate = exp(-alpha * obj.grid.pixel_size(1));
+            start = obj.opt.dilation_start;
+            propagator.apply = @(u, state) Pantograph.convolve(start, rate, obj.grid.pixel_size(1), s/(s+1), u) / s; 
         end
         
         function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
             % 
-            % We have V_raw = -i n^2 k0^2
-            % n = sqrt(i V_raw) / k0
-            %
-            % The imaginary part of n corresponds to absorption
-            % The boundaries tend towards G=0 -> V_raw=centers+radii,
-            % so the absorption should be strong enough there
-            V_max_abs = centers + radii;
-            k1 = sqrt(1.0i * V_max_abs);
-            mu_min = max(obj.mu_min); % minimum required absorption coefficient
-            if imag(k1) < mu_min
-                % replace absorption by minimum required absorption
-                % and calculate what V_raw corresponds to this point
-                k2 = real(k1) + 1.0i * mu_min;
-                V_raw = -1.0i * k2^2; 
-                
-                % Adjust centers and radii so that new V_raw is included
-                %todo: not exactly optimal!
-                shift = V_max_abs - V_raw;
-                centers = centers - shift/2;
-                radii = radii + abs(shift)/2;
-                bclimited = true;
-            else
-                bclimited = false;
+            % The current radii are only based on variations in 'a'.
+            % We need to also account for the dillation part
+            radii = radii + obj.r_dil;
+            bclimited = false;
+            feature_size = 1/abs(centers+radii);
+        end
+    end
+    methods (Static)
+        function u = convolve(start, rate, step, f, u)
+            u(1:start-1) = u(1:start-1) * f;
+            for n=start:length(u)
+                u(n) = rate * u(n-1) + u(n) * step;
             end
-            
-            %todo: not exact! Largest real part of n not necessarily reached at n0
-            feature_size = pi / real(k1);            
         end
     end
 end

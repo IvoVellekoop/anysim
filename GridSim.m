@@ -145,6 +145,17 @@ classdef GridSim < AnySim
             %elsif dim == 2: no format change needed
             end                
         end
+
+        function c = coordinates(obj, dim)
+            % SIM.COORDINATES(D) returns the coordinates in dimension
+            % D, cropped to the region of interest. Coordinates are 0 for
+            % the start of the ROI, and increasing. The returned array will have
+            % size 1 in all dimensions, except in the Dth 
+            % dimension, so it is usable for singleton expansion directly
+            % (e.g. r = sqrt(sim.coordinates(1).^2 + sim.coordinates(2).^2))
+            c = obj.grid.crop(obj.grid.coordinates(dim));
+        end
+
         function u = preconditioner(obj, u)
             % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
             %
