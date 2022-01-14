@@ -12,6 +12,7 @@ opt.callback.show_boundaries = true;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25;
 opt.crop = false;
+opt.alpha = 0.75;
 
 %% create an AnySim object for a homogeneous sample
 n = ones(opt.N); % refractive idex
@@ -30,14 +31,14 @@ comp_opt.tol = []; % []=stop when reached same residual as anysim
 comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
 
-comp_opt.preconditioned = false;
-bare = compare_simulations(sim, source, simulations, comp_opt);
+%comp_opt.preconditioned = false;
+%bare = compare_simulations(sim, source, simulations, comp_opt);
 
 %% Repeat with preconditioner
 comp_opt.preconditioned = true;
 precond = compare_simulations(sim, source, simulations, comp_opt);
 
-%[L, GL] = simulation_eigenvalues(sim);
+[A, preA] = simulation_eigenvalues(sim);
 
 
 
