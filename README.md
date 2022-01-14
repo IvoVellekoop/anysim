@@ -9,9 +9,9 @@ AnySim : root class implementing the Modified Born series iteration
      ├─ DiffuseSim : solves the diffusion equation
      └─ HelmholtzSim : solves the Helmholtz equation
 
-Medium : root class implementing operator G=1-V for grid-based potentials
+Medium : root class implementing operator B=1-V for grid-based potentials
  │      also implements computation of centering & scaling matrices Tl Tr and V0
- ├─ TensorMedium: associates a matrix to each grid point, operator V=1-G is implemented as a matrix-vector multiplication
+ ├─ TensorMedium: associates a matrix to each grid point, operator V=1-B is implemented as a matrix-vector multiplication
  ├─ DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
  └─ ScalarMedium: associates a scalar to each grid point
    
@@ -49,7 +49,7 @@ defaults for missing options. Importantly, it should set the properties
 `medium`, `propagator`, and `transform`. 
 
 `.medium`: An object deriving from the 'Medium' base class. This object
-  implements the operator `G:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
+  implements the operator `B:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
   implemented as a multiplication with a scattering potential in the 
   spatio-temporal domain.
   For the diffusion equation, for example, a DiffusionMedium object is used,
@@ -92,17 +92,17 @@ defaults for missing options. Importantly, it should set the properties
 
 ### Iteration
 In the manuscript, the following iteration is derived:
-    u -> (G Li G + 1 - G) u + G Li s
+    u -> (B Li B + 1 - B) u + B Li s
 
 which is implemented as:
-    t1 = G u + s            Medium.mix_source
+    t1 = B u + s            Medium.mix_source
     t1 -> Li t1             Propagator.propagate
-    u -> u + alpha G (t1 - u)     Medium.mix_field
+    u -> u + alpha B (t1 - u)     Medium.mix_field
 
 requires:
 1 temporary storage (t1)
 1 field storage (u)
-1 potential storage (G)
+1 potential storage (B)
 1 propagator storage (Li, may be computed on the fly in some implementations!)
 
 
@@ -122,7 +122,7 @@ Internally, all data is stored as a matrix field in an N-dimensional array 'u'.
 The first two dimensions of 'u' correspond to the size of a single value.
 For scalar simulations, these dimensions are [1,1]. For vector-valued
 data, the dimensions are [N_components,1], and for matrix-valued data
-they are [N, M]. Matrix-valued operators (G and V) follow the same data layout.
+they are [N, M]. Matrix-valued operators (B and V) follow the same data layout.
 
 When data is passed to the user (when returning from exec()), spurious
 dimensions are removed. So, a Nx x Ny scalar simulation will return a Nx x Ny
