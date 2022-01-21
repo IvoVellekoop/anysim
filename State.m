@@ -6,6 +6,8 @@ classdef State < dynamicprops
     properties
         iteration;
         start_time;
+        end_time;
+        run_time;
         termination_condition_interval;
         termination_condition;
         callback_interval;
@@ -49,6 +51,10 @@ classdef State < dynamicprops
             obj.diffs = [obj.diffs, diff];
             obj.diff_its = [obj.diff_its, obj.iteration];
             obj.running = ~obj.termination_condition.call(obj);
+        end
+        function finalize(obj)
+            obj.end_time = cputime;
+            obj.run_time = obj.end_time - obj.start_time;
         end
     end
     

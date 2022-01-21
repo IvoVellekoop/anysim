@@ -111,6 +111,7 @@ classdef (Abstract) AnySim < handle
             % + optional final processing (in grid-based simulations the solution
             % is cropped to the roi)
             u = obj.finalize(u, state);
+            state.finalize();
         end
         
         function u = preconditioned(obj, u)
