@@ -115,7 +115,7 @@ classdef (Abstract) AnySim < handle
         end
         
         function u = preconditioned(obj, u)
-            % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1) (L+V) U
+            % SIM.PRECONDITIONED(U) returns (1-V)(L+1)^(-1) (L+V) U
             % which is the preconditioned operator operating on U
             % Functionally equivalent (but more efficient) than
             % preconditioner(operator(u))

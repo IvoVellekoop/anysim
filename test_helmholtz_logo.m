@@ -15,6 +15,7 @@ opt.termination_condition.relative_limit = 1E-3;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/4;
 opt.alpha = 0.75;
+opt.crop = false; % so that we can compare with the forward operator
 
 %% create the AnySim object
 sim = HelmholtzSim(n, opt);
@@ -24,9 +25,11 @@ source = sim.define_source(im(:,:,2));
 [E, state] = sim.exec(source);
 
 %%
-close all; imagesc(log10(abs(E).^2), [-8 -2]); axis image; colorbar;
-xlim([200 1400]);
-ylim([200 1400]);
+I = abs(E(264:1464, 264:1464)).^2;
+x0 = (1400-200) * sim.grid.pixel_size / 2;
+close all; imagesc([-x0, x0], [-x0, x0], log10(I), [-8 -2]); axis image; colorbar;
+xlabel('x [\mu m]')
+ylabel('y [\mu m]')
 colormap hot;
 
 %% Compare to other methods and compute errors
@@ -36,12 +39,13 @@ comp_opt.tol = []; % []=stop when reached same residual as anysim
 comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
 
-%comp_opt.preconditioned = false;
-%bare = compare_simulations(sim, source, simulations, comp_opt);
+comp_opt.preconditioned = false;
+
+bare = compare_simulations(sim, source, simulations, comp_opt);
 
 %% Repeat with preconditioner
 comp_opt.preconditioned = true;
-%precond = compare_simulations(sim, source, simulations, comp_opt);
+precond = compare_simulations(sim, source, simulations, comp_opt);
 
 %[A, preA] = simulation_eigenvalues(sim);
 
