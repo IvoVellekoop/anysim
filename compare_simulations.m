@@ -49,7 +49,7 @@ up = pagemtimes(inv(sim.medium.Tr), u); % u' = Tr^(-1) u
 results(1).residual = norm(A(up(:))-b) / norm(b);
 results(1).iter = state.iteration;
 if isempty(opt.tol)
-    tol = results(1).residual;
+    tol = results(1).residual * norm(b);
 else
     tol = opt.tol;
 end
@@ -73,14 +73,15 @@ for m_i = 1:length(methods)
         itfactor = 1;
     end
     counter.reset();
-    [val, flag, relres, iter] = m.function(A, b, tol, ceil(Nit / itfactor));
+    [val, flag, relres, iter] = m.function(A, b, tol / norm(b), ceil(Nit / itfactor));
     results(m_i+1).flag = flag;
     results(m_i+1).iter = counter.i;
     results(m_i+1).name = m.name;
     results(m_i+1).value = gather(pagemtimes(sim.medium.Tr, reshape(val, sz))); % compensate for scaling of operator A
     
     % Relative residual =: ‖Ax-b‖/‖b‖
-    results(m_i+1).residual = norm(A(val)-b) / norm(b);
+    results(m_i+1).residual = norm(A(val)-b)/norm(b);
+    disp(relres);
 end
 
 %% Compare with analytical theory
