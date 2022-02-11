@@ -73,8 +73,12 @@ resvec(1,:) = n2b;                 % resvec(1) = norm(b-A*x0)
 
 % loop over maxit iterations (unless convergence or failure)
 for iter = 1 : maxit
-    r = A(x) - b;   % residual
-    x = x - alpha * r;
+    if iter == 1
+        r = b;
+    else
+        r = b - A(x);   % residual
+    end
+    x = x + alpha * r;
     normr = norm(r);
     relres = normr / n2b;
     resvec(iter+1,1) = normr;

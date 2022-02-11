@@ -81,7 +81,6 @@ for m_i = 1:length(methods)
     
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i+1).residual = norm(A(val)-b)/norm(b);
-    disp(relres);
 end
 
 %% Compare with analytical theory

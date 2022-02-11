@@ -4,8 +4,10 @@
 
 %% Set up simulation options
 opt = struct(); % clear any previous options
-im = imresize(single(imread("natlogo.png"))/255, 4);
-n = 1.5 - 0.5 * im(:,:,1) + (0.5+0.4i) * im(:,:,3);
+oversampling = 2; %4;
+im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
+%n = 1.5 - 0.5 * im(:,:,1);% + (0.5+0.4i) * im(:,:,3);
+n = 1 + (1.8 + 2.9i) * im(:,:,1); % iron
 opt.N = [size(n,1), size(n,2), 1];   % Nx, Ny, Nz   (constant in z)
 opt.boundaries.periodic = [false, false, true];
 opt.boundaries.width = 64;
@@ -13,7 +15,7 @@ opt.callback.handle = @DisplayCallback;
 opt.callback.show_boundaries = true;
 opt.termination_condition.relative_limit = 1E-3;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.pixel_size = 0.25/4;
+opt.pixel_size = 0.25/oversampling;
 opt.alpha = 0.75;
 opt.crop = false; % so that we can compare with the forward operator
 
