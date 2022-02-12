@@ -37,15 +37,15 @@ counter = Counter();
 if opt.preconditioned
     %A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
     A = @(x) sim.preconditioned(counter.inc(x));   % scaled operator L'+V'
-    b = sim.preconditioner(source.to_array());      % returns s' = Tl s
+    b = sim.preconditioner(source);      % returns s' = Tl s
 else
     A = @(x) sim.operator(counter.inc(x));   % scaled operator L'+V'
-    b = source.to_array();      % returns s' = Tl s
+    b = source; %.to_array();      % returns s' = Tl s
 end
 b = b(:);
 
 % Residue = ‖Ax-b‖
-up = pagemtimes(inv(sim.medium.Tr), u); % u' = Tr^(-1) u
+up = pagemtimes(inv(sim.Tr), u); % u' = Tr^(-1) u
 results(1).residual = norm(A(up(:))-b) / norm(b);
 results(1).iter = state.iteration;
 if isempty(opt.tol)
@@ -77,7 +77,7 @@ for m_i = 1:length(methods)
     results(m_i+1).flag = flag;
     results(m_i+1).iter = counter.i;
     results(m_i+1).name = m.name;
-    results(m_i+1).value = gather(pagemtimes(sim.medium.Tr, reshape(val, sz))); % compensate for scaling of operator A
+    results(m_i+1).value = gather(pagemtimes(sim.Tr, reshape(val, sz))); % compensate for scaling of operator A
     
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i+1).residual = norm(A(val)-b)/norm(b);

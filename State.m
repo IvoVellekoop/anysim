@@ -32,7 +32,6 @@ classdef State < dynamicprops
         end
         function next(obj, u)
             if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
-            %    fprintf("Iteration: %d, total time: %g\n", obj.iteration, cputime-obj.start_time);
                 obj.callback.call(u, obj);
             end
             obj.iteration = obj.iteration + 1;

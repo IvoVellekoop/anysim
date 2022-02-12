@@ -40,6 +40,7 @@ classdef (Abstract) AnySim < handle
             % flag to determine if simulation are run
             % on the GPU (default: run on GPU if we have one)
             defaults.gpu_enabled = gpuDeviceCount > 0;
+            defaults.gpu_device = 1;
 
             % flag to determine if single precision or 
             % double precision calculations are used.
@@ -62,19 +63,24 @@ classdef (Abstract) AnySim < handle
             defaults.callback.handle = @PrintIterationCallback;
             defaults.callback.interval = 16;
             obj.opt = set_defaults(defaults, opt);
+
+            if (obj.opt.gpu_enabled)
+                gpu = gpuDevice(obj.opt.gpu_device); % select GPU device
+                disp(['GPU found. Performing simulations on: ', gpu.Name]);
+            end
         end
         
-        function b = preconditioner(obj, b)
-            % SIM.PRECONDITIONER(B) returns (1-V)(L+1)^(-1)B
+        function x = preconditioner(obj, x)
+            % SIM.PRECONDITIONER(X) returns B(L+1)^(-1) X
             %
             % Note: this function is not used by the anysim
             % algorithm itself, but it can be used to compare
             % anysim so other algoriths (such as GMRES)
             %
-            b = obj.transform.r2k(b);
-            b = obj.propagator.apply(b);
-            b = obj.transform.k2r(b);
-            b = b - obj.medium.V(b);
+            x = obj.transform.r2k(x);
+            x = obj.propagator.apply(x);
+            x = obj.transform.k2r(x);
+            x = fieldmultiply(obj.medium, x);
         end
         
         
@@ -90,20 +96,25 @@ classdef (Abstract) AnySim < handle
             [u, state] = obj.start();
             
             while state.running()
-                % Gu + s
-                t1 = obj.medium.mix_source(u, source, state); 
+                % t1 => B u + b
+                t1 = fieldmultiply(obj.medium, u) + source; 
                 
-                % Li t1
+                % t1 => (L+1)^-1 t1
                 t1 = obj.transform.r2k(t1, state);
                 t1 = obj.propagator.apply(t1, state);
                 t1 = obj.transform.k2r(t1, state);
                 
                 % in case r domain is non-stationary: transform u_r
                 % to the proper domain (does nothing yet)
-                u = obj.transform.r2r(u, state);
+                %u = obj.transform.r2r(u, state);
                 
                 % u + G (t1-u)
-                u = obj.medium.mix_field(u, t1, state);
+                t1 = t1 - u;
+                t1 = fieldmultiply(obj.medium, t1); % residual
+                if state.needs_report
+                    state.report_diff(norm(t1(:)))
+                end
+                u = u + t1;
                 state.next(u);
             end
             
@@ -130,7 +141,7 @@ classdef (Abstract) AnySim < handle
             %  =  (1-V)[1-(L+1)^(-1)(1-V)]
             
             % (1-V)u
-            t1 = obj.medium.multiplyG(u); 
+            t1 = fieldmultiply(obj.medium, u); 
             
             % (L+1)^(-1) (1-V)u
             t1 = obj.transform.r2k(t1);
@@ -141,7 +152,7 @@ classdef (Abstract) AnySim < handle
             % algorithm?
                 
             % (1-V) (u-t1)
-            u = obj.medium.multiplyG(u - t1);
+            u = fieldmultiply(obj.medium, u - t1);
         end
         
         function u = operator(obj, u)
@@ -164,7 +175,7 @@ classdef (Abstract) AnySim < handle
             if isempty(obj.L) 
                 error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
             end
-            Vu = obj.medium.V(u);
+            Vu = u - fieldmultiply(obj.medium, u);
             u = obj.transform.r2k(u);
             u = obj.L(u);
             u = obj.transform.k2r(u) + Vu;

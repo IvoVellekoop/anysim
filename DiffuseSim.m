@@ -78,7 +78,9 @@ classdef DiffuseSim < GridSim
             %    [      0]
             %    [0 0 0 a]
             %
-            %% Invert D, then add entries for a
+            %
+            
+            % Invert D, then add entries for a
             D = data_array(D, obj.opt); % convert D to data array (put on gpu if needed, change precision if needed)
             if obj.opt.potential_type == "tensor"
                 % combine scalar 'a' and 3x3 matrix 'D' to 4x4 matrix
@@ -86,7 +88,7 @@ classdef DiffuseSim < GridSim
                 V = pagefun(@inv, D);
                 V(4,4,:,:,:,:) = 0; 
                 V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');
-                medium = TensorMedium(obj.to_internal(V), obj.grid, obj.opt);
+                field_dim = 2;
             elseif obj.opt.potential_type == "diagonal"
                 % combine scalar 'a' and diagonal matrix 'D' to 4-element
                 % diagonal matrix
@@ -94,7 +96,7 @@ classdef DiffuseSim < GridSim
                 V = 1./D;
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                medium = DiagonalMedium(obj.to_internal(V), obj.grid, obj.opt);
+                field_dim = 1;
             elseif obj.opt.potential_type == "scalar" 
                 % combine scalar 'a' and scalar 'D' to 4-element diagonal
                 % matrix
@@ -102,10 +104,12 @@ classdef DiffuseSim < GridSim
                 V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                medium = DiagonalMedium(obj.to_internal(V), obj.grid, obj.opt);
+                field_dim = 1;
             else
                 error('Incorrect option for potential_type');
             end
+            [Tl, Tr, V0] = center_scale(V);
+            
         end
         
         function propagator = makePropagator(obj)

@@ -5,6 +5,9 @@ classdef HelmholtzSim < GridSim
     %   (c) 2021. Ivo Vellekoop
     properties
         k0
+        Tl
+        Tr
+        V0
     end
     methods
         function obj = HelmholtzSim(n, opt)
@@ -47,68 +50,71 @@ classdef HelmholtzSim < GridSim
             % for 2-dimensional simulations, Fz = 0, so this approach
             % is slightly wasteful.
             obj = obj@GridSim([], opt); 
-            
-            %% Construct components: operators for medium, propagator and transform
-            % Note: V = -i ε k0² = -i n² k0²
             obj.k0 = 2*pi/opt.wavelength;
-            obj.medium  = DiagonalMedium(obj.to_internal(-1i * obj.k0^2 * n.^2), obj.grid, obj.opt);
-            obj.medium.Tl = obj.medium.Tl * 1i; % include factor i to rotate source term
+
+            %% Construct components: operators for medium, propagator and transform
+            % Compute scaling factors. Note: Vraw = -i ε k0² = -i n² k0²            
+            V = -1i * obj.k0^2 * n.^2;
+            Vmin = imag(obj.k0 + 1i * max(obj.mu_min))^2; % minimum required absorption coefficient
+            [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
+
+            % apply scaling
+            obj.medium = obj.grid.pad(data_array(1 - V, obj.opt), 0);
+            obj.Tl = obj.Tl * 1i; % include factor i to rotate source term??
+            
             obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();
         end
         
         function propagator = makePropagator(obj)
-            % Constructs the propagator (L'+1)^-1 = 
-            % with L' = Tl(L + V0)Tr, and L the 
+            % Constructs the propagator (L+1)^-1 = 
+            % with L = Tl(Lraw + V0)Tr, and Lraw the 
             % differential operator for the Helmholtz equation.
-            % In k-space, we simply have L= i (kx^2+ky^2+kz^2)
-            V0 = -1i * obj.medium.V0; % raw (non-scaled) background potential. Compensate for factor i in Tl matrix
-            Tl = obj.medium.Tl; % scaling factor, contains factor i
-            Tr = obj.medium.Tr; % scaling factor (real)
+            % In k-space, Lraw = i (kx^2+ky^2+kz^2)
             
             % Compute -∇²=‖p‖² in k-space   
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
-            Lr = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
-            Lr = obj.to_internal(Tl*Tr*(Lr + V0));
+            L = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
+            L = (obj.Tl * obj.Tr) * (L - 1i * obj.V0); % -1i compensates for factor i in Tl matrix
             if obj.opt.forward_operator
-                obj.L = @(u) pagemtimes (Lr, u);
+                obj.L = @(u) L .* u;
             end
-            Lr = 1./(1+Lr);
+            Lr = 1./(1+L);
             
             % point-wise multiplication
             propagator.apply = @(u, state) Lr .* u;
         end
-    end
-    methods (Access=protected)
-        function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
-            % 
-            % We have V_raw = -i n^2 k0^2
-            % n = sqrt(i V_raw) / k0
-            %
-            % The imaginary part of n corresponds to absorption
-            % The boundaries tend towards G=0 -> V_raw=centers+radii,
-            % so the absorption should be strong enough there
-            V_max_abs = centers + radii;
-            k1 = sqrt(1.0i * V_max_abs);
-            mu_min = max(obj.mu_min); % minimum required absorption coefficient
-            if imag(k1) < mu_min
-                % replace absorption by minimum required absorption
-                % and calculate what V_raw corresponds to this point
-                k2 = real(k1) + 1.0i * mu_min;
-                V_raw = -1.0i * k2^2; 
-                
-                % Adjust centers and radii so that new V_raw is included
-                %todo: not exactly optimal!
-                shift = V_max_abs - V_raw;
-                centers = centers - shift/2;
-                radii = radii + abs(shift)/2;
-                bclimited = true;
-            else
-                bclimited = false;
-            end
-            
-            %todo: not exact! Largest real part of n not necessarily reached at n0
-            feature_size = pi / real(k1);            
-        end
-    end
+     end
+%     methods (Access=protected)
+%         function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
+%             % 
+%             % We have V_raw = -i n^2 k0^2
+%             % n = sqrt(i V_raw) / k0
+%             %
+%             % The imaginary part of n corresponds to absorption
+%             % The boundaries tend towards G=0 -> V_raw=centers+radii,
+%             % so the absorption should be strong enough there
+%             V_max_abs = centers + radii;
+%             k1 = sqrt(1.0i * V_max_abs);
+%             mu_min = max(obj.mu_min); % minimum required absorption coefficient
+%             if imag(k1) < mu_min
+%                 % replace absorption by minimum required absorption
+%                 % and calculate what V_raw corresponds to this point
+%                 k2 = real(k1) + 1.0i * mu_min;
+%                 V_raw = -1.0i * k2^2; 
+%                 
+%                 % Adjust centers and radii so that new V_raw is included
+%                 %todo: not exactly optimal!
+%                 shift = V_max_abs - V_raw;
+%                 centers = centers - shift/2;
+%                 radii = radii + abs(shift)/2;
+%                 bclimited = true;
+%             else
+%                 bclimited = false;
+%             end
+%             
+%             %todo: not exact! Largest real part of n not necessarily reached at n0
+%             feature_size = pi / real(k1);            
+%         end
+%    end
 end

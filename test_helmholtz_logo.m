@@ -18,6 +18,7 @@ opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/oversampling;
 opt.alpha = 0.75;
 opt.crop = false; % so that we can compare with the forward operator
+%opt.V_max = 2;
 
 %% create the AnySim object
 sim = HelmholtzSim(n, opt);

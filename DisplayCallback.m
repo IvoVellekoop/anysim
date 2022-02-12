@@ -10,11 +10,15 @@ classdef DisplayCallback
     %     sim = DiffuseSim(D, a, opt)
     %
     %   Options:
-    %     cross_section    handle of function that crops 'u' to select the 
-    %                      data to display
-    %                      note: at the moment, cross_section can only crop
-    %                      'u' and should not perform any other processing
-    %                      such as scaling.
+    %     cross_section    selects the data to display. It holds a cell
+    %                      array, with either a relative position where to 
+    %                      make the cross section (between 1/end and 1), or []
+    %                      to indicate taking all data along that dimension.
+    %                      For example, to display the 3th component of a
+    %                      4-element vector field, over a cross section at
+    %                      x=end/2, and all y and z.
+    %                      {3/4, ':', 1/2, ':', ':'}
+    %                       
     %     show_boundaries  when false (default), only shows the region of
     %                      interest. When true, includes the boundaries.
     %     show_convergence when true (default), shows a plot of ‖Δ𝜓‖^2 to
@@ -24,7 +28,7 @@ classdef DisplayCallback
     properties
         sim % simulation object (used for cropping etc.)
         Tr % scaling matrix: we want to plot the solution in non-scaled form  
-        cross_section % handle of function to select data to display
+        cross_section % select data to display
         show_boundaries % when true, shows all simulation data. when false, removes the boundaries first
         component % index of the vector component we are displaying
         imageplot % true for 2-dimensional cross sections, false otherwise
@@ -43,26 +47,35 @@ classdef DisplayCallback
                 error("CB_IMAGE Feedback function can only be used with grid-based simulations");
             end
             
-            default.cross_section = @(u) u;
+            default.cross_section = {0.5, ':'};
             default.show_boundaries = false;
             default.show_convergence = true;
             opt = set_defaults(default, opt);
             
             obj.sim = sim;
-            obj.cross_section = opt.cross_section;
             obj.show_boundaries = opt.show_boundaries;
             obj.show_convergence = opt.show_convergence;
             
-            %% find out which component the cross-section function is returning
-            % and along which dimensions the data is cropped.
-            % This is a bit of a hack!
-            hack = sim.to_external(zeros(sim.N) + (1:sim.N(1)).');
-            hack = sim.to_internal(obj.cross_section(hack));
-            obj.component = hack(1);
-    
+            % convert cross_section to a structure that can be used in
+            % subsref
+            dims = [];
+            indices = cell(length(sim.N), 1);
+            for i = 1:length(sim.N) 
+                if i > length(opt.cross_section) || opt.cross_section{i} == ':'
+                    indices{i} = ':';
+                    dims = [dims i]; %#ok<AGROW> 
+                else 
+                    if ~obj.show_boundaries
+                        indices{i} = max(round(opt.cross_section{i} * sim.grid.N_roi(i)), 1) + floor(sim.grid.boundaries(i));
+                    else
+                        indices{i} = max(round(opt.cross_section{i} * sim.N(i)), 1);
+                    end
+                end
+            end
+            obj.cross_section.type = '()';
+            obj.cross_section.subs = indices;
+            
             %% find out in what dimensions the cross section was taken,
-            dims = 1:length(sim.N);
-            dims = dims(size(hack) > 1) - 2;
             if length(dims) > 2 || length(dims) < 1
                 error('DisplayCallback: Cross section must be 1 or 2 dimensional');
             end
@@ -83,10 +96,7 @@ classdef DisplayCallback
                 obj.coord2 = sim.grid.crop(obj.coord2);
             end
             
-            obj.Tr = sim.medium.Tr(obj.component, obj.component);
-            if ~isdiag(sim.medium.Tr)
-                error('only works for diagonal matrices!');
-            end
+            obj.Tr = sim.Tr;
         end
         
         function call(obj, u, state)
@@ -100,7 +110,9 @@ classdef DisplayCallback
             if ~obj.show_boundaries
                 u = obj.sim.grid.crop(u, 2);
             end
-            u = obj.Tr * squeeze(real(obj.cross_section(obj.sim.to_external(u))));
+            u = real(fieldmultiply(obj.Tr, u));
+            u = subsref(u, obj.cross_section);
+
             if obj.imageplot
                 imagesc(obj.coord1, obj.coord2, u.');
                 xlabel(obj.label1);
