@@ -47,7 +47,7 @@ classdef DisplayCallback
                 error("CB_IMAGE Feedback function can only be used with grid-based simulations");
             end
             
-            default.cross_section = {0.5, ':'};
+            default.cross_section = { }; % auto
             default.show_boundaries = false;
             default.show_convergence = true;
             opt = set_defaults(default, opt);
@@ -60,16 +60,28 @@ classdef DisplayCallback
             % subsref
             dims = [];
             indices = cell(length(sim.N), 1);
-            for i = 1:length(sim.N) 
-                if i > length(opt.cross_section) || opt.cross_section{i} == ':'
-                    indices{i} = ':';
-                    dims = [dims i]; %#ok<AGROW> 
-                else 
-                    if ~obj.show_boundaries
-                        indices{i} = max(round(opt.cross_section{i} * sim.grid.N_roi(i)), 1) + floor(sim.grid.boundaries(i));
+            for i = 1:length(sim.N)
+                if (i > length(opt.cross_section)) % nothing specified: assume ':' for first two non-singleton dimensions
+                    if length(dims) < 2 && sim.N(i) > 1
+                        indices{i} = ':';
+                        dims = [dims i]; %#ok<AGROW>
+                        continue;
                     else
-                        indices{i} = max(round(opt.cross_section{i} * sim.N(i)), 1);
+                        pos = 0.5; % assume center position for all followin dimensions
                     end
+                else
+                    % specified position
+                    pos = opt.cross_section{i};
+                    if pos == ':'
+                        indices{i} = ':';
+                        dims = [dims i]; %#ok<AGROW>
+                        continue;
+                    end
+                end
+                if ~obj.show_boundaries
+                    indices{i} = max(round(pos * sim.grid.N_roi(i)), 1) + floor(sim.grid.boundaries(i));
+                else
+                    indices{i} = max(round(pos * sim.N(i)), 1);
                 end
             end
             obj.cross_section.type = '()';
@@ -111,7 +123,7 @@ classdef DisplayCallback
                 u = obj.sim.grid.crop(u, 2);
             end
             u = real(fieldmultiply(obj.Tr, u));
-            u = subsref(u, obj.cross_section);
+            u = squeeze(subsref(u, obj.cross_section));
 
             if obj.imageplot
                 imagesc(obj.coord1, obj.coord2, u.');

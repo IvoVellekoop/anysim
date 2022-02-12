@@ -84,35 +84,30 @@ classdef (Abstract) AnySim < handle
         end
         
         
-        function [u, state] = exec(obj, source)
+        function [u, state] = exec(obj, b)
             % EXEC executes the simulation for the given source
             % See README.md for a detailed explanation of the algorithm
 
             %% Initialize state and source
             % The iteration is implemented as:
-   % t1 = G u + s            Medium.mix_source
-   % t1 -> Li t1             Propagator.propagate
-   % u -> u + G (t1 - u)     Medium.mix_field
+           % t1 = G u + s            Medium.mix_source
+           % t1 -> Li t1             Propagator.propagate
+           % u -> u + G (t1 - u)     Medium.mix_field
             [u, state] = obj.start();
-            
+            normb = norm(b(:));
+
             while state.running()
                 % t1 => B u + b
-                t1 = fieldmultiply(obj.medium, u) + source; 
+                t1 = fieldmultiply(obj.medium, u) + b; 
                 
                 % t1 => (L+1)^-1 t1
-                t1 = obj.transform.r2k(t1, state);
                 t1 = obj.propagator.apply(t1, state);
-                t1 = obj.transform.k2r(t1, state);
-                
-                % in case r domain is non-stationary: transform u_r
-                % to the proper domain (does nothing yet)
-                %u = obj.transform.r2r(u, state);
                 
                 % u + G (t1-u)
                 t1 = t1 - u;
                 t1 = fieldmultiply(obj.medium, t1); % residual
                 if state.needs_report
-                    state.report_diff(norm(t1(:)))
+                    state.report_diff(norm(t1(:)) / normb);
                 end
                 u = u + t1;
                 state.next(u);

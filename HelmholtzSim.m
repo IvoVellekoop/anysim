@@ -55,7 +55,12 @@ classdef HelmholtzSim < GridSim
             %% Construct components: operators for medium, propagator and transform
             % Compute scaling factors. Note: Vraw = -i ε k0² = -i n² k0²            
             V = -1i * obj.k0^2 * n.^2;
-            Vmin = imag(obj.k0 + 1i * max(obj.mu_min))^2; % minimum required absorption coefficient
+
+            % Towards the edges, B is windowed, so that B=0 and V=1.
+            % Since V = Tr .* (Vraw - V0) .* Tl, B0 implies that Vraw = V0 + 1/(Tr * Tl)
+            % where V0 ~ -i k0^2
+            % At this point, Vraw = V0 + Compute the minimum real part of that should be V.
+            Vmin = imag((obj.k0 + 1i * max(obj.mu_min))^2); % minimum required absorption coefficient
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
 
             % apply scaling
@@ -81,8 +86,8 @@ classdef HelmholtzSim < GridSim
             end
             Lr = 1./(1+L);
             
-            % point-wise multiplication
-            propagator.apply = @(u, state) Lr .* u;
+            % point-wise multiplication in the Fourier domain
+            propagator.apply = @(u, state) ifftn(Lr .* fftn(u));
         end
      end
 %     methods (Access=protected)

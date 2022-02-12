@@ -46,8 +46,8 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             % Vmin
             re_diff = real(c) + r - Vrmin(n, m); 
             if re_diff < 0
-                c = c + re_diff/2;
-                r = r + re_diff/2;
+                c = c - re_diff/2;
+                r = r - re_diff/2;
                 warning('slowing down simulation to accomodate boundary conditions');
             end
             centers(n,m) = c;

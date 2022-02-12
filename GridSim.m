@@ -155,7 +155,7 @@ classdef GridSim < AnySim
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
             if obj.opt.crop
-                u = obj.grid.crop(u, 2);
+                u = obj.grid.crop(u, obj.value_dim);
             end
             u = fieldmultiply(obj.Tr, u);
         end

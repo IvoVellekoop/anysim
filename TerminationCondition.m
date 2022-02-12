@@ -27,7 +27,7 @@ classdef TerminationCondition
             % see sample scripts.
             default.iteration_count = 1E4;
             default.absolute_limit = 1E-12;
-            default.relative_limit = 1E-6;
+            default.relative_limit = 1E-3;
             default.show_boundaries = false;
             default.show_convergence = false;
             opt = set_defaults(default, opt);
