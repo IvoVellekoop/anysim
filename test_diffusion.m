@@ -17,7 +17,7 @@ opt.N = [256*4, 1, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
 opt.boundaries.periodic = true; %we manually define the boundaries inside the simulation domain
 opt.callback.handle = @DisplayCallback;
 opt.callback.cross_section = {4};
-opt.termination_condition.relative_limit = 1E-6;
+opt.termination_condition.relative_limit = 1E-5;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 
 

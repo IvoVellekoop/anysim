@@ -52,8 +52,8 @@ classdef DiffuseSim < GridSim
             opt.real_signal = true;
             defaults.pixel_size = 1;
             defaults.pixel_unit = 'm';
-            defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
-            defaults.alpha = 1;
+            defaults.V_max = 0.75; 
+            defaults.alpha = 1;% theoretical optimum for Hermitian operators
             defaults.potential_type = "scalar"; 
             
             %defaults.V_max = 0.7208; %(sqrt(10)-1)/3
@@ -118,7 +118,7 @@ classdef DiffuseSim < GridSim
                 error('Incorrect option for potential_type');
             end
 
-            [obj.Tl, obj.Tr, obj.V0] = center_scale(V, Vmin, obj.opt.V_max);
+            [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
             
             % apply scaling
             B = obj.grid.pad(data_array(1 - V, obj.opt), 1);
@@ -178,48 +178,8 @@ classdef DiffuseSim < GridSim
             end
             
             % the propagator just performs a
-            % page-wise matrix-vector multiplication
-
+            % page-wise matrix-vector multiplication in k-space
             obj.propagator = @(x) real(ifftv(fieldmultiply(Lr, fftv(x))));
-        end
-        
-        function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
-            % For the diffusion equation, the attenuation coefficient is
-            % given by sqrt(mu_a Q), so we have a choice whether to
-            % increase mu_a or Q. We want our choice to have as least 
-            % impact on the convergence rate as possible.
-            % To 'guess' an optimum, we choose the combination for which
-            % the decay along each dimensions is proportional
-            % to the size of the simulation domain.
-            
-            % determine required absorption coefficients
-            % so that solution decays sufficiently fast
-            if isvector(centers)
-                mu_min = obj.mu_min;
-                V_raw_max = centers + radii;
-                mu_current = sqrt(V_raw_max(4) * V_raw_max);% current maximum absorption coefficients
-
-                if any(mu_current < mu_min)
-                    % todo: not necessarily the optimal splitting between Vmin(4)
-                    %       and Vmin(1:3)
-                    % todo: untested code! test for mu_min > 0
-                    
-                    V_max_2(4) = max(mu_min(4), norm(V_max(1:3)));
-                    V_max_2(1:3) = mu_min(1:3).^2 / V_max_2(4);
-                    shift = V_max_2 - V_raw_max;
-                    centers = centers + shift/2;
-                    radii = radii + shift/2;
-                    bclimited = true;
-                    warning('untested code!');
-                else
-                    % no need to adjust
-                    bclimited = false;                    
-                end
-                feature_size = 1./sqrt(V_raw_max * V_raw_max(4)); %todo: correct for steady state?
-            else
-                % for tensors: only process diagonal
-                [centers, radii, feature_size, bclimited] = diag(obj.scale_adjuster(diag(centers), diag(radii)));
-            end
         end
     end
 end
