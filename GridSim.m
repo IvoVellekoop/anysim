@@ -18,7 +18,11 @@ classdef GridSim < AnySim
        value_dim % dimensionality of values stored at each grid point
                  % 0 = scalar
                  % 1 = vector
-                 % 2 = matrix                 
+                 % 2 = matrix      
+       mu_min    % Inside the absorbing boundaries, the solution should
+                 % decay sufficiently to avoid wrap-around artifacts. 
+                 % Assumining exponential decay, this vector returns
+                 % the minimum decay coefficients needed in all dimensions.
     end
     methods
         function obj = GridSim(N_components, opt)
@@ -39,17 +43,16 @@ classdef GridSim < AnySim
             defaults.boundaries.extend = true;
             defaults.boundaries.width = 32;
             defaults.boundaries.filter = @wnd_nutall;
-            defaults.potential_type = "scalar"; 
             defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
             obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size, opt.pixel_unit);
             obj.value_dim = length(N_components); %0 = scalar field, 1 = vector field
             obj.N = [N_components, obj.grid.N];
-            if obj.value_dim == 1 && obj.N(1) == obj.N(2) && all(obj.N(3:end) == 1)
-                error("Simulation size cannot be the same as the length of a vector, consider swapping x and y coordinates");
-            end
-            obj.opt.scale_adjuster = @(c, r) obj.adjustScale(c,r);
+        
+            obj.mu_min = 10./(obj.grid.boundaries.width .* obj.grid.pixel_size);
+            obj.mu_min(obj.grid.boundaries.width == 0) = 0;
+            obj.mu_min = max(obj.mu_min, 1E-3 ./ obj.grid.dimensions); % give tiny non-zero minimum value to prevent division by zero in homogeneous media
         end
         
         function S = define_source(obj, values, position)
@@ -139,16 +142,6 @@ classdef GridSim < AnySim
         end
     end
     methods (Access = protected)
-        % Inside the absorbing boundaries, the solution should
-        % decay sufficiently to avoid wrap-around artifacts. 
-        % Assumining exponential decay, this function returns
-        % the minimum decay coefficients needed.
-        %
-        function mu_min = mu_min(obj)
-            mu_min = 10./(obj.grid.boundaries.width .* obj.grid.pixel_size);
-            mu_min(obj.grid.boundaries.width == 0) = 0;
-            mu_min = max(mu_min, 1E-3 ./ obj.grid.dimensions); % give tiny non-zero minimum value to prevent division by zero in homogeneous media
-        end
         function [u, state] = start(obj)
             u = zero_array(obj.N, obj.opt);
             state = State(obj, obj.opt);

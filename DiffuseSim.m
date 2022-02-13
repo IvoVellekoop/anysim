@@ -54,6 +54,7 @@ classdef DiffuseSim < GridSim
             defaults.pixel_unit = 'm';
             defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
             defaults.alpha = 1;
+            defaults.potential_type = "scalar"; 
             
             %defaults.V_max = 0.7208; %(sqrt(10)-1)/3
             %defaults.alpha = 2/(1+0.7208);
@@ -64,13 +65,12 @@ classdef DiffuseSim < GridSim
             obj = obj@GridSim(4, opt); 
             
             %% Construct components: operators for medium, propagator and transform
-            obj.medium  = obj.makeMedium(D, a);
-            obj.transform  = FourierTransform(obj.opt);
-            obj.propagator = obj.makePropagator();
+            obj.makeMedium(D, a);
+            obj.makePropagator();
         end
     end
     methods (Access = protected)        
-        function medium = makeMedium(obj, D, a)
+        function makeMedium(obj, D, a)
             % Construct medium operator G=1-V
             %
             %    [      0]    
@@ -80,7 +80,18 @@ classdef DiffuseSim < GridSim
             %
             %
             
-            % Invert D, then add entries for a
+            
+            % Compute minimim values for max Re V
+            % these values should be reachable to achieve sufficient
+            % damping at the absorbing boundaries
+            % mu = sqrt(Vraw(4) * Vraw)
+            % how to choose Vraw(4)  ? 
+            Vmin(4) = max(obj.mu_min);
+            Vmin(1:3) = obj.mu_min(1:3).^2 / Vmin(4);
+
+            % Invert D, then combines D and a into a single matrix
+            % If the matrices are diagonal, store them as columns
+            % instead of full matrices.
             D = data_array(D, obj.opt); % convert D to data array (put on gpu if needed, change precision if needed)
             if obj.opt.potential_type == "tensor"
                 % combine scalar 'a' and 3x3 matrix 'D' to 4x4 matrix
@@ -88,7 +99,7 @@ classdef DiffuseSim < GridSim
                 V = pagefun(@inv, D);
                 V(4,4,:,:,:,:) = 0; 
                 V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');
-                field_dim = 2;
+                Vmin = eye(Vmin);
             elseif obj.opt.potential_type == "diagonal"
                 % combine scalar 'a' and diagonal matrix 'D' to 4-element
                 % diagonal matrix
@@ -96,7 +107,6 @@ classdef DiffuseSim < GridSim
                 V = 1./D;
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                field_dim = 1;
             elseif obj.opt.potential_type == "scalar" 
                 % combine scalar 'a' and scalar 'D' to 4-element diagonal
                 % matrix
@@ -104,15 +114,23 @@ classdef DiffuseSim < GridSim
                 V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                 V(4,:,:,:,:) = 0;
                 V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
-                field_dim = 1;
             else
                 error('Incorrect option for potential_type');
             end
-            [Tl, Tr, V0] = center_scale(V);
+
+            [obj.Tl, obj.Tr, obj.V0] = center_scale(V, Vmin, obj.opt.V_max);
             
+            % apply scaling
+            B = obj.grid.pad(data_array(1 - V, obj.opt), 1);
+            if (obj.opt.potential_type == "diagonal")
+                obj.medium = @(x) B .* x;
+                obj.V0 = diag(obj.V0); % convert V0 to full matrix
+            else
+                obj.medium = @(x) fieldmultiply(B, x);
+            end
         end
         
-        function propagator = makePropagator(obj)
+        function makePropagator(obj)
             % Constructs the propagator (L'+1)^-1 = 
             % with L' = Tl(L + V0)Tr, and L the diffusion equation
             % differential operator.
@@ -121,9 +139,9 @@ classdef DiffuseSim < GridSim
             % [     Q0        dy]
             % [               dz]
             % [dx dy dz (dt + a0*c)]
-            V0 = obj.medium.V0; % scaled background potential
-            Tl = obj.medium.Tl; % scaling matrices for the
-            Tr = obj.medium.Tr; % L operator
+            V0 = obj.V0; % scaled background potential
+            Tl = obj.Tl; % scaling matrices for the
+            Tr = obj.Tr; % L operator
             
             Lr = zero_array([4, 4, obj.grid.N], obj.opt);
             
@@ -156,12 +174,13 @@ classdef DiffuseSim < GridSim
                 % without preconditioner other methods (bicgstab, etc.) 
                 % perform badly. So we don't care about optimizing this.
                 LL = pageinv(Lr)-eye(4);
-                obj.L = @(u) pagemtimes (LL, u);
+                obj.L = @(x) real(ifftv(fieldmultiply(LL, fftv(x))));
             end
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication
-            propagator.apply = @(u, state) pagemtimes(Lr, u);
+
+            obj.propagator = @(x) real(ifftv(fieldmultiply(Lr, fftv(x))));
         end
         
         function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)

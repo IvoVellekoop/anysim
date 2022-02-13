@@ -5,9 +5,6 @@ classdef HelmholtzSim < GridSim
     %   (c) 2021. Ivo Vellekoop
     properties
         k0
-        Tl
-        Tr
-        V0
     end
     methods
         function obj = HelmholtzSim(n, opt)
@@ -35,8 +32,6 @@ classdef HelmholtzSim < GridSim
             %                   explictly unless using singleton expansion)
             %
             %% Set defaults
-            opt.real_signal = false;
-            opt.potential_type = "scalar";
             defaults.wavelength = 1;
             defaults.pixel_size = 0.25;
             defaults.pixel_unit = 'λ';
@@ -64,10 +59,10 @@ classdef HelmholtzSim < GridSim
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
 
             % apply scaling
-            obj.medium = obj.grid.pad(data_array(1 - V, obj.opt), 0);
+            B = obj.grid.pad(data_array(1 - V, obj.opt), 0);
+            obj.medium = @(x) B .* x;
             obj.Tl = obj.Tl * 1i; % include factor i to rotate source term??
             
-            obj.transform  = FourierTransform(obj.opt);
             obj.propagator = obj.makePropagator();
         end
         
@@ -82,44 +77,12 @@ classdef HelmholtzSim < GridSim
             L = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
             L = (obj.Tl * obj.Tr) * (L - 1i * obj.V0); % -1i compensates for factor i in Tl matrix
             if obj.opt.forward_operator
-                obj.L = @(u) L .* u;
+                obj.L = @(u) ifftn(L .* fftn(u));
             end
             Lr = 1./(1+L);
             
             % point-wise multiplication in the Fourier domain
-            propagator.apply = @(u, state) ifftn(Lr .* fftn(u));
+            propagator = @(u, state) ifftn(Lr .* fftn(u));
         end
      end
-%     methods (Access=protected)
-%         function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
-%             % 
-%             % We have V_raw = -i n^2 k0^2
-%             % n = sqrt(i V_raw) / k0
-%             %
-%             % The imaginary part of n corresponds to absorption
-%             % The boundaries tend towards G=0 -> V_raw=centers+radii,
-%             % so the absorption should be strong enough there
-%             V_max_abs = centers + radii;
-%             k1 = sqrt(1.0i * V_max_abs);
-%             mu_min = max(obj.mu_min); % minimum required absorption coefficient
-%             if imag(k1) < mu_min
-%                 % replace absorption by minimum required absorption
-%                 % and calculate what V_raw corresponds to this point
-%                 k2 = real(k1) + 1.0i * mu_min;
-%                 V_raw = -1.0i * k2^2; 
-%                 
-%                 % Adjust centers and radii so that new V_raw is included
-%                 %todo: not exactly optimal!
-%                 shift = V_max_abs - V_raw;
-%                 centers = centers - shift/2;
-%                 radii = radii + abs(shift)/2;
-%                 bclimited = true;
-%             else
-%                 bclimited = false;
-%             end
-%             
-%             %todo: not exact! Largest real part of n not necessarily reached at n0
-%             feature_size = pi / real(k1);            
-%         end
-%    end
 end

@@ -60,13 +60,27 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             Tl = 1;
             Tr = Vmax/radii;
             V0 = centers;
-            V = Tr .* (Vraw - V0);
+            V = Tr * (Vraw - V0);
         case 1
+            if any(radii < abs(centers) * 1E-6)
+                radii = max(radii, abs(c) * 1E-6);
+                warning('One of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
+            end
             Tl = eye(M);
             Tr = diag(Vmax./radii(:));
             V0 = centers(:);
             V = diag(Tr) .* (Vraw - V0);
         case 2
+            % check if matrix is near-singular
+            % and add a small offset to the singular values if it is
+            % warning('untested code!');
+            [U,S,V] = svd(radii);
+            cS = diag(diag(U' * centers * V));
+            if any(S) < abs(cS) * 1E-6
+                S = max(S, abs(cS) * 1E-6);
+                radii = U*S*V';
+                warning('One of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
+            end
             [P,R,C] = equilibrate(radii);
             Tl = P'*R*P;
             Tr = C;

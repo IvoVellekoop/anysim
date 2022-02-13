@@ -7,12 +7,13 @@ opt = struct(); % clear any previous options
 oversampling = 2; %4;
 im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
 %n = 1.5 - 0.5 * im(:,:,1);% + (0.5+0.4i) * im(:,:,3);
-n = 1 + (1.8 + 2.9i) * im(:,:,1); % iron
+n = 1 + (1.8 + 2.9i) * im(:,:,1) * 0.2; % iron
 opt.N = [size(n,1), size(n,2), 1];   % Nx, Ny, Nz   (constant in z)
-opt.boundaries.periodic = [false, false, true];
+opt.boundaries.periodic = [true, true, true];
 opt.boundaries.width = 64;
 opt.callback.handle = @DisplayCallback;
 opt.callback.show_boundaries = true;
+opt.callback.interval = 25;
 opt.termination_condition.relative_limit = 1E-3;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/oversampling;
@@ -42,9 +43,9 @@ comp_opt.tol = []; % []=stop when reached same residual as anysim
 comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
 
-comp_opt.preconditioned = false;
+%comp_opt.preconditioned = false;
 
-bare = compare_simulations(sim, source, simulations, comp_opt);
+%bare = compare_simulations(sim, source, simulations, comp_opt);
 
 %% Repeat with preconditioner
 comp_opt.preconditioned = true;

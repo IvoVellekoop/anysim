@@ -10,21 +10,19 @@ classdef (Abstract) AnySim < handle
     %
     properties
         % operators (see readme.md) for a detailed explanation
-        medium;     % operator V+1. This object implements two functions:
+        medium      % operator V+1. This object implements two functions:
                     % mix(phi, prop_phi) = (V+1)^2 prop_phi + (V+1) phi
                     % mix_final(phi, prop_phi) = (V+1) prop_phi + phi
                     % also includes fields for preconditioning matrices Tl, V0 and Tr
-        propagator; % operator (L-1)^-1
-        transform;  % operators (V+1) and (L-1)^-1 are each implemented
-                    % in their own domain (typically real-space and 
-                    % Fourier-transformed space). The transform object
-                    % transforms between both domains.
-        opt;        % simulation options
-        L;          % Function handle or matrix for the 
+        propagator  % operator (L-1)^-1
+        opt         % simulation options
+        L           % Function handle or matrix for the 
                     % 'forward' operator L.
                     % Since this operators are not needed by anysim
                     % itself, it is only generated when 
                     % opt.forward_operator == true
+        Tl; Tr      % pre-preconditioning operators Tl, Tr
+        V0          % centering potential
     end
         
     methods
@@ -77,10 +75,8 @@ classdef (Abstract) AnySim < handle
             % algorithm itself, but it can be used to compare
             % anysim so other algoriths (such as GMRES)
             %
-            x = obj.transform.r2k(x);
-            x = obj.propagator.apply(x);
-            x = obj.transform.k2r(x);
-            x = fieldmultiply(obj.medium, x);
+            x = obj.propagator(x);
+            x = obj.medium(x);
         end
         
         
@@ -98,18 +94,18 @@ classdef (Abstract) AnySim < handle
 
             while state.running()
                 % t1 => B u + b
-                t1 = fieldmultiply(obj.medium, u) + b; 
+                t1 = obj.medium(u) + b; 
                 
                 % t1 => (L+1)^-1 t1
-                t1 = obj.propagator.apply(t1, state);
+                t1 = obj.propagator(t1);
                 
                 % u + G (t1-u)
                 t1 = t1 - u;
-                t1 = fieldmultiply(obj.medium, t1); % residual
+                t1 = obj.medium(t1); % residual
                 if state.needs_report
                     state.report_diff(norm(t1(:)) / normb);
                 end
-                u = u + t1;
+                u = u + obj.opt.alpha * t1;
                 state.next(u);
             end
             
@@ -136,18 +132,16 @@ classdef (Abstract) AnySim < handle
             %  =  (1-V)[1-(L+1)^(-1)(1-V)]
             
             % (1-V)u
-            t1 = fieldmultiply(obj.medium, u); 
+            t1 = obj.medium(u); 
             
             % (L+1)^(-1) (1-V)u
-            t1 = obj.transform.r2k(t1);
-            t1 = obj.propagator.apply(t1);
-            t1 = obj.transform.k2r(t1);
+            t1 = obj.propagator(t1);
             
             % todo: can we implement wiggle boundaries in arbitrary
             % algorithm?
                 
             % (1-V) (u-t1)
-            u = fieldmultiply(obj.medium, u - t1);
+            u = obj.medium(u - t1);
         end
         
         function u = operator(obj, u)
@@ -170,10 +164,8 @@ classdef (Abstract) AnySim < handle
             if isempty(obj.L) 
                 error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
             end
-            Vu = u - fieldmultiply(obj.medium, u);
-            u = obj.transform.r2k(u);
-            u = obj.L(u);
-            u = obj.transform.k2r(u) + Vu;
+            Vu = u - obj.medium(u);
+            u = obj.L(u) + Vu;
         end
     end
     methods (Abstract, Access=protected)
