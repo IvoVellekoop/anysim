@@ -75,8 +75,8 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             % and add a small offset to the singular values if it is
             % warning('untested code!');
             [U,S,V] = svd(radii);
-            cS = diag(diag(U' * centers * V));
-            if any(S) < abs(cS) * 1E-6
+            cS = diag(U' * centers * V);
+            if any(diag(S) < abs(cS) * 1E-6)
                 S = max(S, abs(cS) * 1E-6);
                 radii = U*S*V';
                 warning('One of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
@@ -90,7 +90,7 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             % The procedure above does not guarantee that ||V|| = Vmax
             % In this final step, we compute the norm of V everywhere
             % and adjust the global scaling as needed
-            Tr = Tr / max(pagenorm(V), [], 'all') * Vmax;
+            Tr = Tr / pagenorm(V) * Vmax;
             V = pagemtimes(pagemtimes(Tl, Vraw - V0), Tr);
     end
 end

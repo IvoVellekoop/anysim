@@ -79,7 +79,7 @@ classdef DiffuseSim < GridSim
             %    [0 0 0 a]
             %
             %
-            
+            validatecompatiblesize(size(a), obj.opt.N);
             
             % Compute minimim values for max Re V
             % these values should be reachable to achieve sufficient
@@ -93,27 +93,31 @@ classdef DiffuseSim < GridSim
             % If the matrices are diagonal, store them as columns
             % instead of full matrices.
             D = data_array(D, obj.opt); % convert D to data array (put on gpu if needed, change precision if needed)
+            szD = size(D);
             if obj.opt.potential_type == "tensor"
                 % combine scalar 'a' and 3x3 matrix 'D' to 4x4 matrix
                 validateattributes(D, {'numeric'}, {'nrows', 3, 'ncols', 3});
-                V = pagefun(@inv, D);
+                validatecompatiblesize(szD(3:end), obj.opt.N);
+                V = pageinv(D);
                 V(4,4,:,:,:,:) = 0; 
-                V = V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre');
-                Vmin = eye(Vmin);
+                V = obj.grid.pad(V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre'), 2);
+                Vmin = diag(Vmin);
             elseif obj.opt.potential_type == "diagonal"
                 % combine scalar 'a' and diagonal matrix 'D' to 4-element
                 % diagonal matrix
                 validateattributes(D, {'numeric'}, {'nrows', 3});
+                validatecompatiblesize(szD(2:end), obj.opt.N);
                 V = 1./D;
                 V(4,:,:,:,:) = 0;
-                V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
+                V = obj.grid.pad(V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre'), 1);
             elseif obj.opt.potential_type == "scalar" 
                 % combine scalar 'a' and scalar 'D' to 4-element diagonal
                 % matrix
                 obj.opt.potential_type = "diagonal";
+                validatecompatiblesize(szD, obj.opt.N);
                 V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                 V(4,:,:,:,:) = 0;
-                V = V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre');
+                V = obj.grid.pad(V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre'), 1);
             else
                 error('Incorrect option for potential_type');
             end
@@ -121,7 +125,7 @@ classdef DiffuseSim < GridSim
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
             
             % apply scaling
-            B = obj.grid.pad(data_array(1 - V, obj.opt), 1);
+            B = data_array(1 - V, obj.opt);
             if (obj.opt.potential_type == "diagonal")
                 obj.medium = @(x) B .* x;
                 obj.V0 = diag(obj.V0); % convert V0 to full matrix

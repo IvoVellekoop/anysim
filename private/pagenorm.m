@@ -1,18 +1,14 @@
-function X = pagenorm(X)
-%PAGEMNORM(X) Page-wise matrix norm
+function N = pagenorm(X)
+%PAGEMNORM(X) Computes the maximum induced 2-norm for all pages in X
 %   Each page (i.e. the first two dimensions) of N-dimensional array X
-%   is treated as a matrix that is inverted. 
-%   SEE ALSO pagemtimes
+%   is treated as a matrix for which the norm is computed. The largest
+%   norm that is found is returned.
+%   SEE ALSO pagemtimes, pageinv
 %
     if isa(X, 'distributed')
-        X = pagefun(@norm, X);
-    else % why is pagefun not implemented for ordinary arrays?
-        sX = size(X);
-        X = X(:,:,:);
-        for n=1:size(X, 3)
-            X(:,:,n) = norm(X(:,:,n));
-        end
-        X = reshape(X, sX);
+        N = max(pagefun(@norm, X), [], 'all');
+    else
+        N = max(pagesvd(gather(X), 'vector'), [], 'all');
     end
 end
 
