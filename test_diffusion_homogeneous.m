@@ -12,7 +12,7 @@ opt.boundaries.periodic = true; % all boundaries periodic
 opt.pixel_size = 0.5;
 opt.pixel_unit = 'um';
 opt.callback.handle = @DisplayCallback;
-opt.callback.cross_section = @(u) u(4,:);
+opt.callback.cross_section = {4};
 
 %% Construct medium 
 a = 0.1;    % absorption coefficient [um^-1]
