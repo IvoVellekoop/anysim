@@ -125,11 +125,11 @@ classdef DiffuseSim < GridSim
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
             
             % apply scaling
-            B = data_array(1 - V, obj.opt);
             if (obj.opt.potential_type == "diagonal")
+                B = data_array(1 - V, obj.opt);
                 obj.medium = @(x) B .* x;
-                obj.V0 = diag(obj.V0); % convert V0 to full matrix
             else
+                B = data_array(eye(size(V,1)) - V, obj.opt);
                 obj.medium = @(x) fieldmultiply(B, x);
             end
         end
