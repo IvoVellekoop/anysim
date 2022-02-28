@@ -3,7 +3,9 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
 %   ||V|| <= 1, with || || the operator norm and V = TL (VRAW - V0) TR
 %   under the constraint that the real(V) >= VMIN for each element in Vmin.
 %   V0 is chosen so that the scaling matrices can be 'as large as possible'
-%   
+%   This function gives an error if Vraw is not accretive. Strictly
+%   speaking, only Lraw + Vraw should be accretive, but in all examples
+%   it makes sense to require that Vraw is accretive.
 %
 %   [TL, TR, V0] CENTER_SCALE(VRAW, VMIN) with VMIN a scalar treats VRAW as a scalar field
 %           and computes TR and V) such that TR * max(abs(VRAW-V0), [], 'all') = 1.
@@ -32,6 +34,7 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
 % scalar/vector/matrix and dimensions 2,3,... are the spatiotemporal
 % ones
     dim = sum(size(Vrmin) > 1);
+    Vraw = gather(Vraw); % computations in this function are faster on the CPU
             
     Vreshape = shiftdim(Vraw, dim-2); 
     Vrmin = shiftdim(Vrmin, dim-2); 
@@ -57,11 +60,17 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
     
     switch dim
         case 0  % potential is a scalar field
+            if any(Vraw(:) < 0)
+                error('Vraw is not accretive');
+            end
             Tl = 1;
             Tr = Vmax/radii;
             V0 = centers;
             V = Tr * (Vraw - V0);
         case 1  % potential is a field of diagonal matrices, stored as column vectors
+            if any(Vraw(:) < 0)
+                error('Vraw is not accretive');
+            end
             if any(radii < abs(centers) * 1E-6)
                 radii = max(radii, abs(c) * 1E-6);
                 warning('At least one of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
@@ -71,9 +80,14 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             V0 = diag(centers(:));
             V = diag(Tr) .* (Vraw - diag(V0));
         case 2  % potential is a field of full matrices, stored as pages
+            % check if Vraw is accretive
+            offset = 1024 * max(eps(Vraw(:)));
+            ReV = pagesvd(Vraw + eye(N) * offset).^2 - pagesvd(Vraw).^2 - offset^2;
+            if any(ReV(:) + eps(ReV(:)) < 0)
+                error('Vraw is not accretive');
+            end
             % check if matrix is near-singular
             % and add a small offset to the singular values if it is
-            % warning('untested code!');
             [U,S,V] = svd(radii);
             cS = diag(U' * centers * V);
             if any(diag(S) < abs(cS) * 1E-6)
