@@ -1,23 +1,25 @@
 classdef Pantograph < GridSim
     %PANTOGRAPH Solves the pantograph equation with inhomogeneous coefficients
     %   Built on the AnySim framework.
-    %   (- ∂t f + α + β Λs f + εΘ(t0−t))
+    %   (-∂t + α + β Λ)x = b    for t >= t0
+    %   x = b                   for t < t0
     %
     %   (c) 2021. Ivo Vellekoop & Tom Vettenburg
     %
-    properties
-        r_dil   % norm of V_raw, excluding the variations in a
-    end
     methods
-        function obj = Pantograph(alpha, beta, s, opt)
-            % PANTOGRAPH Simulation object for a solving the diffusion
-            % equation.
-            %
-            % sim = Pantograph(alpha, beta, s, t0)
+        function obj = Pantograph(alpha, beta, lambda, t0, opt)
+            % PANTOGRAPH Simulation object for a solving the pantograph
+            % equation
+            % 
+            % sim = PANTOGRAPH(ALPHA, BETA, LAMBDA, T0, OPT)
             % contructs a new simulation object with the specified
-            % coefficients. t0 is the start time given in the same units
-            % as pixel_size. Values of alpha, beta, s in the range 0-t0
-            % will be ignored.
+            % coefficients. 
+            % T0 is the start time given in gridpoints.
+            % Values of ALPHA(1:T0-1) and BETA(1:T0-1) are ignored.
+            %
+            % ∂t x = α x + β Λ x
+            % with Λ the unitary dilation operator with scale factor λ:
+            % Λ x(t) = sqrt(λ) x(λ t)
             %
             % OPT Options structure
             %   .pixel_size     Grid spacing, specified as, for example
@@ -35,42 +37,69 @@ classdef Pantograph < GridSim
             %% Construct components: operators for medium, propagator and transform
             % note: change minus sign for alpha and beta, so that positive
             % alpha corresponds to absorption (consistent with A)
-            obj.r_dil = max(abs(beta(:))) / sqrt(s);
-            obj.medium  = obj.makeMedium(-alpha, -beta, s);
-            obj.transform  = NoTransform();
-            obj.propagator = obj.makePropagator();
+            obj.makeMedium(alpha, beta, t0, lambda);
+            obj.makePropagator(t0);
         end
     end
     methods (Access = protected)        
-        function medium = makeMedium(obj, alpha, beta, s)
+        function makeMedium(obj, alpha, beta, t0, lambda)
             % Construct medium operator G=1-V
-            % perform scaling so that ‖V‖ < 1
-            medium = DilationMedium(alpha, beta, s, obj.grid, obj.opt);
+            % V includes the non-constant part of alpha, as well as the
+            % effect of beta
+
+            ar = min(real(alpha(:)));
+            if (max(abs(beta(:))) > ar)
+                warning('acrretivity of the system is not guaranteed');
+            end
+
+            % note: we cannot use center_scale, because we also have to
+            % account for the effect of beta.
+            [obj.V0, alpha_radius] = smallest_circle(alpha);
+            beta_radius = max(abs(beta(:)));
+            obj.Tl = 1;
+            obj.Tr = min(1/(alpha_radius + beta_radius), 1E8 * ar);
+
+            coordinates = 1+(0:obj.grid.N(1)-1).'.* lambda;
+            if (isscalar(alpha))
+                alpha = alpha * ones(obj.grid.N(1), 1);
+            end
+            if (isscalar(beta))
+                beta = beta * ones(obj.grid.N(1), 1);
+            end
+            
+            alpha = (data_array(alpha, obj.opt) - obj.V0) * obj.Tr;
+            beta = data_array(beta, obj.opt) * obj.Tr;
+            beta(1:t0) = 0;  % the part < t0 is included in L+1, so 
+            alpha(1:t0) = 0; % V = 0 (meaning alpha=beta=0)
+            
+            B = 1-alpha;
+            obj.medium = @(u) B .* u(:)- beta .* interp1(u(:), coordinates, 'linear', 0);
         end
 
-        function propagator = makePropagator(obj)
-            % L + 1 = Tl (dt + V0) Tr + 1
-            % Now construct (L+1)^-1 u = 
-            % (conv(u, exp(-α t)) + u(t0) exp(-α t)) / (Tl Tr)  
-            % with α = V0 + 1/Tl Tr
-            % approximate finite difference: each dx = pixel-size
-            % step, decrease signal by exp(-α dx)
-            V0 = obj.medium.V0; % scaled background potential
-            s = obj.medium.Tl * obj.medium.Tr; % scaling factor
-            alpha = V0 + 1 / s;
-            rate = exp(-alpha * obj.grid.pixel_size(1));
- %           rate = 1 - alpha * obj.grid.pixel_size(1); % finite difference
-            start = obj.opt.dilation_start;
-            propagator.apply = @(u, state) Pantograph.convolve(start, rate, obj.grid.pixel_size(1), s/(s+1), u) / s; 
-        end
-        
-        function [centers, radii, feature_size, bclimited] = adjustScale(obj, centers, radii)
+        function makePropagator(obj, t0)
+            % L + 1 = Tl (dt + V0) Tr + 1   for t >= t0, 
+            % Tl Tr + 1                     for t < t0
+            %
+            % define s = Tl Tr
+            % L + 1 = s [dt + (V0 + 1/s)]   for t >= t0
+            % L + 1 = s + 1                 for t < t0
+            %
+            % define q = V0 + 1/s and construct (L+1)^-1 u
+            % (conv(u, exp(-q t)) + u(t0) exp(-q t)) / s    for t >= t0
+            % 1 / (s+1)                                     for t < t0
+            %
+            % implement as rolling convolution. Each grid step, decrease signal by exp(-q dt)
+            % u'[t<t0] <= u[t<0] * s / (s + 1)
+            % u'[t] = u'[t-1] * exp[-q dt]  +  dt u[t]
+            %
+            % In the last line, the last term converts each pixel in 'u'
+            % to a 'source'. The last first term computes a rolling convolution.
             % 
-            % The current radii are only based on variations in 'a'.
-            % We need to also account for the dillation part
-            radii = radii + obj.r_dil;
-            bclimited = false;
-            feature_size = 1/abs(centers+radii);
+            s = obj.Tl * obj.Tr; % scaling factor
+            q = obj.V0 + 1 / s;
+            rate = exp(-q * obj.grid.pixel_size(1));
+ %           rate = 1 - q * obj.grid.pixel_size(1); % finite difference
+            obj.propagator = @(u) Pantograph.convolve(t0, rate, obj.grid.pixel_size(1), s/(s+1), u) / s; 
         end
     end
     methods (Static)
