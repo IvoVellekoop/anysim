@@ -136,9 +136,6 @@ classdef (Abstract) AnySim < handle
             
             % (L+1)^(-1) (1-V)u
             t1 = obj.propagator(t1);
-            
-            % todo: can we implement wiggle boundaries in arbitrary
-            % algorithm?
                 
             % (1-V) (u-t1)
             u = obj.medium(u - t1);

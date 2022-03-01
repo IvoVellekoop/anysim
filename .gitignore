@@ -6,3 +6,7 @@ x64
 *.mexw64
 *.pdb
 VTune*
+*.png
+*.ai
+*.jpg
+log.txt
