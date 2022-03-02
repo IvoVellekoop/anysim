@@ -19,19 +19,26 @@ opt.potential_type = 'tensor';
 a = 0 * ones(opt.N);    % absorption coefficient [um^-1]
 D1 = [5 0 0; 0 5 0; 0 0 1];   % background
 D2 = [25 0 0; 0 1 0; 0 0 1];  % anisotropic
-D3 = [25 0 0; 0 25 0; 0 0 25];  % high
+D3 = [25 0 0; 0 25 0; 0 0 1];  % high
 D4 = [1 0 0; 0 1 0; 0 0 1];  % low
 D5 = [0 10 0; -10 0 0; 0 0 1]; % 'chiral'
 
 M = 64;
 range = 1:M;
-D = repmat(D1, [1,1,opt.N]);
-D(:,:, range, range + 100) = repmat(D2, [1,1,M,M]);
-D(:,:, range + M, range + 100) = repmat(D3, [1,1,M,M]);
-D(:,:, range + 2*M, range + 100) = repmat(D4, [1,1,M,M]);
-D(:,:, range + 3*M, range + 100) = repmat(D5, [1,1,M,M]);
-a(:,end-10:end) = 1;
+%% D is an anisotropic diffusion coefficient [10 0; 0 1], rotated over some angle
+x = shiftdim(((1:opt.N(1))-opt.N(1)/2) / opt.N(1), -1);
+y = shiftdim(((1:opt.N(2))-opt.N(2)/2) / opt.N(2), -2);
+D = [1 0 0; 0 1 0; 0 0 0] .* x + [0 1 0; -1 0 0; 0 0 0] .* y + [0 0 0; 0 0 0; 0 0 1];
 
+%%
+
+D = repmat(D1, [1,1,opt.N]);
+%D(:,:, range, range + 100) = repmat(D2, [1,1,M,M]);
+%D(:,:, range + M, range + 100) = repmat(D3, [1,1,M,M]);
+%D(:,:, range + 2*M, range + 100) = repmat(D4, [1,1,M,M]);
+%D(:,:, range + 3*M, range + 100) = repmat(D5, [1,1,M,M]);
+a(:,end-10:end) = 1;
+%streamline mathworks
 sim = DiffuseSim(D, a, opt);
 
 %% Place a source in at the left, and sink to the right

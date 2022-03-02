@@ -1,4 +1,4 @@
-function [x,flag,relres,iter,resvec] = pcg(A,b,tol,maxit,alpha)
+function [x,flag,relres,iter,resvec] = rich(A,b,tol,maxit,alpha)
 %RICH   Modified Richardson iteration, based on pcg.m
 %   X = RICH(A,B) accepts a function handle A.
 %   A(X) accepts a vector input X and returns the matrix-vector product
@@ -32,20 +32,18 @@ function [x,flag,relres,iter,resvec] = pcg(A,b,tol,maxit,alpha)
 %   Copyright 1984-2020 The MathWorks, Inc.
 %   Copyright 2022 Ivo Vellekoop
 % 
+
+%% Check inputs and fill in defaults
+n = numel(b);
 if (nargin < 2)
     error(message('MATLAB:pcg:NotEnoughInputs'));
 end
-
 if ~iscolumn(b)
     error(message('MATLAB:pcg:RSHnotColumn'));
 end
-n = numel(b);
-
-% Assign default values to unspecified parameters
 if (nargin < 3) || isempty(tol)
     tol = 1e-6;
 end
-
 if tol <= eps
     warning(message('MATLAB:pcg:tooSmallTolerance'));
     tol = eps;
@@ -63,7 +61,7 @@ if (nargin > 5)
     error(message('MATLAB:pcg:TooManyInputs'));
 end
 
-% Set up for the method
+%% Set up for the method
 x = zeros(n,1); 
 n2b = norm(b);
 flag = 1;
@@ -71,7 +69,7 @@ flag = 1;
 resvec = zeros(maxit+1,1);         % Preallocate vector for norm of residuals
 resvec(1,:) = n2b;                 % resvec(1) = norm(b-A*x0)
 
-% loop over maxit iterations (unless convergence or failure)
+%% loop over maxit iterations (unless convergence or failure)
 for iter = 1 : maxit
     if iter == 1
         r = b;
@@ -82,8 +80,9 @@ for iter = 1 : maxit
     normr = norm(r);
     relres = normr / n2b;
     resvec(iter+1,1) = normr;
-        
-    if ((normr == 0) || isinf(normr))
+
+    % check for divergence
+    if (isinf(normr))
         flag = 4;
         break
     end
@@ -95,5 +94,6 @@ for iter = 1 : maxit
     end
 end
 
+% store residuals
 resvec = resvec(1:iter+1,:);
 

@@ -100,12 +100,11 @@ classdef (Abstract) AnySim < handle
                 t1 = obj.propagator(t1);
                 
                 % u + G (t1-u)
-                t1 = t1 - u;
-                t1 = obj.medium(t1); % residual
+                t1 = obj.medium(u - t1); % residual
                 if state.needs_report
                     state.report_diff(norm(t1(:)) / normb);
                 end
-                u = u + obj.opt.alpha * t1;
+                u = u - obj.opt.alpha * t1;
                 state.next(u);
             end
             

@@ -2,9 +2,14 @@ classdef SimGrid
     %SIMGRID Defines coordinate range for a grid-based simulation
     % Ivo M. Vellekoop
     properties
-        N  % vector with total number of grid points for all dimensions (_including_ boundaries)
-        N_roi % vector with number of grid points for all dimensions excluding boundaries
-        N_dim % === length(N)
+        N       % vector with total number of grid points for all dimensions (_including_ boundaries)
+        N_roi   % vector with number of grid points for all dimensions excluding boundaries
+        N_dim   % === length(N)
+        N_u     % dimensions of data array, includes leading dimensions for components (if N_components not [])
+        N_components % size at each grid point
+                 % []    = scalar
+                 % N     = vector
+                 % [N,M] = matrix
         roi_ranges % cell array with index vectors to index the ROI (see crop)
         boundaries % number of grid points used for each boundry 
                    % (can be 1/2 integer number, in this case, on the
@@ -16,12 +21,14 @@ classdef SimGrid
         pixel_unit   % name of the unit of the dimensions (e. g. 'm')
     end
     methods
-    function obj = SimGrid(N, boundaries, pixel_size, pixel_unit)
+        function obj = SimGrid(N, N_components, boundaries, pixel_size, pixel_unit)
             % Construct a wave simulation grid object with specified size
             % and boundary options. Automatically adjusts the boundary
             % widths to the closest efficient value.
             %
             % N                   size in pixels _without_ boundaries
+            % N_components        size of the data at each grid point ([] =
+            %                       scalar, N = vector, [N,M] = matrix)
             % boundaries.width    size in pixels of the added absorbing boundaries 
             %                     (scalar = same for all boudaries,
             %                     vector = possibly different per boundary)
@@ -84,9 +91,12 @@ classdef SimGrid
             obj.N(boundaries.extend) = SimGrid.efficient_size(obj.N(boundaries.extend)); %increase size to efficient number for fft
             obj.boundaries.width = (obj.N - obj.N_roi)/2; %boundaries after correction
             
+            obj.N_components = N_components;
+            obj.N_u = [N_components, obj.N];
+
             % parse step size and units
             obj.pixel_size = pixel_size;
-            opt.pixel_unit = pixel_unit;
+            obj.pixel_unit = pixel_unit;
             obj.pixel_size_f = 2*pi./(obj.pixel_size .* obj.N);
             
             ranges = cell(obj.N_dim, 1);
@@ -120,8 +130,8 @@ classdef SimGrid
             X = X + floor(obj.boundaries.width);
         end
         function x = crop(obj, x, d)
-            % GRID.CROP(DATA, SKIPDIM) crops the DATA array to the ROI
-            % the first SKIPDIM are left untouched (use SKIPDIM=1
+            % GRID.CROP(DATA, D) crops the DATA array to the ROI
+            % the first D are left untouched (use D=1
             % if the data is a vector field, and 2 if it is a tensor field)
             % This function is compatible with singleton dimensions: 
             % singleton dimensions are kept, not cropped.            

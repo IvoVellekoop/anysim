@@ -14,11 +14,6 @@ classdef GridSim < AnySim
     %   (c) 2019. Ivo Vellekoop
     properties
        grid      % simulation grid
-       N         % dimensions of data array + 2 leading dimensions for components (if N_components > 0)
-       value_dim % dimensionality of values stored at each grid point
-                 % 0 = scalar
-                 % 1 = vector
-                 % 2 = matrix      
        mu_min    % Inside the absorbing boundaries, the solution should
                  % decay sufficiently to avoid wrap-around artifacts. 
                  % Assumining exponential decay, this vector returns
@@ -46,9 +41,8 @@ classdef GridSim < AnySim
             defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
             opt = set_defaults(defaults, opt);
             obj@AnySim(opt);
-            obj.grid = SimGrid(opt.N, opt.boundaries, opt.pixel_size, opt.pixel_unit);
-            obj.value_dim = length(N_components); %0 = scalar field, 1 = vector field
-            obj.N = [N_components, obj.grid.N];
+            obj.grid = SimGrid(opt.N, N_components, opt.boundaries, opt.pixel_size, opt.pixel_unit);
+            
         
             obj.mu_min = 10./(obj.grid.boundaries.width .* obj.grid.pixel_size);
             obj.mu_min(obj.grid.boundaries.width == 0) = 0;
@@ -81,17 +75,17 @@ classdef GridSim < AnySim
 
             % extend position and size vectors to have length Ndim, and
             % apply offset due to boundaries
-            Ndim = length(obj.N);            
-            offset = [position - 1, zeros(1, Ndim - length(position))]...
-                + [zeros(1, obj.value_dim) floor(obj.grid.boundaries.width)];
-            sz = size(values, 1:Ndim);
-            if (any(sz + offset) > obj.N)
-                error('source does not fit inside simulation window');
+            offset = [position - 1, zeros(1, length(obj.grid.N_u) - length(position))]...
+                + [zeros(1, length(obj.grid.N_components)) floor(obj.grid.boundaries.width)];
+            sz = size(values, 1:length(offset));
+            if (any(sz + offset > obj.grid.N_u))
+                warning('source does not fit inside simulation window');
             end
+
+            % scale source with matrix Tl, and resize to fit full
+            % simulation
             values = padarray(values, offset, 0, 'pre');
-            values = padarray(values, obj.N - sz - offset, 0, 'post');
-            
-            % scale source with matrix Tl.
+            values = padarray(values, obj.grid.N_u - sz - offset, 0, 'post');
             values = fieldmultiply(obj.Tl, values);
             S = data_array(values, obj.opt);
         end
@@ -112,7 +106,7 @@ classdef GridSim < AnySim
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.preconditioner
-            u = reshape(u, obj.N); 
+            u = reshape(u, obj.grid.N_u); 
             u = preconditioner@AnySim(obj, u);
             u = u(:);
         end
@@ -125,7 +119,7 @@ classdef GridSim < AnySim
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.preconditioner
-            u = reshape(u, obj.N); 
+            u = reshape(u, obj.grid.N_u); 
             u = preconditioned@AnySim(obj, u);
             u = u(:);
         end
@@ -136,19 +130,19 @@ classdef GridSim < AnySim
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.operator
-            u = reshape(u, obj.N); 
+            u = reshape(u, obj.grid.N_u); 
             u = operator@AnySim(obj, u);
             u = u(:);
         end
     end
     methods (Access = protected)
         function [u, state] = start(obj)
-            u = zero_array(obj.N, obj.opt);
+            u = zero_array(obj.grid.N_u, obj.opt);
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
             if obj.opt.crop
-                u = obj.grid.crop(u, obj.value_dim);
+                u = obj.grid.crop(u, length(obj.grid.N_components));
             end
             u = fieldmultiply(obj.Tr, u);
         end

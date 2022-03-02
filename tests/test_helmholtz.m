@@ -36,16 +36,16 @@ h = sim.grid.pixel_size(1);
 % oscillating
 % (note: bug in wavesim takes the other solution (where absorption is in
 % the positive imaginary part)
-    x = abs(x);
-    phi = k * x;
-    E_theory = 1.0i*h/(2*k)*exp(1.0i * phi)... %<--propagating plane wave.
-        -h/(4*pi*k) * (...
-        exp(1.0i * phi) .* (  expint(1.0i * (k-pi/h) * x) - expint(1.0i * (k+pi/h) * x)) -...
-        exp(-1.0i * phi) .* ( -expint(-1.0i * (k-pi/h)* x)  + expint(-1.0i* (k+pi/h) * x)));
+x = abs(x);
+phi = k * x;
+E_theory = 1.0i*h/(2*k)*exp(1.0i * phi)... %<--propagating plane wave.
+    -h/(4*pi*k) * (...
+    exp(1.0i * phi) .* (  expint(1.0i * (k-pi/h) * x) - expint(1.0i * (k+pi/h) * x)) -...
+    exp(-1.0i * phi) .* ( -expint(-1.0i * (k-pi/h)* x)  + expint(-1.0i* (k+pi/h) * x)));
 
-    % special case for values close to 0
-    small = abs(k*x)<1E-10;
-    E_theory(small) = 1.0i * h/(2*k) * (1+2i*atanh(h*k/pi)/pi); %exact value at 0.
+% special case for values close to 0
+small = abs(k*x)<1E-10;
+E_theory(small) = 1.0i * h/(2*k) * (1+2i*atanh(h*k/pi)/pi); %exact value at 0.
 
 %% Compare to other methods and compute errors
 %% Perform the different simulations and compare the results
