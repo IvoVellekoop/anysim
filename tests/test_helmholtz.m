@@ -23,7 +23,7 @@ source = sim.define_source(ones(1,opt.N(2),1)); % intensity-only source (isotrop
 
 %% calculate exact solution analytically
 k = n*2*pi/sim.opt.wavelength;
-x = abs(sim.coordinates(1));
+x = abs(sim.grid.crop(sim.coordinates(1)));
 h = sim.grid.pixel_size(1);
 % To determine peak value at x=0, realize that Ei(x) ~ ln(x) for x close to
 % 0 and find E(0) = -h/(4*pi*k)*2*log((pi/h+k)/(pi/h-k))  + i*h/(2*k)

@@ -33,6 +33,9 @@ classdef GridSim < AnySim
         %                       for isotropic pixels, or a vector for 
         %                       anisotropic pixels (i. e. a grid with
         %                       different pitch in different directions)
+        %   opt.crop            set to true (default) to remove boundary
+        %                       and padding layers after the simulation
+        %                       and return only the result inside the roi
         %
             defaults.boundaries.periodic = "auto";
             defaults.boundaries.extend = true;
@@ -91,12 +94,16 @@ classdef GridSim < AnySim
         end
         function c = coordinates(obj, dim)
             % SIM.COORDINATES(D) returns the coordinates in dimension
-            % D, cropped to the region of interest. Coordinates are 0 for
-            % the start of the ROI, and increasing. The returned array will have
-            % size 1 in all dimensions, except in the Dth 
+            % D. If opt.crop = true, the coordinates are cropped to the region of interest
+            % Coordinates are 0 for the start of the ROI, and increasing.
+            % The returned array will have size 1 in all dimensions, except in the Dth 
             % dimension, so it is usable for singleton expansion directly
             % (e.g. r = sqrt(sim.coordinates(1).^2 + sim.coordinates(2).^2))
-            c = obj.grid.crop(obj.grid.coordinates(dim));
+            if obj.opt.crop
+                c = obj.grid.crop(obj.grid.coordinates(dim));
+            else
+                c = obj.grid.coordinates(dim);
+            end
         end
 
         function u = preconditioner(obj, u)
@@ -110,7 +117,7 @@ classdef GridSim < AnySim
             u = preconditioner@AnySim(obj, u);
             u = u(:);
         end
-        function u = preconditioned(obj, u)
+        function [f, state] = preconditioned(obj, u)
             % SIM.PRECONDITIONED(U)
             %
             % See AnySim.preconditioned
@@ -119,20 +126,18 @@ classdef GridSim < AnySim
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.preconditioner
-            u = reshape(u, obj.grid.N_u); 
-            u = preconditioned@AnySim(obj, u);
-            u = u(:);
+            [A, state] = preconditioned@AnySim(obj);
+            f = @(u) reshape(A(reshape(u, obj.grid.N_u)), [], 1); 
         end
-        function u = operator(obj, u)
+        function [f, state] = operator(obj)
             % SIM.OPERATOR(U) Returns (L+V)U
             %
             % For compatibility with MATLAB built in algorithms
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.operator
-            u = reshape(u, obj.grid.N_u); 
-            u = operator@AnySim(obj, u);
-            u = u(:);
+            [A, state] = operator@AnySim(obj);
+            f = @(u) reshape(A(reshape(u, obj.grid.N_u)), [], 1);
         end
     end
     methods (Access = protected)

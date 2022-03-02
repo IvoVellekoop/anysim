@@ -63,8 +63,13 @@ classdef (Abstract) AnySim < handle
             obj.opt = set_defaults(defaults, opt);
 
             if (obj.opt.gpu_enabled)
-                gpu = gpuDevice(obj.opt.gpu_device); % select GPU device
-                disp(['GPU found. Performing simulations on: ', gpu.Name]);
+                if (gpuDeviceCount > 0)
+                    gpu = gpuDevice(obj.opt.gpu_device); % select GPU device
+                    disp(['GPU found. Performing simulations on: ', gpu.Name]);
+                else
+                    warning('No GPU found');
+                    obj.opt.gpu_enabled = false;
+                end
             end
         end
         
@@ -86,12 +91,11 @@ classdef (Abstract) AnySim < handle
 
             %% Initialize state and source
             % The iteration is implemented as:
-           % t1 = G u + s            Medium.mix_source
-           % t1 -> Li t1             Propagator.propagate
-           % u -> u + G (t1 - u)     Medium.mix_field
-            [u, state] = obj.start();
-            normb = norm(b(:));
-
+            % t1 = G u + s            Medium.mix_source
+            % t1 -> Li t1             Propagator.propagate
+            % u -> u + G (t1 - u)     Medium.mix_field
+            [u, state] = obj.start;
+            
             while state.running()
                 % t1 => B u + b
                 t1 = obj.medium(u) + b; 
@@ -101,11 +105,9 @@ classdef (Abstract) AnySim < handle
                 
                 % u + G (t1-u)
                 t1 = obj.medium(u - t1); % residual
-                if state.needs_report
-                    state.report_diff(norm(t1(:)) / normb);
-                end
+                state.next(u, t1);
                 u = u - obj.opt.alpha * t1;
-                state.next(u);
+                
             end
             
             % u -> Tr u (convert to non-scaled solution)
@@ -115,32 +117,34 @@ classdef (Abstract) AnySim < handle
             state.finalize();
         end
         
-        function u = preconditioned(obj, u)
-            % SIM.PRECONDITIONED(U) returns (1-V)(L+1)^(-1) (L+V) U
-            % which is the preconditioned operator operating on U
-            % Functionally equivalent (but more efficient) than
-            % preconditioner(operator(u))
-            %
-            % Note: this function is not used by the anysim
-            % algorithm itself, but it can be used to compare
-            % anysim so other algoriths (such as GMRES)
-            %
+        function [f, state] = preconditioned(obj)
+            % SIM.PRECONDITIONED(U) returns a function to evaluate the preconditioned operators
+            % 
+            % Usage:
+            % A = sim.preconditioned
+            % A(u)                      % computes (1-V)(L+1)^(-1) (L+V) u
+            % 
             % Note: (L+1)^(-1) L = 1-(L+1)^(-1)
             % So: (1-V)(L+1)^(-1) (L+V)  
             %  =  (1-V)[1 - (L+1)^(-1)] + (1-V)(L+1)^(-1) V 
             %  =  (1-V)[1-(L+1)^(-1)(1-V)]
-            
-            % (1-V)u
-            t1 = obj.medium(u); 
-            
-            % (L+1)^(-1) (1-V)u
-            t1 = obj.propagator(t1);
+            [~, state] = obj.start();
+            f = @(u) apply_preconditioned(obj.medium, obj.propagator, state, u); 
+
+            function t1 = apply_preconditioned(medium, propagator, state, u)
+                % (1-V)u
+                t1 = medium(u); 
                 
-            % (1-V) (u-t1)
-            u = obj.medium(u - t1);
+                % (L+1)^(-1) (1-V)u
+                t1 = propagator(t1);
+                    
+                % (1-V) (u-t1)
+                t1 = medium(u - t1);
+                state.next(u, t1);
+            end
         end
         
-        function u = operator(obj, u)
+        function [f, state] = operator(obj, u)
             % SIM.OPERATOR(U) Returns (L+V)U
             %
             % U should be in the domain of V (typically real space)
@@ -160,8 +164,14 @@ classdef (Abstract) AnySim < handle
             if isempty(obj.L) 
                 error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
             end
-            Vu = u - obj.medium(u);
-            u = obj.L(u) + Vu;
+
+            [~, state] = obj.start();
+            f = @(u) forward_operator(obj.L, obj.medium, state, u);
+
+            function t1 = forward_operator(L, B, state, u)
+                t1 = L(u) + u - B(u); % L + V = L + 1 - (1-V)
+                state.next(u, t1);
+            end
         end
     end
     methods (Abstract, Access=protected)

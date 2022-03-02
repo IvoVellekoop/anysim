@@ -15,6 +15,7 @@ classdef State < dynamicprops
         running;
         diffs;
         diff_its; % iteration numbers at which diffs were reported
+        normb; % norm of the source (for normalizing 'diff')
     end
     
     methods
@@ -22,6 +23,7 @@ classdef State < dynamicprops
             obj.iteration = 1; %current iteration number
             obj.start_time = cputime; %only measure time actually used by MATLAB
             obj.running = true;
+            obj.normb = [];
             obj.callback_interval = opt.callback.interval;
             if ~isempty(opt.callback.handle)
                 obj.callback = opt.callback.handle(sim, opt.callback);
@@ -30,27 +32,21 @@ classdef State < dynamicprops
             obj.termination_condition_interval = opt.termination_condition.interval; % how often to analyze the update du (for termination condition and/or visual feedback)
             obj.termination_condition = opt.termination_condition.handle(sim, opt.termination_condition);
         end
-        function next(obj, u)
+        function next(obj, u, r)
             if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
                 obj.callback.call(u, obj);
             end
+            if mod(obj.iteration-1, obj.termination_condition_interval) == 0
+                if (obj.iteration == 1)
+                    obj.normb = norm(r(:));
+                end
+                obj.diffs = [obj.diffs, norm(r(:))/obj.normb];
+                obj.diff_its = [obj.diff_its, obj.iteration];
+                obj.running = ~obj.termination_condition.call(obj);
+            end
             obj.iteration = obj.iteration + 1;
         end
-        function needed = needs_report(obj)
-            % STATE.NEEDS_REPORT returns true if during this iteration
-            % additional information should be reported (currently only
-            % the magnitude of du, see report_diff)
-            %
-            needed = mod(obj.iteration-1, obj.termination_condition_interval) == 0;
-        end
-        function report_diff(obj, diff)
-            % STATE.REPORT_DIFF(DIFF) 
-            % This callback is called from the medium.apply function
-            % when du = u^(k) - u^(k-1) is computed.
-            obj.diffs = [obj.diffs, diff];
-            obj.diff_its = [obj.diff_its, obj.iteration];
-            obj.running = ~obj.termination_condition.call(obj);
-        end
+        
         function finalize(obj)
             obj.end_time = cputime;
             obj.run_time = obj.end_time - obj.start_time;

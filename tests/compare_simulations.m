@@ -18,6 +18,8 @@ function results = compare_simulations(sim, source, methods, varargin)
 %               respect to analytical solution. Insert NaN for voxels to ignore.
 %       .preconditioned
 
+% note: simulation must have been done with opt.crop=false
+
 defaults.analytical_solution = [];
 defaults.tol = []; % auto: use residual of AnySim as tolerance.
 defaults.iter = []; % auto: use same number of operator evaluations as AnySim
@@ -31,15 +33,15 @@ opt = set_defaults(defaults, varargin{:});
 
 results(1).name = 'AnySim';
 results(1).value = gather(u);
+results(1).iter = state.iteration;
 sz = size(u);
-counter = Counter();
 
 if opt.preconditioned
     %A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
-    A = @(x) sim.preconditioned(counter.inc(x));   % scaled operator L'+V'
+    [A, state] = sim.preconditioned;   % scaled operator L'+V'
     b = sim.preconditioner(source);      % returns s' = Tl s
 else
-    A = @(x) sim.operator(counter.inc(x));   % scaled operator L'+V'
+    [A, state] = sim.operator;   % scaled operator L'+V'
     b = source; %.to_array();      % returns s' = Tl s
 end
 b = b(:);
@@ -47,7 +49,7 @@ b = b(:);
 % Residue = ‖Ax-b‖
 up = pagemtimes(inv(sim.Tr), u); % u' = Tr^(-1) u
 results(1).residual = norm(A(up(:))-b) / norm(b);
-results(1).iter = state.iteration;
+
 if isempty(opt.tol)
     tol = results(1).residual * norm(b);
 else
@@ -72,10 +74,13 @@ for m_i = 1:length(methods)
     else
         itfactor = 1;
     end
-    counter.reset();
+    % reset interation count
+    state.iteration = 0;
+
+    % run simulation and store results
     [val, flag, relres, iter] = m.function(A, b, tol / norm(b), ceil(Nit / itfactor));
     results(m_i+1).flag = flag;
-    results(m_i+1).iter = counter.i;
+    results(m_i+1).iter = state.iteration;
     results(m_i+1).name = m.name;
     results(m_i+1).value = gather(pagemtimes(sim.Tr, reshape(val, sz))); % compensate for scaling of operator A
     
