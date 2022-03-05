@@ -8,6 +8,11 @@ classdef DiffuseSim < GridSim
     %   (c) 2021. Ivo Vellekoop
     methods
         function obj = DiffuseSim(D, a, opt)
+            arguments
+                D {mustBeNumeric, mustBeReal, mustBeNonNan}
+                a {mustBeNumeric, mustBeFinite, mustBeNonnegative, mustBeNonNan} 
+                opt struct
+            end
             % DIFFUSESIM Simulation object for a solving the diffusion
             % equation.
             %

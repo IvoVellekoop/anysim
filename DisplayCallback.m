@@ -132,7 +132,7 @@ classdef DisplayCallback
             end
         end
         
-        function call(obj, u, state)
+        function call(obj, u, r, state)
             if obj.show_convergence && ~isempty(state.diffs)
                 subplot(2, 1, 1);
                 semilogy(state.diff_its, state.diffs / max(state.diffs));

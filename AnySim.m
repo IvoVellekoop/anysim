@@ -55,11 +55,15 @@ classdef (Abstract) AnySim < handle
             % to generate.
             defaults.forward_operator = false;
             
-            % default termination condition (see tc_relative_error)
+            % default termination condition and callback
+            % to specify a different callback, either set the
+            % opt.callback.call function directly (as below), or
+            % set the opt.callback.handle function to a constructor
+            % for a callback object (see DisplayCallBack)
             defaults.termination_condition.handle = @TerminationCondition;
             defaults.termination_condition.interval = 16;
-            defaults.callback.handle = @PrintIterationCallback;
-            defaults.callback.interval = 16;
+            defaults.callback.handle = @TextCallback;
+            defaults.callback.interval = 25;
             obj.opt = set_defaults(defaults, opt);
 
             if (obj.opt.gpu_enabled)
@@ -144,7 +148,7 @@ classdef (Abstract) AnySim < handle
             end
         end
         
-        function [f, state] = operator(obj, u)
+        function [f, state] = operator(obj)
             % SIM.OPERATOR(U) Returns (L+V)U
             %
             % U should be in the domain of V (typically real space)

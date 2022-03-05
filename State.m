@@ -25,17 +25,12 @@ classdef State < dynamicprops
             obj.running = true;
             obj.normb = [];
             obj.callback_interval = opt.callback.interval;
-            if ~isempty(opt.callback.handle)
-                obj.callback = opt.callback.handle(sim, opt.callback);
-            end
+            obj.callback = opt.callback.handle(sim, opt.callback);
             obj.diffs = [];
             obj.termination_condition_interval = opt.termination_condition.interval; % how often to analyze the update du (for termination condition and/or visual feedback)
             obj.termination_condition = opt.termination_condition.handle(sim, opt.termination_condition);
         end
         function next(obj, u, r)
-            if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
-                obj.callback.call(u, obj);
-            end
             if mod(obj.iteration-1, obj.termination_condition_interval) == 0
                 if (obj.iteration == 1)
                     obj.normb = norm(r(:));
@@ -43,6 +38,9 @@ classdef State < dynamicprops
                 obj.diffs = [obj.diffs, norm(r(:))/obj.normb];
                 obj.diff_its = [obj.diff_its, obj.iteration];
                 obj.running = ~obj.termination_condition.call(obj);
+            end
+            if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
+                obj.callback.call(u, r, obj);
             end
             obj.iteration = obj.iteration + 1;
         end

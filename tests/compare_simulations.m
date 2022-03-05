@@ -37,7 +37,6 @@ results(1).iter = state.iteration;
 sz = size(u);
 
 if opt.preconditioned
-    %A = @(x) sim.preconditioner(sim.operator(counter.inc(x)));   % scaled operator L'+V'
     [A, state] = sim.preconditioned;   % scaled operator L'+V'
     b = sim.preconditioner(source);      % returns s' = Tl s
 else
