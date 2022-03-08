@@ -7,12 +7,8 @@ function X = pageinv(X)
     if isa(X, 'gpuArray') || isa(X, 'distributed')
         X = pagefun(@inv, X);
     else % why is pagefun not implemented for ordinary arrays?
-        sX = size(X);
-        X = X(:,:,:);
-        for n=1:size(X, 3)
-            X(:,:,n) = inv(X(:,:,n));
-        end
-        X = reshape(X, sX);
+        [U, S, V] = pagesvd(X, 'vector');
+        X = pagemtimes(V./pagetranspose(S), 'none', U, 'ctranspose');
     end
 end
 

@@ -1,9 +1,9 @@
 function D = data_array(data, opt)
-%DATA_ARRAY Constructs array with proper formatting (double/single, gpu or not)
-%   data_array(X, OPT)      converts data in X to formatting specified in OPT
-%   OPT.precision   = 'single' or 'double'
-%   OPT.gpu_enabled = 'true' or 'false'
-%
+    %DATA_ARRAY Converts an array to the proper data type (double/single, gpu or not)
+    %   DATA_ARRAY(X, OPT)      converts data in X to formatting specified in OPT
+    %      OPT.precision   = 'single' or 'double'
+    %      OPT.gpu_enabled = 'true' or 'false'
+    %
     switch opt.precision
     case 'single'
         D = single(data);

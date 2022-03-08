@@ -78,10 +78,15 @@ classdef GridSim < AnySim
 
             % extend position and size vectors to have length Ndim, and
             % apply offset due to boundaries
+            valuedim = length(obj.grid.N_components);
             offset = [position - 1, zeros(1, length(obj.grid.N_u) - length(position))]...
-                + [zeros(1, length(obj.grid.N_components)) floor(obj.grid.boundaries.width)];
+                + [zeros(1, valuedim) floor(obj.grid.boundaries.width)];
             sz = size(values, 1:length(offset));
-            if (any(sz + offset > obj.grid.N_u))
+            does_not_fit = sz + offset > obj.grid.N_u;
+            if any(does_not_fit(1:valuedim))
+                error('source does not fit inside simulation window, are you missing a leading singleton dimension? (shiftdim -1)');
+            end
+            if any(does_not_fit)
                 warning('source does not fit inside simulation window');
             end
 
