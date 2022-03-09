@@ -26,64 +26,76 @@ classdef DisplayCallback
     %     show_convergence when true (default), shows a plot of ‖Δ𝜓‖^2 to
     %                      monitor convergence
     %
-    
-    properties
-        grid % SimGrid object with scaling and cropping information
-        Tr % scaling matrix: we want to plot the solution in non-scaled form  
-        cross_section % select data to display
-        show_boundaries % when true, shows all simulation data. when false, removes the boundaries first
-        component % index of the vector component we are displaying
+    properties (SetAccess = private)
+        % SimGrid object with scaling and cropping information
+        grid SimGrid
+        
+        % scaling operator/matrix: we want to plot the solution in non-scaled form  
+        Tr
+
+        %component % index of the vector component we are displaying
         imageplot % true for 2-dimensional cross sections, false otherwise
         coord1 % coordinates for 'x' axis
         coord2 % coordinates for 'y' axis
         label1 % label for 'x' axis
         label2 % label for 'y' axis
-        show_convergence % true to draw a graph of magnitude of each update step
         valuedim % 0 for scalar fields, 1 for vector fields, 2 for matrix fields, etc.
+        selection % subsref structure to access cross section to display
+    end
+
+    properties
+        % select data to display
+        cross_section = {1}
+
+        % when true, shows all simulation data. when false, removes the boundaries first
+        show_boundaries logical = false
+
+        % true to draw a graph of magnitude of each update step
+        show_convergence logical = true
     end
     
     methods
-        function obj = DisplayCallback(sim, opt)
-            %DISPLAYCALLBACK Don't call this function directly
-            % see example in class documentation.
-            grid = sim.grid; % This feedback function can only be used with grid-based simulations");
-            obj.grid = grid; 
+        function obj = DisplayCallback(opt)
+            arguments
+                opt.?DisplayCallback
+            end
+            obj = copy_properties(obj, opt);
+        end
+
+        function obj = prepare(obj, sim)
+            arguments
+                obj
+                sim GridSim  % This feedback function can only be used with grid-based simulations!
+            end
+            obj.grid = sim.grid; 
             obj.Tr = sim.Tr;
             
             % Check if 'u' is a vector/matrix field. In that case,
             % by default display the first element of the vector/matrix,
-            obj.valuedim = length(grid.N_components);
-            default.cross_section = {};
-            default.show_boundaries = false;
-            default.show_convergence = true;
-            opt = set_defaults(default, opt);
-            
-            
-            obj.show_boundaries = opt.show_boundaries;
-            obj.show_convergence = opt.show_convergence;
+            obj.valuedim = length(obj.grid.N_components);
             
             % convert cross_section to a structure that can be used in
             % subsref
             dims = [];
-            indices = cell(length(grid.N_u), 1);
+            indices = cell(length(obj.grid.N_u), 1);
 
-            for i = 1:length(grid.N_u)
+            for i = 1:length(obj.grid.N_u)
                 % depending on the data type, the first 0-2 elements of 
                 % cross_section are treated as absolute indices
                 % (for instance {1} selects the x component in a vector
                 % field)
                 if (i <= obj.valuedim)
-                    if ~isempty(opt.cross_section)
-                        component = opt.cross_section{1};
+                    if ~isempty(obj.cross_section)
+                        component = obj.cross_section{1};
                     else
                         component = 1;
                     end
                     validateattributes(component, "numeric", "scalar");
-                    indices{i} = opt.cross_section{1};
+                    indices{i} = obj.cross_section{1};
                     continue;
                 end
-                if (i > length(opt.cross_section)) % nothing specified: assume ':' for first two non-singleton dimensions
-                    if length(dims) < 2 && grid.N_u(i) > 1
+                if (i > length(obj.cross_section)) % nothing specified: assume ':' for first two non-singleton dimensions
+                    if length(dims) < 2 && obj.grid.N_u(i) > 1
                         indices{i} = ':';
                         dims = [dims i - obj.valuedim]; %#ok<AGROW>
                         continue;
@@ -92,7 +104,7 @@ classdef DisplayCallback
                     end
                 else
                     % specified position
-                    pos = opt.cross_section{i};
+                    pos = obj.cross_section{i};
                     if pos == ':'
                         indices{i} = ':';
                         dims = [dims i]; %#ok<AGROW>
@@ -100,15 +112,15 @@ classdef DisplayCallback
                     end
                 end
                 if ~obj.show_boundaries
-                    bw = grid.boundaries.width(i - obj.valuedim);
-                    N = grid.N_roi(i - obj.valuedim);
+                    bw = obj.grid.boundaries_width(i - obj.valuedim);
+                    N = obj.grid.N_roi(i - obj.valuedim);
                     indices{i} = max(round(pos * N), 1) + floor(bw);
                 else
-                    indices{i} = max(round(pos * grid.N_u(i)), 1);
+                    indices{i} = max(round(pos * obj.grid.N_u(i)), 1);
                 end
             end
-            obj.cross_section.type = '()';
-            obj.cross_section.subs = indices;
+            obj.selection.type = '()';
+            obj.selection.subs = indices;
             
             %% find out in what dimensions the cross section was taken,
             if length(dims) > 2 || length(dims) < 1
@@ -122,17 +134,17 @@ classdef DisplayCallback
             end
             
             %% Prepare labels and coordinates
-            obj.label1 = sprintf("x [%s]", grid.pixel_unit);
-            obj.label2 = sprintf("y [%s]", grid.pixel_unit);
+            obj.label1 = sprintf("x [%s]", obj.grid.pixel_unit(dims(1)));
+            obj.label2 = sprintf("y [%s]", obj.grid.pixel_unit(dims(2)));
             obj.coord1 = sim.grid.coordinates(dims(1));
             obj.coord2 = sim.grid.coordinates(dims(2));
             if ~obj.show_boundaries
-                obj.coord1 = grid.crop(obj.coord1);
-                obj.coord2 = grid.crop(obj.coord2);
+                obj.coord1 = obj.grid.crop(obj.coord1);
+                obj.coord2 = obj.grid.crop(obj.coord2);
             end
         end
         
-        function call(obj, u, r, state)
+        function call(obj, u, ~, state)
             if obj.show_convergence && ~isempty(state.diffs)
                 subplot(2, 1, 1);
                 semilogy(state.diff_its, state.diffs / max(state.diffs));
@@ -144,7 +156,7 @@ classdef DisplayCallback
                 u = obj.grid.crop(u, obj.valuedim);
             end
             u = real(fieldmultiply(obj.Tr, u));
-            u = squeeze(subsref(u, obj.cross_section));
+            u = squeeze(subsref(u, obj.selection));
 
             if obj.imageplot
                 imagesc(obj.coord1, obj.coord2, u.');

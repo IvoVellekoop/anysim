@@ -67,8 +67,8 @@ classdef Pantograph < GridSim
                 beta = beta * ones(obj.grid.N(1), 1);
             end
             
-            alpha = (data_array(alpha, obj.opt) - obj.V0) * obj.Tr;
-            beta = data_array(beta, obj.opt) * obj.Tr;
+            alpha = (obj.data_array(alpha) - obj.V0) * obj.Tr;
+            beta = obj.data_array(beta) * obj.Tr;
             beta(1:t0) = 0;  % the part < t0 is included in L+1, so 
             alpha(1:t0) = 0; % V = 0 (meaning alpha=beta=0)
             

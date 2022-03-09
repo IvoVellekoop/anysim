@@ -7,11 +7,12 @@
 %
 
 %% Set up simulation options
-opt = struct();                 % clear any previous options
+opt = DiffuseSimOptions();
 opt.N = [256, 256, 1, 1];       % number of grid points in x,y,z,t 
-opt.boundaries.periodic = true; % all boundaries periodic
-opt.pixel_size = 0.25;
-opt.pixel_unit = 'mm';
+opt.grid.boundaries_width = 0; % all boundaries periodic
+opt.grid.pixel_size = 0.25;
+opt.grid.pixel_unit = 'mm';
+opt.callback = DisplayCallback(cross_section = {4});
 
 %% D is an anisotropic diffusion coefficient [10 0; 0 1], rotated over some angle
 x = shiftdim(((1:opt.N(1))-opt.N(1)/2) / opt.N(1), -1);
@@ -74,6 +75,4 @@ hold off;
 
 %% Compare accuracies between simulation methods
 sims = default_simulations();
-copt = struct();
-copt.preconditioned = true;
-results = compare_simulations(sim, source, default_simulations, copt);
+results = compare_simulations(sim, source, default_simulations);

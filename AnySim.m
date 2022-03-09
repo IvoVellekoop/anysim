@@ -1,4 +1,4 @@
-classdef (Abstract) AnySim < handle
+classdef (Abstract) AnySim
     %ANYSIM Simulation system for linear operator equations
     %   (c) 2019. Ivo Vellekoop
     %
@@ -8,14 +8,13 @@ classdef (Abstract) AnySim < handle
     % object to implement the operators for the medium,
     % propagator, source, transform and scaling
     %
-    properties
+    properties (SetAccess = protected)
         % operators (see readme.md) for a detailed explanation
         medium      % operator V+1. This object implements two functions:
                     % mix(phi, prop_phi) = (V+1)^2 prop_phi + (V+1) phi
                     % mix_final(phi, prop_phi) = (V+1) prop_phi + phi
                     % also includes fields for preconditioning matrices Tl, V0 and Tr
         propagator  % operator (L-1)^-1
-        opt         % simulation options
         L           % Function handle or matrix for the 
                     % 'forward' operator L.
                     % Since this operators are not needed by anysim
@@ -23,58 +22,15 @@ classdef (Abstract) AnySim < handle
                     % opt.forward_operator == true
         Tl; Tr      % pre-preconditioning operators Tl, Tr
         V0          % centering potential
+        opt         % options
     end
         
     methods
         function obj = AnySim(opt)
-            % This function sets the default options for the simulation.
-            % Subclasses can override this function to set defaults for
-            % options they define. In that case, subclasses should
-            % call defaults() on the superclass here
-            % (e.g. opt = AnySim.defaults).
-            % All classes should call set_defaults(opt, ClassName.defaults)
-            % at the start of the constructor.
-            
-            % flag to determine if simulation are run
-            % on the GPU (default: run on GPU if we have one)
-            defaults.gpu_enabled = gpuDeviceCount > 0;
-            defaults.gpu_device = 1;
-
-            % flag to determine if single precision or 
-            % double precision calculations are used.
-            % Note that on a typical GPU, double
-            % precision calculations are about 10
-            % times as slow as single precision.
-            defaults.precision = 'single';
-            
-            % When set to 'true', the obj.operator
-            % property will hold the scaled  forward operator
-            % without preconditioning: H = L+V.
-            % Defaults to 'false' because this operator
-            % is not needed for regular use and may be expensive
-            % to generate.
-            defaults.forward_operator = false;
-            
-            % default termination condition and callback
-            % to specify a different callback, either set the
-            % opt.callback.call function directly (as below), or
-            % set the opt.callback.handle function to a constructor
-            % for a callback object (see DisplayCallBack)
-            defaults.termination_condition.handle = @TerminationCondition;
-            defaults.termination_condition.interval = 16;
-            defaults.callback.handle = @TextCallback;
-            defaults.callback.interval = 25;
-            obj.opt = set_defaults(defaults, opt);
-
-            if (obj.opt.gpu_enabled)
-                if (gpuDeviceCount > 0)
-                    gpu = gpuDevice(obj.opt.gpu_device); % select GPU device
-                    disp(['GPU found. Performing simulations on: ', gpu.Name]);
-                else
-                    warning('No GPU found');
-                    obj.opt.gpu_enabled = false;
-                end
+            arguments
+                opt (1,1) AnySimOptions
             end
+            obj.opt = opt;
         end
         
         function x = preconditioner(obj, x)
@@ -87,7 +43,6 @@ classdef (Abstract) AnySim < handle
             x = obj.propagator(x);
             x = obj.medium(x);
         end
-        
         
         function [u, state] = exec(obj, b)
             % EXEC executes the simulation for the given source
@@ -111,7 +66,6 @@ classdef (Abstract) AnySim < handle
                 t1 = obj.medium(u - t1); % residual
                 state.next(u, t1);
                 u = u - obj.opt.alpha * t1;
-                
             end
             
             % u -> Tr u (convert to non-scaled solution)

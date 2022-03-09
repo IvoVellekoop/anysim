@@ -1,114 +1,55 @@
-classdef SimGrid
+classdef SimGrid < GridOptions
     %SIMGRID Defines coordinate range for a grid-based simulation
     % Ivo M. Vellekoop
     properties
-        N       % vector with total number of grid points for all dimensions (_including_ boundaries)
+        N       % size of the simulation grid in voxels including absorbing boundaries and padding
         N_roi   % vector with number of grid points for all dimensions excluding boundaries
         N_dim   % === length(N)
         N_u     % dimensions of data array, includes leading dimensions for components (if N_components not [])
-        N_components % size at each grid point
-                 % []    = scalar
-                 % N     = vector
-                 % [N,M] = matrix
         roi_ranges % cell array with index vectors to index the ROI (see crop)
-        boundaries % number of grid points used for each boundry 
-                   % (can be 1/2 integer number, in this case, on the
-                   % left side (low indices) we have floor(boundaries)
-                   % and on the right hans side (high indices) we have
-                   % ceil(boundaries)
-        pixel_size  % vector with step size for all dimensions
-        pixel_size_f % vector with step size in Fourier tranformed coordinates
-        pixel_unit   % name of the unit of the dimensions (e. g. 'm')
+        pixel_size_f % pixel size after Fourier transform
     end
     methods
-        function obj = SimGrid(N, N_components, boundaries, pixel_size, pixel_unit)
-            % Construct a wave simulation grid object with specified size
-            % and boundary options. Automatically adjusts the boundary
-            % widths to the closest efficient value.
-            %
-            % N                   size in pixels _without_ boundaries
-            % N_components        size of the data at each grid point ([] =
-            %                       scalar, N = vector, [N,M] = matrix)
-            % boundaries.width    size in pixels of the added absorbing boundaries 
-            %                     (scalar = same for all boudaries,
-            %                     vector = possibly different per boundary)
-            %                     specify 0 for a periodic boundary.
-            % boundaries.extend   when true, boundaries may be made slightly larger
-            %                     than specified to allow for an efficient fft.
-			%                     Periodic boundaries are never extended.
-			% pixel_size    vector containing pixel sizes along the different
-            %               dimensions. If there are fewer
-            %               entries than dimensions.
-            % unit            e. g. 'mm' or 's'. All dimensions have the same
-            %                 unit
-            
-            %% Validate inputs
-            validateattributes(N, {'numeric'}, {'positive', 'integer', 'vector'}); 
-            validateattributes(boundaries.width, {'numeric'}, {'positive', 'integer'});
-            validateattributes(boundaries.extend, {'logical'}, {}); 
-            validateattributes(pixel_size, {'numeric', 'vector'}, {'positive'});
-            validateattributes(pixel_unit, {'char', 'string'}, {'scalartext'});
-            
-            % By default, only consider boundaries periodic if the
-            % corresponding dimension has size 1.
-            if isequal(boundaries.periodic, "auto")
-                boundaries.periodic = (N == 1);
+        function obj = SimGrid(N, opt)
+            arguments
+                % size of the simulation grid in voxels,
+                % excluding absorbing boundaries or padding
+                N (1,:) {mustBeInteger, mustBePositive}
+                opt (1,1) GridOptions
             end
-            
-            % set default values
-            if isequal(boundaries.extend, true) % when extend=true, extend all non-periodic boundaries
-                boundaries.extend = ~boundaries.periodic;
-            end
-            if isscalar(boundaries.width) % when scalar boundary width is given, only apply to non-periodic boundaries
-                boundaries.width = ~boundaries.periodic * boundaries.width;
-            end
-            
-            %automatically extend to vector of correct size if only a scalar was passed
+
+            % copy options into this object
+            obj = copy_properties(obj, opt.validate(N));
             obj.N_dim = length(N);
-            obj.N_roi = N(:).';
-            boundaries.width = SimGrid.extend(boundaries.width(:), obj.N_dim).';
-            boundaries.extend = SimGrid.extend(boundaries.extend(:), obj.N_dim).';
-            boundaries.periodic = SimGrid.extend(boundaries.periodic(:), obj.N_dim).';
-            pixel_size = SimGrid.extend(pixel_size, obj.N_dim).';
-            
-            % check validity
-            if any(boundaries.extend & boundaries.periodic)
-                warning('Cannot extend periodic boundaries, "extend" option ignored');
-                boundaries.extend = boundaries.extend & ~boundaries.periodic;
-            end
-            if any(boundaries.periodic & boundaries.width ~= 0)
-                warning('Specified boundary width while periodic = true, ignoring periodic');
-                boundaries.periodic = boundaries.periodic & boundaries.width == 0;
-            end
-            if any(~boundaries.periodic & boundaries.width == 0)
-                warning('Using a non-periodic boundary without absorbing layer (boundary.width = 0). Results may be unexpected');
-            end
-            
+            obj.N_roi = N;
+
             %% set up coordinates
             % add boundary size
-            obj.boundaries = boundaries;
-            obj.N = obj.N_roi + 2 * boundaries.width;
-            obj.N(boundaries.extend) = SimGrid.efficient_size(obj.N(boundaries.extend)); %increase size to efficient number for fft
-            obj.boundaries.width = (obj.N - obj.N_roi)/2; %boundaries after correction
-            
-            obj.N_components = N_components;
-            obj.N_u = [N_components, obj.N];
-
-            % parse step size and units
-            obj.pixel_size = pixel_size;
-            obj.pixel_unit = pixel_unit;
+            % increase size to efficient number for fft
+            obj.N = obj.N_roi + round(2 * obj.boundaries_width);
+            obj.N(obj.boundaries_extend) = SimGrid.efficient_size(obj.N(obj.boundaries_extend));
+            obj.boundaries_width = (obj.N - obj.N_roi)/2; % boundaries after correction
+            obj.N_u = [obj.N_components, obj.N];
             obj.pixel_size_f = 2*pi./(obj.pixel_size .* obj.N);
-            
+
+            % compute ranges for selecting ROI. Todo: create subsref
+            % structure instead?
             ranges = cell(obj.N_dim, 1);
             for d=1:obj.N_dim
-                ranges{d} = (1:obj.N_roi(d)) + floor(obj.boundaries.width(d));
+                ranges{d} = (1:obj.N_roi(d)) + floor(obj.boundaries_width(d));
             end
             obj.roi_ranges = ranges;
         end
-        function x = coordinates(obj, d)
-            % returns coordinate range for the given dimension
-            x = shiftdim(((1:obj.N(d))-floor(obj.boundaries.width(d))-1)*obj.pixel_size(d), 2-d);
+        function x = coordinates(obj, d, full)
+            % returns coordinate range for the given dimension. If
+            % the crop_to_roi option is set to true, the coordinates
+            % are cropped to the roi, unless full = true
+            x = shiftdim(((1:obj.N(d))-floor(obj.boundaries_width(d))-1)*obj.pixel_size(d), 2-d);
+            if obj.crop_to_roi && (nargin == 2 || ~full)
+                x = obj.crop(x);
+            end
         end
+        
         function k = coordinates_f(obj, dimension)
             % returns coordinate range for the given dimension for the
             % Fourier transformed data. Note that the coordinates include a
@@ -127,14 +68,14 @@ classdef SimGrid
             if length(X) < obj.N_dim
                 X(obj.N_dim) = 1;
             end
-            X = X + floor(obj.boundaries.width);
+            X = X + floor(obj.boundaries_width);
         end
         function x = crop(obj, x, d)
             % GRID.CROP(DATA, D) crops the DATA array to the ROI
             % the first D are left untouched (use D=1
             % if the data is a vector field, and 2 if it is a tensor field)
             % This function is compatible with singleton dimensions: 
-            % singleton dimensions are kept, not cropped.            
+            % singleton dimensions are kept, not cropped.  
             if nargin < 3
                 d = 0;
             end
@@ -169,18 +110,18 @@ classdef SimGrid
             %% Perform padding
             % If padding is needed, first perform singleton expansion for that
             % dimension
-            expand = (obj.boundaries.width ~= 0) & (sz == 1);
-            M = repmat(M, [ones(1, element_dimension) expand .* (obj.N_roi-1) + 1]); 
-            width = [zeros(1, element_dimension) obj.boundaries.width];
+            expand = (obj.boundaries_width ~= 0) & (sz == 1);
+            M = repmat(M, [ones(1, element_dimension) expand .* (obj.N_roi-1) + 1, 1]); 
+            width = [zeros(1, element_dimension) obj.boundaries_width];
             M = padarray(M, floor(width), padval, 'pre');
             M = padarray(M, ceil(width), padval, 'post');
 
             %% Construct absorption/anti-reflection filter along each of the dimensions
             for d=1:obj.N_dim
-                w = obj.boundaries.width(d);
+                w = obj.boundaries_width(d);
                 if w>0 % construct vector with boundaries on both sides, and 1 in between
-                    left_boundary = obj.boundaries.filter(floor(w));
-                    right_boundary = obj.boundaries.filter(ceil(w));
+                    left_boundary = obj.boundaries_window(floor(w));
+                    right_boundary = obj.boundaries_window(ceil(w));
                     full_filter = [left_boundary(:); ones(obj.N(d)-floor(w)-ceil(w), 1); flipud(right_boundary(:))];
 
                     % transpose vector to proper dimension

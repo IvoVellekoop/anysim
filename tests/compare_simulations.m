@@ -1,51 +1,48 @@
 function results = compare_simulations(sim, source, methods, opt)
-%% Helper function to compare different simulation algorithms
-%   COMPARE_SIMULATIONS(SIM, SOURCE, METHODS, OPT) 
-%   Executes each of the iterative methods in METHODS for the given
-%   simulation object SIM and given SOURCE.
-%
-%   METHODS is a struct array, with each entry containing a .name
-%   with the display name of the method, and a .function containing a
-%   function handle of the type @(A, b, Nit), taking three parameters
-%   (operator A, source b, number of iterations Nit).
-%   For example:
-%       simulations(1).name = 'gmres';
-%       simulations(1).function = @(A, b, Nit) gmres(A, b, Nrestart_gmres, 1E-10, Nit);
-%       compare_simulations(sim, source, simulations)
-%
-%   OPT option structure with optional fields:
-%       .analytical_solution    When present, also computes errors with
-%               respect to analytical solution. Insert NaN for voxels to ignore.
-%       .preconditioned
+    arguments
+        sim AnySim
+        source
+        methods
+        opt.analytical_solution = []; % no analytical solution given
+        opt.tol = []; % auto: use residual of AnySim as tolerance.
+        opt.iter = []; % auto: use same number of operator evaluations as AnySim
+        opt.preconditioned logical = true;
+    end
+    %% Helper function to compare different simulation algorithms
+    %   COMPARE_SIMULATIONS(SIM, SOURCE, METHODS, OPT) 
+    %   Executes each of the iterative methods in METHODS for the given
+    %   simulation object SIM and given SOURCE.
+    %
+    %   METHODS is a struct array, with each entry containing a .name
+    %   with the display name of the method, and a .function containing a
+    %   function handle of the type @(A, b, Nit), taking three parameters
+    %   (operator A, source b, number of iterations Nit).
+    %   For example:
+    %       simulations(1).name = 'gmres';
+    %       simulations(1).function = @(A, b, Nit) gmres(A, b, Nrestart_gmres, 1E-10, Nit);
+    %       compare_simulations(sim, source, simulations)
 
-% note: simulation must have been done with opt.crop=false
-
-defaults.analytical_solution = []; % no analytical solution given
-defaults.tol = []; % auto: use residual of AnySim as tolerance.
-defaults.iter = []; % auto: use same number of operator evaluations as AnySim
-defaults.preconditioned = false;
-opt = set_defaults(defaults, opt);
-M = numel(methods);
-
-%% First run the AnySim simulation
-[u, state] = sim.exec(source);
-results(M+1).name = 'AnySim';
-results(M+1).value = gather(u);
-results(M+1).iter = state.iteration;
-fprintf('\nAnySim original: ');
-sz = size(u);
-
-if opt.preconditioned
-    [A, state] = sim.preconditioned;
-    b = sim.preconditioner(source);
-    b = b(:);
-    up = pagemtimes(inv(sim.Tr), u);     % u' = Tr^(-1) u
-    results(M+1).residual = gather(norm(A(up(:))-b) / norm(b(:))); % Residue = ‖Γ(Ax-b)‖/‖b‖
-else
-    [A, state] = sim.operator;   % scaled operator L'+V'
-    b = source(:);
-    results(M+1).residual = gather(norm(A(u(:))-b(:)) / norm(b(:))); % Residue = ‖Ax-b‖/‖b‖
-end
+    M = numel(methods);
+    
+    %% First run the AnySim simulation
+    fprintf('\nAnySim original: ');
+    [u, state] = sim.exec(source);
+    results(M+1).name = 'AnySim';
+    results(M+1).value = gather(u);
+    results(M+1).iter = state.iteration;
+    results(M+1).residual = state.residuals(end);
+    
+    up = sim.grid.pad(pagemtimes(inv(sim.Tr), u), 0, nan);     % u' = Tr^(-1) u
+    sz = size(up);
+    if opt.preconditioned
+        [A, state] = sim.preconditioned;
+        b = sim.preconditioner(source);
+        b = b(:);
+    else
+        [A, state] = sim.operator;   % scaled operator L'+V'
+        b = source(:);
+        results(M+1).residual = gather(norm(A(up(:))-b(:)) / norm(b(:))); % Residue = ‖Ax-b‖/‖b‖
+    end
 
 
 if isempty(opt.tol)
@@ -73,15 +70,15 @@ for m_i = 1:M
         itfactor = 1;
     end
     % reset interation count
-    state.iteration = 0;
+    state.reset();
 
     % run simulation and store results
     fprintf("\n" + m.name + ": ");
-    [val, flag, relres, ~] = m.function(A, b, tol / norm(b), ceil(Nit / itfactor));
+    [val, flag, relres, ~] = m.function(A, b, tol / norm(b), max(ceil(Nit / itfactor - 1), 1));
     results(m_i).flag = flag;
-    results(m_i).iter = state.iteration;
+    results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
     results(m_i).name = m.name;
-    results(m_i).value = gather(pagemtimes(sim.Tr, reshape(val, sz))); % compensate for scaling of operator A
+    results(m_i).value = sim.grid.crop(gather(pagemtimes(sim.Tr, reshape(val, sz)))); % compensate for scaling of operator A
     
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);

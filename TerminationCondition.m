@@ -16,31 +16,27 @@ classdef TerminationCondition
     %         1st!)
     %
     properties
-        iteration_count % maximum interation count
-        absolute_limit %
-        relative_limit %
+        iteration_count (1,1) double = 1E4
+        absolute_limit (1,1) double = 1E-12
+        relative_limit (1,1) double = 1E-3
     end
     
     methods
-        function obj = TerminationCondition(sim, opt)
-            %TERMINATIONCONDITION Don't call this function directly
-            % see sample scripts.
-            default.iteration_count = 1E4;
-            default.absolute_limit = 1E-12;
-            default.relative_limit = 1E-3;
-            default.show_boundaries = false;
-            default.show_convergence = false;
-            opt = set_defaults(default, opt);
-            obj.iteration_count = opt.iteration_count;
-            obj.absolute_limit = opt.absolute_limit;
-            obj.relative_limit = opt.relative_limit;
+        function obj = TerminationCondition(opt)
+            arguments
+                opt.?TerminationCondition
+            end
+            obj = copy_properties(obj, opt);
+        end
+
+        function obj = prepare(obj, sim)
         end
         
         function terminate = call(obj, state)
-            current_diff = state.diffs(end);
+            current_residual = state.residuals(end);
             terminate = state.iteration >= obj.iteration_count ||...
-                current_diff <= obj.absolute_limit || ...
-                current_diff / max(state.diffs) <= obj.relative_limit;
+                current_residual <= obj.absolute_limit || ...
+                current_residual / max(state.residuals) <= obj.relative_limit;
         end
     end
 end

@@ -3,27 +3,23 @@
 %
 
 %% Set up simulation options
-opt = struct(); % clear any previous options
-opt.N = [256, 1, 1];   % Nx, Ny, Nz   (constant in z)
-opt.boundaries.periodic = [false, true, true];
-opt.boundaries.width = 2*512;
-%opt.callback.handle = @DisplayCallback;
-opt.callback.show_boundaries = true;
+opt = HelmholtzSimOptions();
+opt.N = 256;
+opt.grid.boundaries_width = 2*512;
+opt.grid.pixel_size = 0.25;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.pixel_size = 0.25;
-opt.crop = false;
 
 %% create an AnySim object for a homogeneous sample
 n = 0.9; % refractive idex
 sim = HelmholtzSim(n, opt);
 
 %% Define source and run the simulation
-source = sim.define_source(ones(1,opt.N(2),1)); % intensity-only source (isotropic) at t=0
+source = sim.define_source(1); % intensity-only source (isotropic) at t=0
 [E, state] = sim.exec(source);
 
 %% calculate exact solution analytically
 k = n*2*pi/sim.opt.wavelength;
-x = abs(sim.grid.crop(sim.coordinates(1)));
+x = abs(sim.grid.coordinates(1));
 h = sim.grid.pixel_size(1);
 % To determine peak value at x=0, realize that Ei(x) ~ ln(x) for x close to
 % 0 and find E(0) = -h/(4*pi*k)*2*log((pi/h+k)/(pi/h-k))  + i*h/(2*k)
@@ -49,19 +45,12 @@ E_theory(small) = 1.0i * h/(2*k) * (1+2i*atanh(h*k/pi)/pi); %exact value at 0.
 
 %% Compare to other methods and compute errors
 %% Perform the different simulations and compare the results
-comp_opt.analytical_solution = sim.grid.pad(E_theory, 0, nan);
-comp_opt.tol = []; % []=stop when reached same residual as anysim
-comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
-
-comp_opt.preconditioned = false;
-bare = compare_simulations(sim, source, simulations, comp_opt);
+bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=E_theory);
 
 %% Repeat with preconditioner
 comp_opt.preconditioned = true;
-precond = compare_simulations(sim, source, simulations, comp_opt);
-
-[L, GL] = simulation_eigenvalues(sim);
+precond = compare_simulations(sim, source, simulations, analytical_solution=E_theory);
 
 
 

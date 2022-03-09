@@ -6,13 +6,12 @@
 %
 
 %% Set up simulation options
-opt = struct();                 % clear any previous options
-opt.N = [256, 256, 1, 1];         % number of grid points in x,y,z,t 
-opt.boundaries.periodic = true; % all boundaries periodic
-opt.pixel_size = 0.5;
-opt.pixel_unit = 'um';
-opt.callback.handle = @DisplayCallback;
-opt.callback.cross_section = {4};
+opt = DiffuseSimOptions();                 % clear any previous options
+opt.N = [256, 256];
+opt.grid.boundaries_width = 0; % all boundaries periodic
+opt.grid.pixel_size = 0.5;
+opt.grid.pixel_unit = 'um';
+opt.callback = DisplayCallback(cross_section = {4});
 opt.potential_type = 'diagonal';
 
 %% Construct medium 

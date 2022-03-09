@@ -3,7 +3,7 @@ classdef HelmholtzSim < GridSim
     %   Built on the AnySim framework.
     %
     %   (c) 2021. Ivo Vellekoop
-    properties
+    properties (SetAccess = private)
         k0
     end
     methods
@@ -31,23 +31,19 @@ classdef HelmholtzSim < GridSim
             %                   (defaults to size(N), no need to set
             %                   explictly unless using singleton expansion)
             %
-            %% Set defaults
-            defaults.wavelength = 1;
-            defaults.pixel_size = 0.25;
-            defaults.pixel_unit = 'λ';
-            defaults.N = size(n);
-            defaults.V_max = 0.95;
-            defaults.alpha = 0.75;%real(1/(1 + 1.0i*defaults.V_max));
-            opt = set_defaults(defaults, opt);
             
             %% Construct base class
-            % todo: we now always use 4 components (Fx, Fy, Fz, I)
-            % for 2-dimensional simulations, Fz = 0, so this approach
-            % is slightly wasteful.
-            obj = obj@GridSim([], opt); 
+            opt = opt.validate(size(n));
+            obj = obj@GridSim(opt.N, opt.grid, opt); 
             obj.k0 = 2*pi/opt.wavelength;
 
             %% Construct components: operators for medium, propagator and transform
+            obj = obj.makeMedium(n);
+            obj = obj.makePropagator();
+        end
+    end
+    methods (Access = protected)        
+        function obj = makeMedium(obj, n)
             % Compute scaling factors. Note: Vraw = -i ε k0² = -i n² k0²            
             V = -1i * obj.k0^2 * n.^2;
 
@@ -59,14 +55,11 @@ classdef HelmholtzSim < GridSim
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
 
             % apply scaling
-            B = obj.grid.pad(data_array(1 - V, obj.opt), 0);
+            B = obj.grid.pad(obj.data_array(1 - V), 0);
             obj.medium = @(x) B .* x;
             obj.Tl = obj.Tl * 1i; % include factor i to rotate source term??
-            
-            obj.propagator = obj.makePropagator();
-        end
-        
-        function propagator = makePropagator(obj)
+        end        
+        function obj = makePropagator(obj)
             % Constructs the propagator (L+1)^-1 = 
             % with L = Tl(Lraw + V0)Tr, and Lraw the 
             % differential operator for the Helmholtz equation.
@@ -74,7 +67,11 @@ classdef HelmholtzSim < GridSim
             
             % Compute -∇²=‖p‖² in k-space   
             % L' + 1 = [Tl (L+V0) Tr + 1]^-1
-            L = obj.grid.coordinates_f(1).^2 + obj.grid.coordinates_f(2).^2 + obj.grid.coordinates_f(3).^2;
+            L = obj.grid.coordinates_f(1).^2;
+            for d = 2:obj.grid.N_dim
+                L = L + obj.grid.coordinates_f(d).^2;
+            end
+            
             L = (obj.Tl * obj.Tr) * (L - 1i * obj.V0); % -1i compensates for factor i in Tl matrix
             if obj.opt.forward_operator
                 obj.L = @(u) ifftn(L .* fftn(u));
@@ -82,7 +79,7 @@ classdef HelmholtzSim < GridSim
             Lr = 1./(1+L);
             
             % point-wise multiplication in the Fourier domain
-            propagator = @(u, state) ifftn(Lr .* fftn(u));
+            obj.propagator = @(u, state) ifftn(Lr .* fftn(u));
         end
      end
 end

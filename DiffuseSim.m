@@ -11,7 +11,7 @@ classdef DiffuseSim < GridSim
             arguments
                 D {mustBeNumeric, mustBeReal, mustBeNonNan}
                 a {mustBeNumeric, mustBeFinite, mustBeNonnegative, mustBeNonNan} 
-                opt struct = struct()
+                opt DiffuseSimOptions = DiffuseSimOptions()
             end
             % DIFFUSESIM Simulation object for a solving the diffusion
             % equation.
@@ -43,54 +43,20 @@ classdef DiffuseSim < GridSim
             %   Must be a positive scalar (may be 0) of size [Nx, Ny, Nz,
             %   Nt]. Singleton dimensions are expanded automatically.
             %
-            % OPT Options structure
-            %   .potential_type Any of the options 'scalar' (default), 'diagonal', 'tensor'
-            %                   This option determines how the D array is
-            %                   interpreted (see above)
-            %   .pixel_size     Grid spacing, specified as, for example
-            %                   [5 'um', 10 'um', 5 'um']. (default 1 '-')
-            %
             % todo: allow indexed description for D (use an index to look up 
             %   the D tensor for each voxel).
             
-            %% Set defaults
-            defaults.pixel_size = 1;
-            defaults.pixel_unit = 'm';
-            defaults.V_max = 0.95; 
-            defaults.alpha = 1;% theoretical optimum for Hermitian operators
-            defaults.N = [];
-            % 'guess' simulation type
-            if size(D, 1) == 3 && size(D, 2) == 3
-                defaults.potential_type = "tensor";
-            elseif size(D, 1) == 3
-                defaults.potential_type = "diagonal";
-            else                  
-                defaults.potential_type = "scalar"; 
-            end
-            opt = set_defaults(defaults, opt);
-            
-            % 'guess' size of simulation
-            if isempty(opt.N) 
-                switch opt.potential_type
-                    case "tensor"
-                        opt.N = compatible_size(size(D, 3:ndims(D)), size(a));
-                    case "diagonal"
-                        opt.N = compatible_size(size(D, 2:ndims(D)), size(a));
-                    case "scalar"
-                        opt.N = compatible_size(size(D), size(a));
-                end
-            end
-
             %% Construct base class
-            obj = obj@GridSim(4, opt); 
+            opt = opt.validate(size(D), size(a));
+            obj = obj@GridSim(opt.N, opt.grid, opt); 
             
             %% Construct components: operators for medium, propagator and transform
-            obj.makeMedium(D, a);
-            obj.makePropagator();
+            obj = obj.makeMedium(D, a);
+            obj = obj.makePropagator();
         end
     end
     methods (Access = protected)        
-        function makeMedium(obj, D, a)
+        function obj = makeMedium(obj, D, a)
             % Construct medium operator G=1-V
             %
             %    [      0]    
@@ -99,7 +65,6 @@ classdef DiffuseSim < GridSim
             %    [0 0 0 a]
             %
             %
-            compatible_size(size(a), obj.opt.N);
             
             % Compute minimim values for max Re V
             % these values should be reachable to achieve sufficient
@@ -112,13 +77,10 @@ classdef DiffuseSim < GridSim
             % Invert D, then combines D and a into a single matrix
             % If the matrices are diagonal, store them as columns
             % instead of full matrices.
-            D = data_array(D, obj.opt); % convert D to data array (put on gpu if needed, change precision if needed)
-            szD = size(D);
+            %D = data_array(D, obj); % convert D to data array (put on gpu if needed, change precision if needed)
             switch obj.opt.potential_type
                 case "tensor"
                     % combine scalar 'a' and 3x3 matrix 'D' to 4x4 matrix
-                    validateattributes(D, {'numeric'}, {'nrows', 3, 'ncols', 3});
-                    compatible_size(szD(3:end), obj.opt.N);
                     V = pageinv(D);
                     V(4,4,:,:,:,:) = 0; 
                     V = obj.grid.pad(V + padarray(shiftdim(a, -2), [3,3,0,0,0,0], 'pre'), 2);
@@ -126,35 +88,30 @@ classdef DiffuseSim < GridSim
                 case "diagonal"
                     % combine scalar 'a' and diagonal matrix 'D' to 4-element
                     % diagonal matrix
-                    validateattributes(D, {'numeric'}, {'nrows', 3});
-                    compatible_size(szD(2:end), obj.opt.N);
                     V = 1./D;
                     V(4,:,:,:,:) = 0;
                     V = obj.grid.pad(V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre'), 1);
-                case obj.opt.potential_type == "scalar" 
+                case "scalar" 
                     % combine scalar 'a' and scalar 'D' to 4-element diagonal
                     % matrix
-                    compatible_size(szD, obj.opt.N);
                     V = repmat(shiftdim(1./D, -1), 3, 1, 1, 1, 1);
                     V(4,:,:,:,:) = 0;
                     V = obj.grid.pad(V + padarray(shiftdim(a, -1), [3,0,0,0,0], 'pre'), 1);
-                otherwise
-                    error('Incorrect option for potential_type');
             end
 
             [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
             
             % apply scaling
             if (obj.opt.potential_type == "tensor")
-                B = data_array(eye(size(V,1)) - V, obj.opt);
+                B = obj.data_array(eye(size(V,1)) - V);
                 obj.medium = @(x) fieldmultiply(B, x);
             else
-                B = data_array(1 - V, obj.opt);
+                B = obj.data_array(1 - V);
                 obj.medium = @(x) B .* x;
             end
         end
         
-        function makePropagator(obj)
+        function obj = makePropagator(obj)
             % Constructs the propagator (L'+1)^-1 = 
             % with L' = Tl(L + V0)Tr, and L the diffusion equation
             % differential operator.
@@ -167,7 +124,7 @@ classdef DiffuseSim < GridSim
             Tl = obj.Tl; % scaling matrices for the
             Tr = obj.Tr; % L operator
             
-            Lr = zero_array([4, 4, obj.grid.N], obj.opt);
+            Lr = obj.zero_array([4, 4, obj.grid.N]);
             
             % construct matrix with ikx, iky, ikz and iω
             for d=1:4

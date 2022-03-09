@@ -20,35 +20,21 @@ classdef GridSim < AnySim
                  % the minimum decay coefficients needed in all dimensions.
     end
     methods
-        function obj = GridSim(N_components, opt)
-        % grid = SimGrid object containing grid spacings and dimensions
-        % N_components = length of data vector stored at each grid point
-        %                [] for scalar simulations. [N] for vector,
-        %                [N,M] for matrix fields (not tested)
-        % required 'options': 
-        %   opt.N
-        %   opt.unit            e. g. 'mm' or 's'. All dimensions have the same
-        %                       unit
-        %   opt.pixel_size      size of a pixel (in units). Can be a scalar
-        %                       for isotropic pixels, or a vector for 
-        %                       anisotropic pixels (i. e. a grid with
-        %                       different pitch in different directions)
-        %   opt.crop            set to true (default) to remove boundary
-        %                       and padding layers after the simulation
-        %                       and return only the result inside the roi
-        %
-            defaults.boundaries.periodic = "auto";
-            defaults.boundaries.extend = true;
-            defaults.boundaries.width = 32;
-            defaults.boundaries.filter = @wnd_nutall;
-            defaults.crop = true; % otherwise, keeps boundary layers (for debugging)
-            opt = set_defaults(defaults, opt);
+        function obj = GridSim(N, gridopt, opt)
+            arguments
+                % Dimensions of the grid in voxels. When empty, this should be 
+                % determined automatically from the passed potential array.
+                N (1,:) {mustBePositive}
+                gridopt (1,1) GridOptions
+                opt (1,1) AnySimOptions
+            end
+
+            % grid = SimGrid object containing grid spacings and dimensions
             obj@AnySim(opt);
-            obj.grid = SimGrid(opt.N, N_components, opt.boundaries, opt.pixel_size, opt.pixel_unit);
+            obj.grid = SimGrid(N, gridopt);
             
-        
-            obj.mu_min = 10./(obj.grid.boundaries.width .* obj.grid.pixel_size);
-            obj.mu_min(obj.grid.boundaries.width == 0) = 0;
+            obj.mu_min = 10./(obj.grid.boundaries_width .* obj.grid.pixel_size);
+            obj.mu_min(obj.grid.boundaries_width == 0) = 0;
             obj.mu_min = max(obj.mu_min, 1E-3 ./ obj.grid.dimensions); % give tiny non-zero minimum value to prevent division by zero in homogeneous media
         end
         
@@ -80,7 +66,7 @@ classdef GridSim < AnySim
             % apply offset due to boundaries
             valuedim = length(obj.grid.N_components);
             offset = [position - 1, zeros(1, length(obj.grid.N_u) - length(position))]...
-                + [zeros(1, valuedim) floor(obj.grid.boundaries.width)];
+                + [zeros(1, valuedim) floor(obj.grid.boundaries_width)];
             sz = size(values, 1:length(offset));
             does_not_fit = sz + offset > obj.grid.N_u;
             if any(does_not_fit(1:valuedim))
@@ -95,22 +81,36 @@ classdef GridSim < AnySim
             values = padarray(values, offset, 0, 'pre');
             values = padarray(values, obj.grid.N_u - sz - offset, 0, 'post');
             values = fieldmultiply(obj.Tl, values);
-            S = data_array(values, obj.opt);
+            S = obj.data_array(values);
         end
-        function c = coordinates(obj, dim)
-            % SIM.COORDINATES(D) returns the coordinates in dimension
-            % D. If opt.crop = true, the coordinates are cropped to the region of interest
-            % Coordinates are 0 for the start of the ROI, and increasing.
-            % The returned array will have size 1 in all dimensions, except in the Dth 
-            % dimension, so it is usable for singleton expansion directly
-            % (e.g. r = sqrt(sim.coordinates(1).^2 + sim.coordinates(2).^2))
-            if obj.opt.crop
-                c = obj.grid.crop(obj.grid.coordinates(dim));
+        function D = data_array(obj, data)
+            %DATA_ARRAY Converts an array to the proper data type (double/single, gpu or not)
+            %   DATA_ARRAY(X, OPT)      converts data in X to formatting specified in OPT
+            %      OPT.precision   = 'single' or 'double'
+            %      OPT.gpu_enabled = 'true' or 'false'
+            %
+            switch obj.opt.precision
+            case 'single'
+                D = single(data);
+            case 'double'
+                D = double(data);
+            otherwise
+                error('Precision should be single or double. %s is not supported', opt.precision);
+            end
+            if obj.opt.gpu_enabled
+                D = gpuArray(D);
             else
-                c = obj.grid.coordinates(dim);
+                D = gather(D);
             end
         end
-
+        function D = zero_array(obj, N)
+            %ZERO_ARRAY Constructs a zero array of size N with proper formatting (double/single, gpu or not)
+            %   OPT.precision   = 'single' or 'double'
+            %   OPT.gpu_enabled = 'true' or 'false'
+            %
+            Dscalar = obj.data_array(0); % avoid code duplication with data_array
+            D = zeros([N 1], 'like', Dscalar);
+        end
         function u = preconditioner(obj, u)
             % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
             %
@@ -118,7 +118,7 @@ classdef GridSim < AnySim
             % such as GMRES, the input and output are column vectors
             %
             % Also see AnySim.preconditioner
-            u = reshape(u, obj.grid.N_u); 
+            u = reshape(u, [obj.grid.N_u, 1]); 
             u = preconditioner@AnySim(obj, u);
             u = u(:);
         end
@@ -132,7 +132,7 @@ classdef GridSim < AnySim
             %
             % Also see AnySim.preconditioner
             [A, state] = preconditioned@AnySim(obj);
-            f = @(u) reshape(A(reshape(u, obj.grid.N_u)), [], 1); 
+            f = @(u) reshape(A(reshape(u, [obj.grid.N_u, 1])), [], 1); 
         end
         function [f, state] = operator(obj)
             % SIM.OPERATOR(U) Returns (L+V)U
@@ -142,16 +142,16 @@ classdef GridSim < AnySim
             %
             % Also see AnySim.operator
             [A, state] = operator@AnySim(obj);
-            f = @(u) reshape(A(reshape(u, obj.grid.N_u)), [], 1);
+            f = @(u) reshape(A(reshape(u, [obj.grid.N_u 1])), [], 1);
         end
     end
     methods (Access = protected)
         function [u, state] = start(obj)
-            u = zero_array(obj.grid.N_u, obj.opt);
+            u = obj.zero_array(obj.grid.N_u);
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
-            if obj.opt.crop
+            if obj.grid.crop_to_roi
                 u = obj.grid.crop(u, length(obj.grid.N_components));
             end
             u = fieldmultiply(obj.Tr, u);

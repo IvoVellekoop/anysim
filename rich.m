@@ -82,7 +82,7 @@ for iter = 1 : maxit
     resvec(iter+1,1) = normr;
 
     % check for divergence
-    if (isinf(normr))
+    if ~all(isfinite(normr))
         flag = 4;
         break
     end

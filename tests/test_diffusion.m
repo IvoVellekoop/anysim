@@ -10,14 +10,13 @@
 %
 
 %% Simulation parameters
-opt = struct(); % clear any previous options
-opt.pixel_size = 1;
-opt.pixel_unit = 'um';
-opt.N = [256*4, 1, 1, 1]; %Nx, Ny, Nz, t   (constant in z and t)
-opt.boundaries.periodic = true; %we manually define the boundaries inside the simulation domain
-opt.callback.handle = @DisplayCallback;
-opt.callback.cross_section = {4};
-opt.termination_condition.relative_limit = 1E-5;
+opt = DiffuseSimOptions();
+opt.N = 1024; %1-D simulation
+opt.grid.pixel_size = 1;
+opt.grid.pixel_unit = 'um';
+opt.grid.boundaries_width = 0; %we manually define the boundaries inside the simulation domain
+opt.callback = DisplayCallback(cross_section = {4});
+opt.termination_condition = TerminationCondition(relative_limit = 1E-5);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 
 
@@ -28,8 +27,8 @@ aslab = 0;          % absorption coefficient (1/m)
 R = 0.5;            % angle-averaged reflection coefficient at interface.
 
 %% Construct medium 
-D = ones(opt.N(1), 1, 1, 1) * Dslab;
-a = zeros(opt.N(1), 1) * aslab;
+D = ones(opt.N, 1, 1, 1) * Dslab;
+a = zeros(opt.N, 1) * aslab;
 
 % construct boundary outside medium, with absorption coefficient
 % tuned to match mixed boundary conditions with extrapolation length
@@ -42,16 +41,16 @@ a((end-N_boundary+1):end) = Dslab/ze^2;
 sim = DiffuseSim(D, a, opt);
 
 % Define source
-z = sim.coordinates(1);
+z = sim.grid.coordinates(1);
 
 ell = Dslab*3;
-z_indices = N_boundary+1:opt.N(1)-N_boundary;   % indices of slab
+z_indices = N_boundary+1:opt.N-N_boundary;   % indices of slab
 z_inside = z(z_indices);                        % corresponding z-coordinates
-zl = z_inside(1) - 0.5 * opt.pixel_size;        % z-coordinate of left boundary
-zr = z_inside(end) + 0.5 * opt.pixel_size;      % z-coordinate of right boundary
+zl = z_inside(1) - 0.5 * opt.grid.pixel_size;        % z-coordinate of left boundary
+zr = z_inside(end) + 0.5 * opt.grid.pixel_size;      % z-coordinate of right boundary
 zz = z_inside-zl;                               % position with respect to sample start
 Isource = exp(-zz'/ell)/ell;                    % exponentially decaying source
-source = sim.define_source(Isource, [4, N_boundary+1,ceil(opt.N(2)/2),1,1]); % intensity-only source (isotropic) at t=0
+source = sim.define_source(Isource, [4, N_boundary+1,1,1,1]); % intensity-only source (isotropic) at t=0
 
 %% theoretical intensity distribution (normalized to same height as simulation):
 L = zr-zl;
@@ -67,12 +66,9 @@ comp_opt.analytical_solution(4, z_indices) = I_th(:);
 comp_opt.tol = [];
 
 simulations = default_simulations;
-
-comp_opt.preconditioned = false;
-bare = compare_simulations(sim, source, simulations, comp_opt);
+bare = compare_simulations(sim, source, simulations, preconditioned = false);
 
 %% Repeat with preconditioner
-comp_opt.preconditioned = true;
-precond = compare_simulations(sim, source, simulations, comp_opt);
+precond = compare_simulations(sim, source, simulations);
 
 %[L, GL] = simulation_eigenvalues(sim);
