@@ -151,9 +151,7 @@ classdef GridSim < AnySim
             state = State(obj, obj.opt);
         end
         function u = finalize(obj, u, state)  %#ok<INUSD>
-            if obj.grid.crop_to_roi
-                u = obj.grid.crop(u, length(obj.grid.N_components));
-            end
+            u = obj.grid.crop(u);
             u = fieldmultiply(obj.Tr, u);
         end
     end

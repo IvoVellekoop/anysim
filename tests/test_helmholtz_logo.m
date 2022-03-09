@@ -3,23 +3,19 @@
 %
 
 %% Set up simulation options
-opt = struct(); % clear any previous options
-oversampling = 2; %4;
+opt = HelmholtzSimOptions(); % clear any previous options
+oversampling = 4;
 im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
 %n = 1.5 - 0.5 * im(:,:,1);% + (0.5+0.4i) * im(:,:,3);
 n = 1 + (1.8 + 2.9i) * im(:,:,1) * 0.2; % iron
-opt.N = [size(n,1), size(n,2), 1];   % Nx, Ny, Nz   (constant in z)
-opt.boundaries.periodic = [true, true, true];
-opt.boundaries.width = 64;
-opt.callback.handle = @DisplayCallback;
-opt.callback.show_boundaries = true;
-opt.callback.interval = 25;
-opt.termination_condition.relative_limit = 1E-3;
+opt.N = [size(n,1), size(n,2)];   % Nx, Ny, Nz   (constant in z)
+opt.boundaries_width = 0; %periodic
+opt.callback = DisplayCallback();
+opt.termination_condition = TerminationCondition(relative_limit = 1E-3);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/oversampling;
 opt.alpha = 0.75;
-opt.crop = false; % so that we can compare with the forward operator
-%opt.V_max = 2;
+opt.crop_to_roi = false; % so that we can compare with the forward operator
 
 %% create the AnySim object
 sim = HelmholtzSim(n, opt);
@@ -38,18 +34,9 @@ colormap hot;
 
 %% Compare to other methods and compute errors
 %% Perform the different simulations and compare the results
-comp_opt.analytical_solution = 0;
-comp_opt.tol = []; % []=stop when reached same residual as anysim
-comp_opt.iter = 1000; %[]= never use more operator evaluations than anysim
 simulations = default_simulations;
-
-%comp_opt.preconditioned = false;
-
-%bare = compare_simulations(sim, source, simulations, comp_opt);
-
-%% Repeat with preconditioner
-comp_opt.preconditioned = true;
-precond = compare_simulations(sim, source, simulations, comp_opt);
+bare = compare_simulations(sim, source, simulations);
+precond = compare_simulations(sim, source, simulations, preconditioned = true);
 
 %[A, preA] = simulation_eigenvalues(sim);
 

@@ -8,11 +8,11 @@
 %% Set up simulation options
 opt = DiffuseSimOptions();                 % clear any previous options
 opt.N = [256, 256];
-opt.grid.boundaries_width = 0; % all boundaries periodic
-opt.grid.pixel_size = 0.5;
-opt.grid.pixel_unit = 'um';
-opt.callback = DisplayCallback(cross_section = {4});
-opt.potential_type = 'diagonal';
+opt.boundaries_width = 0; % all boundaries periodic
+opt.pixel_size = 0.5;
+opt.pixel_unit = 'um';
+opt.callback = DisplayCallback(component = 4);
+opt.forward_operator = true;
 
 %% Construct medium 
 a = 0.01;    % absorption coefficient [um^-1]
@@ -49,3 +49,8 @@ hold on;
 quiver(X, Y, squeeze(udown(2,:,:)), squeeze(udown(1,:,:)));
 hold off;
 axis image;
+
+%%
+simulations = default_simulations;
+bare = compare_simulations(sim, source, simulations, preconditioned = false);
+precond = compare_simulations(sim, source, simulations);

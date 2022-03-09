@@ -48,7 +48,7 @@ classdef DiffuseSim < GridSim
             
             %% Construct base class
             opt = opt.validate(size(D), size(a));
-            obj = obj@GridSim(opt.N, opt.grid, opt); 
+            obj = obj@GridSim(opt.N, opt, opt); 
             
             %% Construct components: operators for medium, propagator and transform
             obj = obj.makeMedium(D, a);

@@ -12,10 +12,10 @@
 %% Simulation parameters
 opt = DiffuseSimOptions();
 opt.N = 1024; %1-D simulation
-opt.grid.pixel_size = 1;
-opt.grid.pixel_unit = 'um';
-opt.grid.boundaries_width = 0; %we manually define the boundaries inside the simulation domain
-opt.callback = DisplayCallback(cross_section = {4});
+opt.pixel_size = 1;
+opt.pixel_unit = 'um';
+opt.boundaries_width = 0; %we manually define the boundaries inside the simulation domain
+opt.callback = DisplayCallback(component = 4);
 opt.termination_condition = TerminationCondition(relative_limit = 1E-5);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 
@@ -46,11 +46,11 @@ z = sim.grid.coordinates(1);
 ell = Dslab*3;
 z_indices = N_boundary+1:opt.N-N_boundary;   % indices of slab
 z_inside = z(z_indices);                        % corresponding z-coordinates
-zl = z_inside(1) - 0.5 * opt.grid.pixel_size;        % z-coordinate of left boundary
-zr = z_inside(end) + 0.5 * opt.grid.pixel_size;      % z-coordinate of right boundary
+zl = z_inside(1) - 0.5 * opt.pixel_size;        % z-coordinate of left boundary
+zr = z_inside(end) + 0.5 * opt.pixel_size;      % z-coordinate of right boundary
 zz = z_inside-zl;                               % position with respect to sample start
 Isource = exp(-zz'/ell)/ell;                    % exponentially decaying source
-source = sim.define_source(Isource, [4, N_boundary+1,1,1,1]); % intensity-only source (isotropic) at t=0
+source = sim.define_source(Isource, [4, N_boundary+1]); % intensity-only source (isotropic) at t=0
 
 %% theoretical intensity distribution (normalized to same height as simulation):
 L = zr-zl;

@@ -1,4 +1,4 @@
-classdef DiffuseSimOptions < AnySimOptions
+classdef DiffuseSimOptions < AnySimOptions & GridOptions
     %DIFFUSESIMOPTIONS Options for simulation of the diffusion equation
     %   (c) 2022. Ivo Vellekoop
     %
@@ -6,7 +6,6 @@ classdef DiffuseSimOptions < AnySimOptions
         % Dimensions of the grid in voxels, excluding boundaries.
         % When empty, the size is determined automatically from D and a.
         N (1,:) {mustBePositive} = []
-        grid GridOptions = GridOptions()
         potential_type string {mustBeMember(potential_type, ["scalar", "diagonal", "tensor"])} = []
     end
     methods 
@@ -20,7 +19,7 @@ classdef DiffuseSimOptions < AnySimOptions
         function opt = validate(opt, szD, sza)
             % the diffusion simulation is always 3-dimensional, so we need
             % 3 flux components + 1 intensity
-            opt.grid.N_components = 4;
+            opt.N_components = 4;
 
             % 'guess' potential type if it is not provided
             if isempty(opt.potential_type)
@@ -65,6 +64,8 @@ classdef DiffuseSimOptions < AnySimOptions
                 case "scalar"
                     compatible_size(szD, opt.N);
             end
+
+            opt = validate@GridOptions(opt, opt.N);
         end
     end
 end

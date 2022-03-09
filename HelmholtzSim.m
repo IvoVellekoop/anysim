@@ -8,6 +8,10 @@ classdef HelmholtzSim < GridSim
     end
     methods
         function obj = HelmholtzSim(n, opt)
+            arguments
+                n double
+                opt HelmholtzSimOptions
+            end
             % HELMHOLTZSIM Simulation object for a solving the Helmholtz
             % equation.
             %
@@ -34,7 +38,7 @@ classdef HelmholtzSim < GridSim
             
             %% Construct base class
             opt = opt.validate(size(n));
-            obj = obj@GridSim(opt.N, opt.grid, opt); 
+            obj = obj@GridSim(opt.N, opt, opt); 
             obj.k0 = 2*pi/opt.wavelength;
 
             %% Construct components: operators for medium, propagator and transform

@@ -6,6 +6,7 @@ classdef SimGrid < GridOptions
         N_roi   % vector with number of grid points for all dimensions excluding boundaries
         N_dim   % === length(N)
         N_u     % dimensions of data array, includes leading dimensions for components (if N_components not [])
+        value_dim % === length(N_components)
         roi_ranges % cell array with index vectors to index the ROI (see crop)
         pixel_size_f % pixel size after Fourier transform
     end
@@ -19,9 +20,10 @@ classdef SimGrid < GridOptions
             end
 
             % copy options into this object
-            obj = copy_properties(obj, opt.validate(N));
+            obj = copy_properties(obj, opt);
             obj.N_dim = length(N);
             obj.N_roi = N;
+            obj.value_dim = length(opt.N_components);
 
             %% set up coordinates
             % add boundary size
@@ -40,13 +42,32 @@ classdef SimGrid < GridOptions
             end
             obj.roi_ranges = ranges;
         end
-        function x = coordinates(obj, d, full)
+        function x = coordinates(obj, d, edges)
+            arguments
+                obj
+                d (1,1) { mustBeInteger, mustBePositive }
+                edges { mustBeMember(edges, ["full", "crop", "auto", "nan"])} = "auto"
+            end
             % returns coordinate range for the given dimension. If
             % the crop_to_roi option is set to true, the coordinates
             % are cropped to the roi, unless full = true
+            % full: include boundaries
+            % crop: remove boundaries
+            % auto: crop_to_roi ? "crop" : "full"
+            % nan: put 'nan' in boundaries
+            %
             x = shiftdim(((1:obj.N(d))-floor(obj.boundaries_width(d))-1)*obj.pixel_size(d), 2-d);
-            if obj.crop_to_roi && (nargin == 2 || ~full)
-                x = obj.crop(x);
+            switch edges
+                case "crop"
+                    x = x(obj.roi_ranges{d});
+                case "auto"
+                    if obj.crop_to_roi
+                        x = x(obj.roi_ranges{d});
+                    end
+                case "nan"
+                    nans = zeros(size(x)) + nan;
+                    nans(obj.roi_ranges{d}) = 0;
+                    x = x + nans;
             end
         end
         
@@ -70,15 +91,15 @@ classdef SimGrid < GridOptions
             end
             X = X + floor(obj.boundaries_width);
         end
-        function x = crop(obj, x, d)
+        function x = crop(obj, x)
             % GRID.CROP(DATA, D) crops the DATA array to the ROI
-            % the first D are left untouched (use D=1
-            % if the data is a vector field, and 2 if it is a tensor field)
-            % This function is compatible with singleton dimensions: 
-            % singleton dimensions are kept, not cropped.  
-            if nargin < 3
-                d = 0;
+            % Note: the first obj.N_dim dimensions are left untouched,
+            % Note: singleton dimensions are kept, not cropped.
+            % Note: if crop_to_roi = false, this function just returns x
+            if ~obj.crop_to_roi
+                return;
             end
+            d = obj.value_dim;
             validateattributes(d, {'numeric'},{'>=', 0, '<=',2});
             roi = obj.roi_ranges;
             singleton = size(x, (d+1):ndims(x)) == 1;

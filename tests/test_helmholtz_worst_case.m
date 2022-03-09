@@ -3,18 +3,14 @@
 %
 
 %% Set up simulation options
-opt = struct(); % clear any previous options
-opt.N = [256, 1, 1];   % Nx, Ny, Nz   (constant in z)
-opt.boundaries.periodic = [false, true, true];
-opt.boundaries.width = 64;
-opt.callback.handle = @DisplayCallback;
-opt.callback.show_boundaries = true;
+opt = HelmholtzSimOptions(); % clear any previous options
+opt.N = 256;
+opt.boundaries_width = 64;
+opt.callback = DisplayCallback();
 opt.callback.interval = 100;
-opt.termination_condition.relative_limit = 1E-6;
-opt.termination_condition.iteration_count = 1E6;
+opt.termination_condition = TerminationCondition(relative_limit = 1E-6, iteration_count = 1E6);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.pixel_size = 0.25;
-opt.crop = false;
+opt.crop_to_roi = false;
 opt.alpha = 0.7;%real(1/(1 + 1.0i*defaults.V_max));
 lambda_r = 0.8:0.05:1;%1.2;
 

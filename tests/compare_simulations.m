@@ -32,7 +32,7 @@ function results = compare_simulations(sim, source, methods, opt)
     results(M+1).iter = state.iteration;
     results(M+1).residual = state.residuals(end);
     
-    up = sim.grid.pad(pagemtimes(inv(sim.Tr), u), 0, nan);     % u' = Tr^(-1) u
+    up = pagemtimes(inv(sim.Tr), u);     % u' = Tr^(-1) u
     sz = size(up);
     if opt.preconditioned
         [A, state] = sim.preconditioned;

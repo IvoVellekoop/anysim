@@ -39,16 +39,21 @@ classdef DisplayCallback
         coord2 % coordinates for 'y' axis
         label1 % label for 'x' axis
         label2 % label for 'y' axis
-        valuedim % 0 for scalar fields, 1 for vector fields, 2 for matrix fields, etc.
         selection % subsref structure to access cross section to display
     end
 
     properties
-        % select data to display
-        cross_section = {1}
+        % for tensor data: 2-element index of component to display.
+        % for vector data: 1-element index of component to display.
+        % for scalar data: ignored
+        % missing values: default to 1
+        component { mustBePositive, mustBeInteger } = []
 
-        % when true, shows all simulation data. when false, removes the boundaries first
-        show_boundaries logical = false
+        % select data region to display. For each dimension, either indicate
+        % ':' (display all data along that dimension) or a fraction between
+        % 0 (first 'row') or 1 (last 'row).
+        % missing values: use 0.5 for all other dimensions.
+        cross_section (:,1) = {':', ':'}
 
         % true to draw a graph of magnitude of each update step
         show_convergence logical = true
@@ -70,53 +75,32 @@ classdef DisplayCallback
             obj.grid = sim.grid; 
             obj.Tr = sim.Tr;
             
-            % Check if 'u' is a vector/matrix field. In that case,
-            % by default display the first element of the vector/matrix,
-            obj.valuedim = length(obj.grid.N_components);
-            
-            % convert cross_section to a structure that can be used in
-            % subsref
-            dims = [];
+            % convert component and cross_section to a structure that can
+            % be used in subsref
             indices = cell(length(obj.grid.N_u), 1);
 
-            for i = 1:length(obj.grid.N_u)
-                % depending on the data type, the first 0-2 elements of 
-                % cross_section are treated as absolute indices
-                % (for instance {1} selects the x component in a vector
-                % field)
-                if (i <= obj.valuedim)
-                    if ~isempty(obj.cross_section)
-                        component = obj.cross_section{1};
-                    else
-                        component = 1;
-                    end
-                    validateattributes(component, "numeric", "scalar");
-                    indices{i} = obj.cross_section{1};
-                    continue;
+            % component selection
+            valuedim = length(obj.grid.N_components);
+            obj.component = extend(obj.component, ones(valuedim, 1)); % missing values: 1
+            for i = 1:valuedim
+                indices{i} = obj.component(i);
+            end
+            
+            % roi cross section
+            dims = [];
+            for i = 1:obj.grid.N_dim
+                % missing values default to 0.5
+                if (i > length(obj.cross_section))
+                    obj.cross_section{i} = 0.5;
                 end
-                if (i > length(obj.cross_section)) % nothing specified: assume ':' for first two non-singleton dimensions
-                    if length(dims) < 2 && obj.grid.N_u(i) > 1
-                        indices{i} = ':';
-                        dims = [dims i - obj.valuedim]; %#ok<AGROW>
-                        continue;
-                    else
-                        pos = 0.5; % assume center position for all followin dimensions
-                    end
+
+                pos = obj.cross_section{i};
+                if pos == ':'
+                   indices{i  + valuedim} = ':';
+                   dims = [dims i]; %#ok<AGROW>
                 else
-                    % specified position
-                    pos = obj.cross_section{i};
-                    if pos == ':'
-                        indices{i} = ':';
-                        dims = [dims i]; %#ok<AGROW>
-                        continue;
-                    end
-                end
-                if ~obj.show_boundaries
-                    bw = obj.grid.boundaries_width(i - obj.valuedim);
-                    N = obj.grid.N_roi(i - obj.valuedim);
-                    indices{i} = max(round(pos * N), 1) + floor(bw);
-                else
-                    indices{i} = max(round(pos * obj.grid.N_u(i)), 1);
+                   N = numel(obj.grid.coordinates(i));
+                   indices{i + valuedim} = min(max(round(pos * (N-1) + 1), 1), N);
                 end
             end
             obj.selection.type = '()';
@@ -126,35 +110,28 @@ classdef DisplayCallback
             if length(dims) > 2 || length(dims) < 1
                 error('DisplayCallback: Cross section must be 1 or 2 dimensional');
             end
-            if length(dims) == 2
+        
+            %% Prepare labels and coordinates
+            if length(dims) == 2 && all(sim.grid.N(dims) > 1)
                 obj.imageplot = true;
+                obj.label2 = sprintf("y [%s]", obj.grid.pixel_unit(dims(2)));
+                obj.coord2 = sim.grid.coordinates(dims(2));
             else
                 obj.imageplot = false;
-                dims(2) = dims(1);
             end
-            
-            %% Prepare labels and coordinates
             obj.label1 = sprintf("x [%s]", obj.grid.pixel_unit(dims(1)));
-            obj.label2 = sprintf("y [%s]", obj.grid.pixel_unit(dims(2)));
             obj.coord1 = sim.grid.coordinates(dims(1));
-            obj.coord2 = sim.grid.coordinates(dims(2));
-            if ~obj.show_boundaries
-                obj.coord1 = obj.grid.crop(obj.coord1);
-                obj.coord2 = obj.grid.crop(obj.coord2);
-            end
         end
         
         function call(obj, u, ~, state)
-            if obj.show_convergence && ~isempty(state.diffs)
+            if obj.show_convergence && ~isempty(state.residuals)
                 subplot(2, 1, 1);
-                semilogy(state.diff_its, state.diffs / max(state.diffs));
+                semilogy(state.residual_its, state.residuals / max(state.residuals));
                 xlabel('Iteration');
                 ylabel('‖Δ𝜓‖^2 (normalized)'); 
                 subplot(2, 1, 2);
             end
-            if ~obj.show_boundaries
-                u = obj.grid.crop(u, obj.valuedim);
-            end
+            u = obj.grid.crop(u);
             u = real(fieldmultiply(obj.Tr, u));
             u = squeeze(subsref(u, obj.selection));
 

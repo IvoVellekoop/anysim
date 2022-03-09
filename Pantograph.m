@@ -8,6 +8,13 @@ classdef Pantograph < GridSim
     %
     methods
         function obj = Pantograph(alpha, beta, lambda, t0, opt)
+            arguments
+                alpha (:,1)
+                beta (:,1)
+                lambda (1,1) {mustBePositive}
+                t0 (1,1) {mustBeInteger, mustBePositive}
+                opt PantographOptions
+            end
             % PANTOGRAPH Simulation object for a solving the pantograph
             % equation
             % 
@@ -20,29 +27,18 @@ classdef Pantograph < GridSim
             % ∂t x = α x + β Λ x
             % with Λ the unitary dilation operator with scale factor λ:
             % Λ x(t) = sqrt(λ) x(λ t)
-            %
-            % OPT Options structure
-            %   .pixel_size     Grid spacing, specified as, for example
-            %                   [5 'ms']. (default 1 's')
-            
-            %% Set defaults
-            defaults.pixel_size = {1, 's'};
-            defaults.alpha = 0.5;
-            defaults.V_max = 0.999; % theoretical optimum for Hermitian operators
-            opt = set_defaults(defaults, opt);
             
             %% Construct base class
-            obj = obj@GridSim([], opt); 
-            
+            opt = opt.validate(size(alpha), size(beta));
+            obj = obj@GridSim(opt.N, opt, opt); 
+
             %% Construct components: operators for medium, propagator and transform
-            % note: change minus sign for alpha and beta, so that positive
-            % alpha corresponds to absorption (consistent with A)
-            obj.makeMedium(alpha, beta, t0, lambda);
-            obj.makePropagator(t0);
+            obj = obj.makeMedium(alpha, beta, t0, lambda);
+            obj = obj.makePropagator(t0);            
         end
     end
     methods (Access = protected)        
-        function makeMedium(obj, alpha, beta, t0, lambda)
+        function obj = makeMedium(obj, alpha, beta, t0, lambda)
             % Construct medium operator G=1-V
             % V includes the non-constant part of alpha, as well as the
             % effect of beta
@@ -76,7 +72,7 @@ classdef Pantograph < GridSim
             obj.medium = @(u) B .* u(:)- beta .* interp1(u(:), coordinates, 'linear', 0);
         end
 
-        function makePropagator(obj, t0)
+        function obj = makePropagator(obj, t0)
             % L + 1 = Tl (dt + V0) Tr + 1   for t >= t0, 
             % Tl Tr + 1                     for t < t0
             %

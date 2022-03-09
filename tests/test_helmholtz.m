@@ -5,9 +5,9 @@
 %% Set up simulation options
 opt = HelmholtzSimOptions();
 opt.N = 256;
-opt.grid.boundaries_width = 2*512;
-opt.grid.pixel_size = 0.25;
+opt.boundaries_width = 2*512;
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
+opt.crop_to_roi = false;
 
 %% create an AnySim object for a homogeneous sample
 n = 0.9; % refractive idex
@@ -19,7 +19,7 @@ source = sim.define_source(1); % intensity-only source (isotropic) at t=0
 
 %% calculate exact solution analytically
 k = n*2*pi/sim.opt.wavelength;
-x = abs(sim.grid.coordinates(1));
+x = abs(sim.grid.coordinates(1, "nan"));
 h = sim.grid.pixel_size(1);
 % To determine peak value at x=0, realize that Ei(x) ~ ln(x) for x close to
 % 0 and find E(0) = -h/(4*pi*k)*2*log((pi/h+k)/(pi/h-k))  + i*h/(2*k)
@@ -49,7 +49,6 @@ simulations = default_simulations;
 bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=E_theory);
 
 %% Repeat with preconditioner
-comp_opt.preconditioned = true;
 precond = compare_simulations(sim, source, simulations, analytical_solution=E_theory);
 
 
