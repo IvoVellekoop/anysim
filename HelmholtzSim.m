@@ -38,7 +38,7 @@ classdef HelmholtzSim < GridSim
             
             %% Construct base class
             opt = opt.validate(size(n));
-            obj = obj@GridSim(opt.N, opt, opt); 
+            obj = obj@GridSim(opt.N, opt); 
             obj.k0 = 2*pi/opt.wavelength;
 
             %% Construct components: operators for medium, propagator and transform

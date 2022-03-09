@@ -48,7 +48,7 @@ classdef DiffuseSim < GridSim
             
             %% Construct base class
             opt = opt.validate(size(D), size(a));
-            obj = obj@GridSim(opt.N, opt, opt); 
+            obj = obj@GridSim(opt.N, opt); 
             
             %% Construct components: operators for medium, propagator and transform
             obj = obj.makeMedium(D, a);
@@ -147,7 +147,7 @@ classdef DiffuseSim < GridSim
             % we have to take special care at the the edges.
             % 
             Lr = pageinv(Lr);
-            Lr = SimGrid.fix_edges_hermitian(Lr, 3:6);
+            Lr = Grid.fix_edges_hermitian(Lr, 3:6);
             if obj.opt.forward_operator
                 % note: this is very inefficient, we only need to do this
                 % at the edges. However, the forward operator is only

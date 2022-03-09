@@ -20,18 +20,16 @@ classdef GridSim < AnySim
                  % the minimum decay coefficients needed in all dimensions.
     end
     methods
-        function obj = GridSim(N, gridopt, opt)
+        function obj = GridSim(N, opt)
             arguments
                 % Dimensions of the grid in voxels. When empty, this should be 
                 % determined automatically from the passed potential array.
                 N (1,:) {mustBePositive}
-                gridopt (1,1) GridOptions
-                opt (1,1) AnySimOptions
+                opt (1,1) {mustBeA(opt, "AnySimOptions"), mustBeA(opt, "GridOptions")}
             end
 
-            % grid = SimGrid object containing grid spacings and dimensions
             obj@AnySim(opt);
-            obj.grid = SimGrid(N, gridopt);
+            obj.grid = Grid(N, opt);
             
             obj.mu_min = 10./(obj.grid.boundaries_width .* obj.grid.pixel_size);
             obj.mu_min(obj.grid.boundaries_width == 0) = 0;

@@ -27,8 +27,8 @@ classdef DisplayCallback
     %                      monitor convergence
     %
     properties (SetAccess = private)
-        % SimGrid object with scaling and cropping information
-        grid SimGrid
+        % Grid object with scaling and cropping information
+        grid Grid
         
         % scaling operator/matrix: we want to plot the solution in non-scaled form  
         Tr

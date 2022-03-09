@@ -7,23 +7,16 @@ AnySim : root class implementing the Modified Born series iteration
  └─ GridSim : base class for all simulations on a grid
      │
      ├─ DiffuseSim : solves the diffusion equation
+     ├─ Pantograph : solves the pantograph equation
      └─ HelmholtzSim : solves the Helmholtz equation
 
-Medium : root class implementing operator B=1-V for grid-based potentials
- │      also implements computation of centering & scaling matrices Tl Tr and V0
- ├─ TensorMedium: associates a matrix to each grid point, operator V=1-B is implemented as a matrix-vector multiplication
- ├─ DiagonalMedium: associates a diagonal matrix to each grid point, functionally equivalent to TensorMedium but more efficient
- └─ ScalarMedium: associates a scalar to each grid point
-   
-Classes that implement the Transform interface:
-   FourierTransform
-
 Helper classes:
-   SimGrid
+   Grid
    DisplayCallback
    TerminationCondition
-   Source
    State
+   *Options classes : contain a list of options (and code for validating them)
+                      for constructing an object of the corresponding type
 ~~~
 
 ## Implementing a solver
@@ -34,10 +27,6 @@ classes (such as GridSim). See DiffuseSim for an example. The following
 methods should be implemented:
   * The constructor. Processes options and sets 'medium', 'transform' and 
     'propagator' properties to the correct operators.
-  * analyzeDimensions. Determines the limitations for scaling the equation.
-    Especially relevant for (nearly) homogeneous media on a grid. For these
-    media, the scaling is adjusted so that the Green's function (L+1)^-1 is not
-    wider than the boundaries.
  
 ### The constructor
 The constructor takes all information needed to describe a specific linear

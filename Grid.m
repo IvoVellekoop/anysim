@@ -1,4 +1,4 @@
-classdef SimGrid < GridOptions
+classdef Grid < GridOptions
     %SIMGRID Defines coordinate range for a grid-based simulation
     % Ivo M. Vellekoop
     properties
@@ -11,7 +11,7 @@ classdef SimGrid < GridOptions
         pixel_size_f % pixel size after Fourier transform
     end
     methods
-        function obj = SimGrid(N, opt)
+        function obj = Grid(N, opt)
             arguments
                 % size of the simulation grid in voxels,
                 % excluding absorbing boundaries or padding
@@ -29,7 +29,7 @@ classdef SimGrid < GridOptions
             % add boundary size
             % increase size to efficient number for fft
             obj.N = obj.N_roi + round(2 * obj.boundaries_width);
-            obj.N(obj.boundaries_extend) = SimGrid.efficient_size(obj.N(obj.boundaries_extend));
+            obj.N(obj.boundaries_extend) = Grid.efficient_size(obj.N(obj.boundaries_extend));
             obj.boundaries_width = (obj.N - obj.N_roi)/2; % boundaries after correction
             obj.N_u = [obj.N_components, obj.N];
             obj.pixel_size_f = 2*pi./(obj.pixel_size .* obj.N);
@@ -78,7 +78,7 @@ classdef SimGrid < GridOptions
             % and that the coordinates correspond to the data directly after
             % fftn (i.e. without fftshift)
             %
-            k = shiftdim(SimGrid.fft_range(obj.N(dimension)) * obj.pixel_size_f(dimension), 2-dimension);
+            k = shiftdim(Grid.fft_range(obj.N(dimension)) * obj.pixel_size_f(dimension), 2-dimension);
         end
         function X = roi2full(obj, X)
             % Converts a coordinate vector from coordinates with respect to
@@ -179,7 +179,7 @@ classdef SimGrid < GridOptions
             % constructs a range of numbers that is compatible
             % with the coordinates after a fft.
             % implemented as ifftshift(symrange(N))
-            range = ifftshift(SimGrid.symrange(N));
+            range = ifftshift(Grid.symrange(N));
         end
         function sz = efficient_size(min_size)
             % returns nearest size greater than or equal to min_size

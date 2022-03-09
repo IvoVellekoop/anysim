@@ -30,7 +30,7 @@ classdef Pantograph < GridSim
             
             %% Construct base class
             opt = opt.validate(size(alpha), size(beta));
-            obj = obj@GridSim(opt.N, opt, opt); 
+            obj = obj@GridSim(opt.N, opt); 
 
             %% Construct components: operators for medium, propagator and transform
             obj = obj.makeMedium(alpha, beta, t0, lambda);
