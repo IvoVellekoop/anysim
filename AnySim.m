@@ -15,6 +15,8 @@ classdef (Abstract) AnySim
                     % mix_final(phi, prop_phi) = (V+1) prop_phi + phi
                     % also includes fields for preconditioning matrices Tl, V0 and Tr
         propagator  % operator (L-1)^-1
+        medium_adj
+        propagator_adj
         L           % Function handle or matrix for the 
                     % 'forward' operator L.
                     % Since this operators are not needed by anysim
@@ -86,18 +88,27 @@ classdef (Abstract) AnySim
             % So: (1-V)(L+1)^(-1) (L+V)  
             %  =  (1-V)[1 - (L+1)^(-1)] + (1-V)(L+1)^(-1) V 
             %  =  (1-V)[1-(L+1)^(-1)(1-V)]
+            %  = B[1-(L+1)^{-1} B]
+            % 
+            % and the adjoint:
+            %  =  [1-(1-V*)(L*+1)^(-1)](1-V*)
+            %  =  (1-V*)[1-(L*+1)^(-1)](1-V*)
+            % (so we can just take the adjoint of V and L and perform the
+            % same sequence of operations)
+            %
             [~, state] = obj.start();
-            f = @(u) apply_preconditioned(obj.medium, obj.propagator, state, u); 
+            f = @(varargin) apply_preconditioned(obj, state, varargin{:}); 
 
-            function t1 = apply_preconditioned(medium, propagator, state, u)
-                % (1-V)u
-                t1 = medium(u); 
-                
-                % (L+1)^(-1) (1-V)u
-                t1 = propagator(t1);
-                    
-                % (1-V) (u-t1)
-                t1 = medium(u - t1);
+            function t1 = apply_preconditioned(obj, state, u, transpose_flag)
+                if nargin == 4 && strcmp(transpose_flag,'transp')
+                    t1 = obj.medium_adj(u);         % (1-V*)u
+                    t1 = obj.propagator_adj(t1);    % (L*+1)^(-1) (1-V*)u
+                    t1 = obj.medium_adj(u - t1);    % (1-V*) (u-t1)
+                else
+                    t1 = obj.medium(u);         % (1-V)u
+                    t1 = obj.propagator(t1);    % (L+1)^(-1) (1-V)u
+                    t1 = obj.medium(u - t1);    % (1-V) (u-t1)
+                end
                 state.next(u, t1);
             end
         end
@@ -124,10 +135,10 @@ classdef (Abstract) AnySim
             end
 
             [~, state] = obj.start();
-            f = @(u) forward_operator(obj.L, obj.medium, state, u);
+            f = @(varargin) forward_operator(obj, state, varargin{:});
 
-            function t1 = forward_operator(L, B, state, u)
-                t1 = L(u) + u - B(u); % L + V = L + 1 - (1-V)
+            function t1 = forward_operator(obj, state, u, transpose_flag)
+                t1 = obj.L(u) + u - obj.medium(u); % L + V = L + 1 - (1-V)
                 state.next(u, t1);
             end
         end

@@ -6,7 +6,7 @@
 opt = HelmholtzSimOptions(); % clear any previous options
 opt.N = 256;
 opt.boundaries_width = 64;
-opt.callback = DisplayCallback();
+%opt.callback = DisplayCallback();
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.crop_to_roi = false;
 opt.alpha = 0.75;
@@ -18,18 +18,14 @@ sim = HelmholtzSim(n, opt);
 
 %% Define source and run the simulation
 source = sim.define_source(1); % intensity-only source (isotropic) at t=0
-%[E, state] = sim.exec(source);
-
 
 %% Compare to other methods and compute errors
-%% Perform the different simulations and compare the results
-simulations = default_simulations;
-bare = compare_simulations(sim, source, simulations, preconditioned=false);
+simulations = default_simulations("nonsymmetric");
 
-%% Repeat with preconditioner
+% without preconditioner, all methods diverge!
+%bare = compare_simulations(sim, source, simulations, preconditioned = false);
 precond = compare_simulations(sim, source, simulations);
 
-%[A, preA] = simulation_eigenvalues(sim);
 
 
 

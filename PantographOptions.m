@@ -15,12 +15,16 @@ classdef PantographOptions < AnySimOptions & GridOptions
             %% Set defaults
             obj.pixel_unit = 's';
             opt.gpu_enabled = false; % disable gpu by default because 'Pantorgraph.convolve' is not efficient on gpu
+            opt.boundaries_width = 0; % by default, don't add absorbing boundaries
             obj = copy_properties(obj, opt);
         end
         function opt = validate(opt, sza, szb)
             % the pantograph is always a 1-D equation with scalar components
-            if sza(2) > 1 || szb(2) > 1 || length(sza) > 2 || length(szb) > 2
-                error('alpha and beta must be 1-D arrays or scalars')
+            if sza(2) > 1 || szb(2) > 1 || length(sza) > 2 || length(szb) > 2 || length(opt.N)>1
+                error('alpha and beta must be 1-D arrays or scalars');
+            end
+            if opt.forward_operator
+                error('The forward operator for the pantograph equation is not implemented');
             end
             opt.N_components = [];
 

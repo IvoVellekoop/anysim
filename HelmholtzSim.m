@@ -61,6 +61,7 @@ classdef HelmholtzSim < GridSim
             % apply scaling
             B = obj.grid.pad(obj.data_array(1 - V), 0);
             obj.medium = @(x) B .* x;
+            obj.medium_adj = @(x) conj(B) .* x;
             obj.Tl = obj.Tl * 1i; % include factor i to rotate source term??
         end        
         function obj = makePropagator(obj)
@@ -84,6 +85,7 @@ classdef HelmholtzSim < GridSim
             
             % point-wise multiplication in the Fourier domain
             obj.propagator = @(u, state) ifftn(Lr .* fftn(u));
+            obj.propagator_adj = @(u, state) ifftn(conj(Lr) .* fftn(u));
         end
      end
 end

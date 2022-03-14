@@ -8,10 +8,10 @@
 %% Set up simulation options
 opt = DiffuseSimOptions();
 opt.N = 256;
-opt.grid.boundaries_width = 0; % all boundaries periodic
-opt.grid.pixel_size = 0.5;
-opt.grid.pixel_unit = 'um';
-opt.callback = DisplayCallback(cross_section = {4});
+opt.boundaries_width = 0; % all boundaries periodic
+opt.pixel_size = 0.5;
+opt.pixel_unit = 'um';
+opt.callback = DisplayCallback(component = 4);
 opt.termination_condition_interval = 1;
 opt.forward_operator = true;
 
@@ -33,7 +33,7 @@ semilogy(x, I)
 hold on;
 
 mueff = sqrt(a/D);
-h = opt.grid.pixel_size;
+h = opt.pixel_size;
 hs = 1.0i * pi/h;
 
 % Analytical solution with sinc source.
@@ -47,12 +47,16 @@ I_th = h*mueff / (4*pi*a) * (...
 % of the different definition of expint. The sign of x is reversed, as is
 % the sign of the expint itself. Moreover, i pi is added or subtracted 
 semilogy(x, I_th); 
+hold off;
+figure;
 
-%% Determine accuracy
-u_th = zeros(4, length(dI)) + nan;
+%% Compare to other methods and compute errors
+u_th = zeros(4, length(I_th)) + nan;
 u_th(4, :) = I_th;
-simulations = default_simulations;
-bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution = u_th);
+
+simulations = default_simulations("symmetric", has_adjoint = true);
+% without preconditioner, all methods diverge!
+%bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=u_th);
 
 %% Repeat with preconditioner
 precond = compare_simulations(sim, source, simulations, analytical_solution = u_th);

@@ -5,7 +5,7 @@ function results = compare_simulations(sim, source, methods, opt)
         methods
         opt.analytical_solution = []; % no analytical solution given
         opt.tol = []; % auto: use residual of AnySim as tolerance.
-        opt.iter = []; % auto: use same number of operator evaluations as AnySim
+        opt.iter = 1000; % [] = auto: use same number of operator evaluations as AnySim
         opt.preconditioned logical = true;
     end
     %% Helper function to compare different simulation algorithms

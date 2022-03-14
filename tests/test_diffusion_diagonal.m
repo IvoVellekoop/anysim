@@ -50,7 +50,9 @@ quiver(X, Y, squeeze(udown(2,:,:)), squeeze(udown(1,:,:)));
 hold off;
 axis image;
 
-%%
-simulations = default_simulations;
-bare = compare_simulations(sim, source, simulations, preconditioned = false);
+%% Compare to other methods and compute errors
+simulations = default_simulations("symmetric", has_adjoint = true);
+
+% without preconditioner, all methods diverge!
+% bare = compare_simulations(sim, source, simulations, preconditioned = false);
 precond = compare_simulations(sim, source, simulations);

@@ -33,12 +33,9 @@ ylabel('y [\mu m]')
 colormap hot;
 
 %% Compare to other methods and compute errors
-%% Perform the different simulations and compare the results
-simulations = default_simulations;
-bare = compare_simulations(sim, source, simulations);
-precond = compare_simulations(sim, source, simulations, preconditioned = true);
+simulations = default_simulations("nonsymmetric");
 
-%[A, preA] = simulation_eigenvalues(sim);
-
-
+% without preconditioner, all methods diverge!
+%bare = compare_simulations(sim, source, simulations, preconditioned = false);
+precond = compare_simulations(sim, source, simulations);
 

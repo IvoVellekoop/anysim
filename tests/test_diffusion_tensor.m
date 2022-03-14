@@ -75,6 +75,6 @@ colorbar;
 hold off;
 
 %% Compare accuracies between simulation methods
-sims = default_simulations();
-bare = compare_simulations(sim, source, default_simulations, preconditioned = false);
-results = compare_simulations(sim, source, default_simulations);
+sims = default_simulations("symmetric", has_adjoint = true);
+%bare = compare_simulations(sim, source, default_simulations, preconditioned = false);
+results = compare_simulations(sim, source, sims);

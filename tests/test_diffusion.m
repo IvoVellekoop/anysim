@@ -61,14 +61,13 @@ I_th = I0 * (-e1 * (L + 2*ze) * ell + e2 * (zz + ze) * (ell - ze) + (L - zz + ze
 
 
 %% Perform the different simulations and compare the results
-comp_opt.analytical_solution = nan([4, opt.N]);
-comp_opt.analytical_solution(4, z_indices) = I_th(:);
-comp_opt.tol = [];
+analytical_solution = nan([4, opt.N]);
+analytical_solution(4, z_indices) = I_th(:);
 
-simulations = default_simulations;
-bare = compare_simulations(sim, source, simulations, preconditioned = false);
+%% Compare to other methods and compute errors
+simulations = default_simulations("symmetric", has_adjoint = true);
 
-%% Repeat with preconditioner
-precond = compare_simulations(sim, source, simulations);
+% without preconditioner, all methods diverge!
+% bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=analytical_solution);
+precond = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
 
-%[L, GL] = simulation_eigenvalues(sim);

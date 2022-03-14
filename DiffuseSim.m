@@ -109,6 +109,10 @@ classdef DiffuseSim < GridSim
                 B = obj.data_array(1 - V);
                 obj.medium = @(x) B .* x;
             end
+
+            % todo: the method allows non-Hermitian potentials,
+            % in that case, this line should be changed!
+            obj.medium_adj = obj.medium;
         end
         
         function obj = makePropagator(obj)
@@ -161,6 +165,7 @@ classdef DiffuseSim < GridSim
             % the propagator just performs a
             % page-wise matrix-vector multiplication in k-space
             obj.propagator = @(x) real(ifftv(fieldmultiply(Lr, fftv(x))));
+            obj.propagator_adj = obj.propagator;
         end
     end
 end
