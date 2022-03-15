@@ -91,16 +91,18 @@ classdef Pantograph < GridSim
             % to a 'source'. The last first term computes a rolling convolution.
             % 
             Tr = obj.Tl * obj.Tr; % scaling factor
-            F1 = -Tr/obj.grid.pixel_size * log(1-obj.grid.pixel_size/Tr);
             F2 = exp(-obj.V0 * obj.grid.pixel_size);
-            rate = exp(-(obj.V0 + F2 / Tr) * obj.grid.pixel_size);
-            disp([F1, F2]);
-            step = obj.grid.pixel_size * F2;
-            obj.propagator = @(u) Pantograph.convolve(t0, rate, step/Tr, 1/(Tr+1), u); 
+            %F1=1;F2=1;
+            F1 = -log(1-obj.grid.pixel_size/Tr) / obj.grid.pixel_size; % approx 1/Tr
+            rate = exp(-(obj.V0 + F1) * obj.grid.pixel_size);
+            disp([F1 * Tr, F2]);
+            step = obj.grid.pixel_size * F2 / Tr;
+            F = (rate/Tr + step)/2; %r + beta
+            obj.propagator = @(u) Pantograph.convolve(t0, rate, step, 1/(Tr+1), u, F); 
         end
     end
     methods (Static)
-        function u = convolve(start, rate, step, f, u)
+        function u = convolve(start, rate, step, f, u, F)
             %%
             % Operator (L+1)^{-1}
             % Performs the iteration (per element):
@@ -168,10 +170,15 @@ classdef Pantograph < GridSim
             %
             % combine:
             % (c_1-q)/(q-c_1) = 0!?
-            u(1:start-1) = u(1:start-1) * f;
+            u0 = u(start-1);
+            u(start-1) = u(start-1) * F;% * 1.46;%e1.333333;
+            uorg = u(start:end);
             for n=start:length(u)
                 u(n) = rate * u(n-1) + u(n) * step;
             end
+            u(start:end) = (u(start:end) - uorg * step) / rate;
+            u(start-1) = u0;
+            u(1:start-1) = u(1:start-1) * f;
         end
     end
 end

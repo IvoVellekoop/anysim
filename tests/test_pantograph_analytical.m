@@ -12,7 +12,7 @@ opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
 a = 3.5% + 1i;
-b = -1% + 3i; % note, factor sqrt(lambda) included in beta to make Λ unitary
+b = 0% + 3i; % note, factor sqrt(lambda) included in beta to make Λ unitary
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -44,7 +44,7 @@ xlabel('t [s]');
 ylabel('f(t)');
 legend('computed', 'analytical');
 %%
-%plot(comp ./ analytical_solution);
+plot(comp ./ analytical_solution);
 %plot(log(abs(comp-analytical_solution)));
 
 %%
