@@ -71,7 +71,7 @@ classdef Pantograph < GridSim
             obj.medium = @(u) Ba .* u - beta .* interp1(u, coordinates, 'linear', 0);
         end
 
-        function obj = makePropagator(obj, t0)
+        function obj = makePropagator(obj, start)
             % L + 1 = Tl (dt + V0) Tr + 1   for t >= t0, 
             % Tl Tr + 1                     for t < t0
             %
@@ -91,18 +91,19 @@ classdef Pantograph < GridSim
             % to a 'source'. The last first term computes a rolling convolution.
             % 
             Tr = obj.Tl * obj.Tr; % scaling factor
-            F2 = exp(-obj.V0 * obj.grid.pixel_size);
-            %F1=1;F2=1;
-            F1 = -log(1-obj.grid.pixel_size/Tr) / obj.grid.pixel_size; % approx 1/Tr
+            dt = obj.grid.pixel_size;
+            F1 = -log(1-dt/Tr) / dt; % approx 1/Tr
             rate = exp(-(obj.V0 + F1) * obj.grid.pixel_size);
-            disp([F1 * Tr, F2]);
-            step = obj.grid.pixel_size * F2 / Tr;
-            F = (rate/Tr + step)/2; %r + beta
-            obj.propagator = @(u) Pantograph.convolve(t0, rate, step, 1/(Tr+1), u, F); 
+            step = dt * exp(-obj.V0 * dt) / Tr;
+            disp([F1 * Tr, step / dt * Tr]);
+ 
+            F = 1/(Tr+1); % multiplication factor for u0
+            S = 0;% subtraction factor for uort
+            obj.propagator = @(u) Pantograph.convolve(start, rate, step, 1/(Tr+1), u, F, S); 
         end
     end
     methods (Static)
-        function u = convolve(start, rate, step, f, u, F)
+        function u = convolve(start, rate, step, f, u, F, S)
             %%
             % Operator (L+1)^{-1}
             % Performs the iteration (per element):
@@ -176,7 +177,7 @@ classdef Pantograph < GridSim
             for n=start:length(u)
                 u(n) = rate * u(n-1) + u(n) * step;
             end
-            u(start:end) = (u(start:end) - uorg * step) / rate;
+            u(start:end) = u(start:end) - uorg * S;
             u(start-1) = u0;
             u(1:start-1) = u(1:start-1) * f;
         end
