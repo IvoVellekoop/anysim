@@ -92,13 +92,13 @@ classdef Pantograph < GridSim
             % 
             Tr = obj.Tl * obj.Tr; % scaling factor
             dt = obj.grid.pixel_size;
-            F1 = -log(1-dt/Tr) / dt; % approx 1/Tr
-            rate = exp(-(obj.V0 + F1) * obj.grid.pixel_size);
-            step = dt * exp(-obj.V0 * dt) / Tr;
+            F1 = 1/Tr;%-log(1-dt/Tr) / dt; % approx 1/Tr
+            rate = exp(-(obj.V0 + F1) * dt);
+            step = exp(-(obj.V0 + 0.5*F1) * dt) * dt / Tr;
             disp([F1 * Tr, step / dt * Tr]);
  
             F = 1/(Tr+1); % multiplication factor for u0
-            S = 0;% subtraction factor for uort
+            S = 0;%step/2;% subtraction factor for uort
             obj.propagator = @(u) Pantograph.convolve(start, rate, step, 1/(Tr+1), u, F, S); 
         end
     end
