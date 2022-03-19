@@ -6,6 +6,9 @@ classdef Pantograph < GridSim
     %
     %   (c) 2021. Ivo Vellekoop & Tom Vettenburg
     %
+    properties
+        B1
+    end
     methods
         function obj = Pantograph(alpha, beta, lambda, t0, opt)
             arguments
@@ -68,6 +71,7 @@ classdef Pantograph < GridSim
             alpha(1:t0-1) = 0; % V = 0 (meaning alpha=beta=0)
             
             Ba = 1-alpha;
+            obj.B1 = Ba(t0);
             obj.medium = @(u) Ba .* u - beta .* interp1(u, coordinates, 'linear', 0);
         end
 
@@ -92,14 +96,16 @@ classdef Pantograph < GridSim
             % 
             Tr = obj.Tl * obj.Tr; % scaling factor
             dt = obj.grid.pixel_size;
-            F1 = 1/Tr;%-log(1-dt/Tr) / dt; % approx 1/Tr
-            rate = exp(-(obj.V0 + F1) * dt);
-            step = exp(-(obj.V0 + 0.5*F1) * dt) * dt / Tr;
-            disp([F1 * Tr, step / dt * Tr]);
- 
-            F = 1/(Tr+1); % multiplication factor for u0
-            S = 0;%step/2;% subtraction factor for uort
-            obj.propagator = @(u) Pantograph.convolve(start, rate, step, 1/(Tr+1), u, F, S); 
+
+            rate = -exp(-obj.V0 * dt) * (dt - 2 * Tr) / (dt + 2 * Tr);
+            step = -4 * dt * Tr / (dt^2 - 4 * Tr^2);
+            r = dt/(dt + 2 * Tr);
+            disp([step / dt * Tr, -(log(rate)+dt/Tr)/obj.V0/dt, r/step]);
+            step = dt/Tr;
+            S = 1/(Tr+1); % multiplication factor for u0
+            S = 2 * Tr * (-exp(dt * obj.V0/2)/(1+Tr) + 2 * dt / (dt + 2 * Tr))/(dt-2*Tr);
+            %S = S - step;
+            obj.propagator = @(u) Pantograph.convolve(start, rate, step, 1/(Tr+1), u, S+step, step-r); 
         end
     end
     methods (Static)

@@ -4,7 +4,7 @@
 
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options
-opt.pixel_size = 0.05;
+opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
 opt.boundaries_width = 0; % don't add boundaries
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
@@ -25,7 +25,7 @@ source = sim.define_source(src(:));
 
 %% Perform the different simulations and compare the results
 zdil = z(t0:end);
-zdil = zdil - zdil(1) + opt.pixel_size;
+zdil = zdil - zdil(1) + opt.pixel_size * 0.5;
 analytical_solution = zeros([opt.N, 1]);
 analytical_solution(1:t0-1) = src;
 analytical_solution(t0:end) = exp(-(a+b) * zdil) * src(end);
