@@ -7,7 +7,7 @@ classdef Pantograph < GridSim
     %   (c) 2021. Ivo Vellekoop & Tom Vettenburg
     %
     properties
-        B1
+        TrInternal
     end
     methods
         function obj = Pantograph(alpha, beta, lambda, t0, opt)
@@ -56,7 +56,8 @@ classdef Pantograph < GridSim
             [obj.V0, alpha_radius] = smallest_circle(alpha);
             beta_radius = max(abs(beta(:)));
             obj.Tl = 1;
-            obj.Tr = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E8 * ar);
+            obj.Tr = 1;
+            obj.TrInternal = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E8 * ar);
             coordinates = 1+(0:obj.grid.N(1)-1).'.* lambda;
             if (isscalar(alpha))
                 alpha = alpha * ones(obj.grid.N(1), 1);
@@ -65,13 +66,12 @@ classdef Pantograph < GridSim
                 beta = beta * ones(obj.grid.N(1), 1);
             end
 
-            alpha = (obj.data_array(alpha) - obj.V0) * obj.Tr;
-            beta = obj.data_array(beta) * obj.Tr;
+            alpha = (obj.data_array(alpha) - obj.V0) * obj.TrInternal;
+            beta = obj.data_array(beta) * obj.TrInternal;
             beta(1:t0-1) = 0;  % the part < t0 is included in L, so 
             alpha(1:t0-1) = 0; % V = 0 (meaning alpha=beta=0)
             
             Ba = 1-alpha;
-            obj.B1 = Ba(t0);
             obj.medium = @(u) Ba .* u - beta .* interp1(u, coordinates, 'linear', 0);
         end
 
@@ -94,98 +94,32 @@ classdef Pantograph < GridSim
             % In the last line, the last term converts each pixel in 'u'
             % to a 'source'. The last first term computes a rolling convolution.
             % 
-            Tr = obj.Tl * obj.Tr; % scaling factor
+            Tr = obj.TrInternal; % scaling factor
             dt = obj.grid.pixel_size;
 
             rate = -exp(-obj.V0 * dt) * (dt - 2 * Tr) / (dt + 2 * Tr);
             step = -4 * dt * Tr / (dt^2 - 4 * Tr^2);
             r = dt/(dt + 2 * Tr);
             disp([step / dt * Tr, -(log(rate)+dt/Tr)/obj.V0/dt, r/step]);
-            step = dt/Tr;
-            S = 1/(Tr+1); % multiplication factor for u0
-            S = 2 * Tr * (-exp(dt * obj.V0/2)/(1+Tr) + 2 * dt / (dt + 2 * Tr))/(dt-2*Tr);
+            S = Tr * (-exp(dt * obj.V0/2) + 4 * dt / (dt + 2 * Tr))/(dt - 2 * Tr);
+
             %S = S - step;
-            obj.propagator = @(u) Pantograph.convolve(start, rate, step, 1/(Tr+1), u, S+step, step-r); 
+            obj.propagator = @(u) Pantograph.convolve(start, rate, step, u, rate*(S+step), step-r); 
         end
     end
     methods (Static)
-        function u = convolve(start, rate, step, f, u, F, S)
+        function u = convolve(start, rate, step, u, S, r)
             %%
             % Operator (L+1)^{-1}
             % Performs the iteration (per element):
-            % $u[n] \rightarrow c_4 u[n]$               for $n<start$
-            % $u[n] \rightarrow c_3 u[n-1] + c_2 u[n]$  for $n=start$
-            % $u[n] \rightarrow c_1 u[n-1] + c_2 u[n]$  for $n>start$
-            % 
-            % followed by multiplication by c0
-            % 
-            % Result for full vector (take start = 0 for simplicity)
-            %
-            % $u[n] \rightarrow c_04 u[n]$                           for $n<0$
-            % $u[n] \rightarrow c_034 u[-1] c_1^n + 
-            %       sum_{t=0}^n c_02 u[t] c_1^{n-t}$                 for $n>=0$
-            %
-            % c_04 = c_0 c_4, etc.
-            % Solution is at:
-            % B[1-(L+1)^{-1}B] u = B(L+1)^{-1} b 
-            % [1-(L+1)^{-1}B] u = (L+1)^{-1} b 
-            % u-(L+1)^{-1}(B u + b) = 0
-            %
-            % Take B scalar const for n>=0 and 1 for n<0 so that solution is exponential decay.
-            %
-            % source: (b[n] = 0 for n >= 0)
-            % (L+1)^{-1} b = c_04 b[n]                      for $n<0$
-            %              = c_034 b[-1] c_1^n              for $n>=0$
-            %
-            % solution: 
-            % u[n] = b[n]           for $n<0$
-            %      = b[-1] q^(n+1)  for $n>=0$
-            %
-            % (L+1)^{-1} u[n] = 
-            %      = c_04 b[n]            for $n<0$
-            %      = c_034 b[-1] c_1^n + 
-            %        q sum_{t=0}^n c_02 b[-1] q^t c_1^{n-t}$                 for $n>=0$
-            %
-            % simplify for n>=0
-            %      = b[-1] c_1^n (c_034  + c_02 q sum_{t=0}^n (q/c_1)^t)
-            %      = b[-1] c_1^n (c_034  + c_02 q (1-(q/c_1)^{n+1})/(1-q/c_1)
-            %      = c_034 b[-1] c_1^n   + c_02 q b[-1] (c_1^{n+1}-q^{n+1})/(c_1-q)
-            %
-            % substitute:  u-(L+1)^{-1}(B u + b) = 0
-            % for n < 0
-            % b[n] - 2 c_04 b[n] = 0          => c_04 = 1/2
-            %
-            % for n >=0
-            % b[-1] q^(n+1)
-            %  - B (c_034 b[-1] c_1^n + c_02 q b[-1] (c_1^{n+1}-q^{n+1})/(c_1-q))
-            %  - c_034 b[-1] c_1^n = 0
-            % 
-            % B = 0 -> q = c_1
-            % b[-1] q^(n+1) - c_034 b[-1] c_1^n = 0
-            % c_034 = c_1 
-            %
-            % Required: c_1 <= q  (L+1)^{-1} more damped than (L+V)^{-1}
-            % equate c_1^n terms for nonzero B:
-            %  - B (c_034 + c_02 q c_1/(c_1-q)) - c_034 = 0
-            %  - B (1 + c_02 q /(c_1-q)) - 1 = 0
-            %  - B ((c_1-q + c_02 q) /(c_1-q)) = 1
-            %  (c_1-q + c_02 q) /(q-c_1) = 1/B
-            % 
-            % equate q^(n+1) terms:
-            %  1 + B (c_02 q /(c_1-q)) = 0
-            %  c_02 q /(q-c1) = 1/B
-            %
-            % combine:
-            % (c_1-q)/(q-c_1) = 0!?
-            u0 = u(start-1);
-            u(start-1) = u(start-1) * F;% * 1.46;%e1.333333;
             uorg = u(start:end);
-            for n=start:length(u)
+
+            u(start) = S * u(start-1) + u(start) * step;
+            for n=start+1:length(u)
                 u(n) = rate * u(n-1) + u(n) * step;
             end
-            u(start:end) = u(start:end) - uorg * S;
-            u(start-1) = u0;
-            u(1:start-1) = u(1:start-1) * f;
+            u(start:end) = u(start:end) - uorg * r;
+            u(1:start-1) = 0.5 * u(1:start-1);
         end
     end
 end
