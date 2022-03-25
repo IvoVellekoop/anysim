@@ -140,15 +140,16 @@ classdef GridSim < AnySim
             [A, state] = operator@AnySim(obj);
             f = @(u, varargin) reshape(A(reshape(u, [obj.grid.N_u, 1]), varargin{:}), [], 1); 
         end
+        function u = finalize(obj, u)
+            u = reshape(u, obj.grid.N_u);
+            u = obj.grid.crop(u);
+            u = fieldmultiply(obj.Tr, u);
+        end
     end
     methods (Access = protected)
         function [u, state] = start(obj)
             u = obj.zero_array(obj.grid.N_u);
             state = State(obj, obj.opt);
-        end
-        function u = finalize(obj, u, state)  %#ok<INUSD>
-            u = obj.grid.crop(u);
-            u = fieldmultiply(obj.Tr, u);
         end
     end
 end

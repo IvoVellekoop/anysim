@@ -1,10 +1,10 @@
-function results = compare_simulations(sim, source, methods, opt)
+function [results, table] = compare_simulations(sim, source, methods, opt)
     arguments
         sim AnySim
         source
         methods
         opt.analytical_solution = []; % no analytical solution given
-        opt.tol = []; % auto: use residual of AnySim as tolerance.
+        opt.tol = 1E-6; % [] = auto: use residual of AnySim as tolerance.
         opt.iter = 1000; % [] = auto: use same number of operator evaluations as AnySim
         opt.preconditioned logical = true;
     end
@@ -78,8 +78,8 @@ for m_i = 1:M
     results(m_i).flag = flag;
     results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
     results(m_i).name = m.name;
-    results(m_i).value = sim.grid.crop(gather(pagemtimes(sim.Tr, reshape(val, sz)))); % compensate for scaling of operator A
-    
+    results(m_i).value = sim.finalize(val);
+        
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);
 end
@@ -96,7 +96,31 @@ end
 
 result_summary = rmfield(results, 'value');
 result_summary = rmfield(result_summary, 'flag');
+
+rstore = results(1:end-1);
 disp(' ');
 disp(struct2table(result_summary));
+S = dbstack();
+filename = S(2).file(6:end-2); % remove test_ and .m
+disp(filename)
 
+header = "";
+for r = rstore
+    name = strrep(strrep(r.name, 'α', '$\alpha$'), '_', ' ');
+    header = header + sprintf("& \\rotatebox{90}{%s}", name);
+end
+header = header + "\\\\";
 
+data = sprintf("%s ", strrep(filename, '_', ' '));
+for r = rstore
+    if r.iter < Nit && r.flag == 0
+        data = data + sprintf("& %d", r.iter);
+    else
+        data = data + sprintf("& -");
+    end
+end
+table = [header, data];
+f = fopen([filename '.log'], 'w+');
+fprintf(f, "%s\n", header);
+fprintf(f, "%s\n", data);
+fclose(f);

@@ -35,8 +35,8 @@ D(2,1,:,:) = D(1,2,:,:);
 
 % outside/inside ring: just low D
 mask = r<0.2 | r > 0.3;
-D(1,1, mask) = 0.5;
-D(2,2, mask) = 0.5;
+D(1,1, mask) = 2;
+D(2,2, mask) = 2;
 D(1,2, mask) = 0;
 D(2,1, mask) = 0;
 

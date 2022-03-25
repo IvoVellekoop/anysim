@@ -48,7 +48,7 @@ simulations = default_simulations("nonsymmetric");
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=E_theory);
-precond = compare_simulations(sim, source, simulations, analytical_solution=E_theory);
+[precond, table] = compare_simulations(sim, source, simulations, analytical_solution=E_theory);
 
 
 

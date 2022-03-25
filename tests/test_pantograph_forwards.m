@@ -38,7 +38,7 @@ comp_opt.tol = [];
 % non-normal and nonsymmetric.
 simulations = default_simulations("nonsymmetric");
 %no_precond = compare_simulations(sim, source, simulations, preconditioned = false);
-precond = compare_simulations(sim, source, simulations);
+[precond, table] = compare_simulations(sim, source, simulations);
 
 %%
 [L, GL] = simulation_eigenvalues(sim);

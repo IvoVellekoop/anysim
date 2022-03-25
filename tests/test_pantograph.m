@@ -27,11 +27,11 @@ source = sim.define_source(src(:));
 % non-normal and nonsymmetric.
 simulations = default_simulations("nonsymmetric");
 %no_precond = compare_simulations(sim, source, simulations, preconditioned = false);
-precond = compare_simulations(sim, source, simulations);
+[precond, table] = compare_simulations(sim, source, simulations);
 %%
 plot(z, precond(end).value);
 xlabel('t [s]');
 ylabel('f(t)');
 
 %%
-[~, GL] = simulation_eigenvalues(sim);
+%[~, GL] = simulation_eigenvalues(sim);

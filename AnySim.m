@@ -47,6 +47,10 @@ classdef (Abstract) AnySim
         end
         
         function [u, state] = exec(obj, b)
+            arguments
+                obj AnySim
+                b
+            end
             % EXEC executes the simulation for the given source
             % See README.md for a detailed explanation of the algorithm
 
@@ -73,7 +77,7 @@ classdef (Abstract) AnySim
             % u -> Tr u (convert to non-scaled solution)
             % + optional final processing (in grid-based simulations the solution
             % is cropped to the roi)
-            u = obj.finalize(u, state);
+            u = obj.finalize(u);
             state.finalize();
         end
         
@@ -143,9 +147,11 @@ classdef (Abstract) AnySim
             end
         end
     end
+    methods (Abstract)
+        u = finalize(obj, u, state)
+    end
     methods (Abstract, Access=protected)
         [u, state] = start(obj)
-        u = finalize(obj, u, state)
     end
 end
 

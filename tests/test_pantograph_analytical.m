@@ -11,8 +11,8 @@ opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
 opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
-a = 3.5% + 1i;
-b = -1% + 3i; % note, factor sqrt(lambda) included in beta to make Λ unitary
+a = 3.5 + 1i;
+b = 1 + 1i; % note, factor sqrt(lambda) included in beta to make Λ unitary
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -31,8 +31,8 @@ analytical_solution(1:t0-1) = src;
 analytical_solution(t0:end) = exp(-(a+b) * zdil) * src(end);
 
 simulations = default_simulations("nonsymmetric");
-precond = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
-comp = precond(end).value;%sim.exec(source);
+[precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
+comp = precond(end).value / sim.Tr;%sim.exec(source);
 %%
 %plot(abs(comp));
 plot(log(abs(comp)));
@@ -44,9 +44,9 @@ xlabel('t [s]');
 ylabel('f(t)');
 legend('computed', 'analytical');
 %%
-plot(comp ./ analytical_solution);
+plot(abs(comp ./ analytical_solution));
 %plot(log(abs(comp-analytical_solution)));
 
 %%
-[~, GL] = simulation_eigenvalues(sim);
+%[~, GL] = simulation_eigenvalues(sim);
 

@@ -55,4 +55,4 @@ simulations = default_simulations("symmetric", has_adjoint = true);
 
 % without preconditioner, all methods diverge!
 % bare = compare_simulations(sim, source, simulations, preconditioned = false);
-precond = compare_simulations(sim, source, simulations);
+[precond, table] = compare_simulations(sim, source, simulations);
