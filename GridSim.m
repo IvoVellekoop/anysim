@@ -141,7 +141,7 @@ classdef GridSim < AnySim
             f = @(u, varargin) reshape(A(reshape(u, [obj.grid.N_u, 1]), varargin{:}), [], 1); 
         end
         function u = finalize(obj, u)
-            u = reshape(u, obj.grid.N_u);
+            u = reshape(u, [obj.grid.N_u, 1]);
             u = obj.grid.crop(u);
             u = fieldmultiply(obj.Tr, u);
         end

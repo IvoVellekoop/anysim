@@ -51,7 +51,7 @@ hold off;
 axis image;
 
 %% Compare to other methods and compute errors
-simulations = default_simulations("symmetric", has_adjoint = true);
+simulations = default_simulations(has_adjoint = true);
 
 % without preconditioner, all methods diverge!
 % bare = compare_simulations(sim, source, simulations, preconditioned = false);

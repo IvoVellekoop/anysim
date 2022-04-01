@@ -20,7 +20,7 @@ sim = HelmholtzSim(n, opt);
 source = sim.define_source(1); % intensity-only source (isotropic) at t=0
 
 %% Compare to other methods and compute errors
-simulations = default_simulations("nonsymmetric");
+simulations = default_simulations("nonsymmetric", has_adjoint = true);
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);

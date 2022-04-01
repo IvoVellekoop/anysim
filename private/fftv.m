@@ -1,5 +1,5 @@
 function x = fftv(x)
-%FFTV Vector Fourier transform
+%FFTV Vector field Fourier transform
 %   Performs a Fourier transform over all dimensions, except for the first.
 %   This is useful for vector fields, where the first dimension corresponds
 %   to the vector elements.

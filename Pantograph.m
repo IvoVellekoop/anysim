@@ -67,7 +67,7 @@ classdef Pantograph < GridSim
             end
 
             alpha = (obj.data_array(alpha) - obj.V0) * obj.TrInternal;
-            beta = obj.data_array(beta) * obj.TrInternal;
+            beta = obj.data_array(beta) * obj.TrInternal * sqrt(lambda); %includes scaling factor of Λ
             beta(1:t0-1) = 0;  % the part < t0 is included in L, so 
             alpha(1:t0-1) = 0; % V = 0 (meaning alpha=beta=0)
             

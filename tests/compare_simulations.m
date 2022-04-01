@@ -4,8 +4,8 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
         source
         methods
         opt.analytical_solution = []; % no analytical solution given
-        opt.tol = 1E-6; % [] = auto: use residual of AnySim as tolerance.
-        opt.iter = 1000; % [] = auto: use same number of operator evaluations as AnySim
+        opt.tol = 1E-3; % [] = auto: use residual of AnySim as tolerance.
+        opt.iter = 1E4; % [] = auto: use same number of operator evaluations as AnySim
         opt.preconditioned logical = true;
     end
     %% Helper function to compare different simulation algorithms
@@ -32,15 +32,16 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
     results(M+1).iter = state.iteration;
     results(M+1).residual = state.residuals(end);
     
-    up = pagemtimes(inv(sim.Tr), u);     % u' = Tr^(-1) u
-    sz = size(up);
     if opt.preconditioned
         [A, state] = sim.preconditioned;
         b = sim.preconditioner(source);
+        state.source = b;
         b = b(:);
     else
         [A, state] = sim.operator;   % scaled operator L'+V'
         b = source(:);
+        state.source = b;
+        up = pagemtimes(inv(sim.Tr), u);     % u' = Tr^(-1) u
         results(M+1).residual = gather(norm(A(up(:))-b(:)) / norm(b(:))); % Residue = ‖Ax-b‖/‖b‖
     end
 
@@ -109,7 +110,7 @@ for r = rstore
     name = strrep(strrep(r.name, 'α', '$\alpha$'), '_', ' ');
     header = header + sprintf("& \\rotatebox{90}{%s}", name);
 end
-header = header + "\\\\";
+header = header + "\\";
 
 data = sprintf("%s ", strrep(filename, '_', ' '));
 for r = rstore
@@ -119,6 +120,7 @@ for r = rstore
         data = data + sprintf("& -");
     end
 end
+data = data + "\\";
 table = [header, data];
 f = fopen([filename '.log'], 'w+');
 fprintf(f, "%s\n", header);

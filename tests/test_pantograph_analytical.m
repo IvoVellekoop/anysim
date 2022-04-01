@@ -30,7 +30,7 @@ analytical_solution = zeros([opt.N, 1]);
 analytical_solution(1:t0-1) = src;
 analytical_solution(t0:end) = exp(-(a+b) * zdil) * src(end);
 
-simulations = default_simulations("nonsymmetric");
+simulations = default_simulations();
 [precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
 comp = precond(end).value / sim.Tr;%sim.exec(source);
 %%

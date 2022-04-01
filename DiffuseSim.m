@@ -151,7 +151,7 @@ classdef DiffuseSim < GridSim
             % we have to take special care at the the edges.
             % 
             Lr = pageinv(Lr);
-            Lr = Grid.fix_edges_hermitian(Lr, 3:6);
+            Lr = Grid.fix_edges_hermitian(Lr, 3:ndims(Lr));
             if obj.opt.forward_operator
                 % note: this is very inefficient, we only need to do this
                 % at the edges. However, the forward operator is only
@@ -165,7 +165,7 @@ classdef DiffuseSim < GridSim
             % the propagator just performs a
             % page-wise matrix-vector multiplication in k-space
             obj.propagator = @(x) real(ifftv(fieldmultiply(Lr, fftv(x))));
-            obj.propagator_adj = obj.propagator;
+            obj.propagator_adj = @(x) real(ifftv(fieldmultiply(pagectranspose(Lr), fftv(x))));
         end
     end
 end

@@ -17,6 +17,9 @@ classdef State < dynamicprops
         residual_its; % iteration numbers at which residuals were reported
         normb; % norm of the source (for normalizing 'residual')
     end
+    properties
+        source = []; % for use in matlab-style iterative schemes 
+    end
     
     methods
         function obj = State(sim, opt)
@@ -27,6 +30,16 @@ classdef State < dynamicprops
             obj.reset();
         end
         function next(obj, u, r)
+            % when running AnySim, r is the residual b-Ax
+            % when running a MATLAB iterative algorithm, r equals Ax only
+            % to compute the residual, we need to use the stored source
+            % value
+            if ~isempty(obj.source) && (...
+                    mod(obj.iteration-1, obj.termination_condition_interval) == 0 ||...
+                    (mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)))
+                r = reshape(obj.source, size(r)) - r;
+            end
+            
             if mod(obj.iteration-1, obj.termination_condition_interval) == 0
                 if (obj.iteration == 1)
                     obj.normb = norm(r(:));

@@ -1,5 +1,5 @@
 function x = ifftv(x)
-%FFTV Vector inverse Fourier transform
+%FFTV Vector field inverse Fourier transform
 %   Performs an inverse Fourier transform over all dimensions, except for the first.
 %   This is useful for vector fields, where the first dimension corresponds
 %   to the vector elements.
