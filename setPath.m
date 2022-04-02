@@ -21,22 +21,22 @@ function setPath(setNewPathFlag)
     folder = fileparts(mfilename('fullpath'));
 
     if ~updateOnly
-      fprintf('Clearing Matlab path and setting it for this project to %s...\n', folder);
+      sprintf('Clearing Matlab path and setting it for this project to %s...\n', folder);
       restoredefaultpath();
     else
-      fprintf('Updating Matlab path and setting it for this project to %s...\n', folder);
+      sprintf('Updating Matlab path and setting it for this project to %s...\n', folder);
     end
 
     addpath(genpath(folder));
 
-    logMessage('Done setting path. Enter ''resetPath'' to return to the previously set path.');
+    disp('Done setting path. Enter ''resetPath'' to return to the previously set path.');
   else
     if ~isempty(user_path_backup)
-      logMessage('Resetting Matlab path to the previously set path...');
+      disp('Resetting Matlab path to the previously set path...');
   
       path(user_path_backup);
     else
-      logMessage('No previously set Matlab path known...');
+      disp('No previously set Matlab path known...');
     end
 
     user_path_backup = [];
