@@ -23,12 +23,12 @@ radius = 4;
 for pos_idx = 1:size(positions, 1)
     im(:,:,3) = im(:,:,3) + ((x - positions(pos_idx, 1)).^2 + (y - positions(pos_idx, 2)).^2 < radius^2);
 end
-n = 1 + (n_iron - 1) * im(:,:,3) * 0.2;  % A fra
+n = 1 + (n_iron - 1) * im(:,:,3) * 0.2;  % A fraction of that of iron
 boundary_width = 0.1;
 n = n + 0.2i * max(0, max(abs(x - grid_center(1)) / grid_extent(1), abs(y - grid_center(2)) / grid_extent(2)) - (0.5 - boundary_width)) ./ boundary_width;  % Add absorbing boundary
 opt.N = [size(n,1), size(n,2)];   % Nx, Ny, Nz   (constant in z)
 opt.boundaries_width = 0; %periodic (Setting this to > 0 requires nuttallwin function from Signal Processing Toolbox)
-opt.callback = DisplayCallback();
+% opt.callback = DisplayCallback();
 opt.termination_condition = TerminationCondition(relative_limit = 1E-3);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/oversampling;
