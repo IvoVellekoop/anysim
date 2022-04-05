@@ -10,7 +10,7 @@ opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.crop_to_roi = false;
 
 %% create an AnySim object for a homogeneous sample
-n = 0.9; % refractive idex
+n = 1.0; % refractive idex
 sim = HelmholtzSim(n, opt);
 
 %% Define source and run the simulation

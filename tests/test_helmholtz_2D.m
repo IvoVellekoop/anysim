@@ -4,13 +4,13 @@
 
 %% Set up simulation options
 opt = HelmholtzSimOptions(); % clear any previous options
-oversampling = 2;
+oversampling = 1;
 im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
 %n = 1.5 - 0.5 * im(:,:,1);% + (0.5+0.4i) * im(:,:,3);
 n = 1 + (1.8 + 2.9i) * im(:,:,3) * 0.2; % iron
 opt.N = [size(n,1), size(n,2)];   % Nx, Ny, Nz   (constant in z)
 opt.boundaries_width = 0; %periodic
-opt.callback = DisplayCallback();
+%opt.callback = DisplayCallback();
 opt.termination_condition = TerminationCondition(relative_limit = 1E-3);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.pixel_size = 0.25/oversampling;
@@ -41,4 +41,12 @@ simulations = default_simulations("nonsymmetric", has_adjoint = true);
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
 [precond, table] = compare_simulations(sim, source, simulations);
+
+%% Compare with legacy method (wavesim)
+l_opt = opt;
+l_opt.legacy_mode = true;
+l_sim = HelmholtzSim(n, l_opt);
+l_source = l_sim.define_source(im(:,:,2));
+[l_precond, l_table] = compare_simulations(l_sim, l_source, simulations);
+table(end+1) = "legacy " + l_table(2);
 

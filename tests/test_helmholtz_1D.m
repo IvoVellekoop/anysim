@@ -7,9 +7,10 @@ opt = HelmholtzSimOptions(); % clear any previous options
 opt.N = 256;
 opt.boundaries_width = 64;
 %opt.callback = DisplayCallback();
-opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
+%opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.crop_to_roi = false;
-opt.alpha = 0.75;
+%opt.legacy_mode = false; % makes both V and L accretive. No difference with new method if there is no absorption in the structure.
+
 
 %% create an AnySim object for a homogeneous sample
 n = ones(opt.N, 1); % refractive idex
@@ -24,7 +25,7 @@ simulations = default_simulations("nonsymmetric", has_adjoint = true);
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations, tol = 1e-4);
+[precond, table] = compare_simulations(sim, source, simulations);
 
 
 

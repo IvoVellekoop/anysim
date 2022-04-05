@@ -5,7 +5,7 @@
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
-opt.N = round(10/opt.pixel_size);
+opt.N = round(8/opt.pixel_size);
 %opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 %opt.callback = DisplayCallback();
 opt.boundaries_width = 0; % don't add boundaries
@@ -13,9 +13,9 @@ opt.boundaries_width = 0; % don't add boundaries
 %% Medium parameters
 lambda = 0.5;
 a = zeros(opt.N, 1) + 5;
-a(round(7/opt.pixel_size) : end) = 5 - 10i;  
+a(round(6/opt.pixel_size) : end) = 5 - 10i;  
 b = zeros(opt.N, 1) - 5;
-b(round(3.5/opt.pixel_size) : round(5)/opt.pixel_size) = 0;
+b(round(3/opt.pixel_size) : round(5)/opt.pixel_size) = 0;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -24,8 +24,7 @@ z = sim.grid.coordinates(1);
 zdil = z(t0:end);
 zdil = zdil - zdil(1) + opt.pixel_size;
 % Define source
-%f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
-f_init = @(t)  exp(-(0.5 .* (t(:)-0.5)./0.1).^2);% - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
+f_init = @(t)  exp(-50 * (t(:)-0.5).^2);% - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
 src = f_init(z);
 src = src(1:t0-1);
 source = sim.define_source(src(:));
@@ -38,7 +37,11 @@ xp = simp.exec(source);
 
 %% plot results
 figure;
-plot(z, real(xp), 'b', z, real(xn), 'r', z, imag(xp), 'b:', z, imag(xn), 'r:', LineWidth = 1);
+hold on;
+plot(z, real(xp), 'b', LineWidth = 2);
+plot(z, real(xn), 'r', LineWidth = 1);
+plot(z, imag(xp), 'b--', LineWidth = 2);
+plot(z, imag(xn), 'r--', LineWidth = 1);
 set(gca, FontSize = 12);
 xlabel('t [s]', FontSize = 14);
 ylabel('x', FontSize = 14);

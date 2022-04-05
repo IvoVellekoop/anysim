@@ -31,6 +31,7 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
     results(M+1).value = gather(u);
     results(M+1).iter = state.iteration;
     results(M+1).residual = state.residuals(end);
+    results(M+1).time = state.run_time;
     
     if opt.preconditioned
         [A, state] = sim.preconditioned;
@@ -76,10 +77,12 @@ for m_i = 1:M
     % run simulation and store results
     fprintf("\n" + m.name + ": ");
     [val, flag, relres, ~] = m.function(A, b, tol / norm(b), max(ceil(Nit / itfactor - 1), 1));
+    state.finalize();
     results(m_i).flag = flag;
     results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
     results(m_i).name = m.name;
     results(m_i).value = sim.finalize(val);
+    results(m_i).time = state.run_time;
         
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);
@@ -116,6 +119,8 @@ data = sprintf("%s ", strrep(filename, '_', ' '));
 for r = rstore
     if r.iter < Nit && r.flag == 0
         data = data + sprintf("& %d", r.iter);
+    elseif r.flag == 3
+        data = data + sprintf("& s"); % stagnates, may be due too low machine precision
     else
         data = data + sprintf("& -");
     end
