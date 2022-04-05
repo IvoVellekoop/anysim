@@ -4,14 +4,10 @@
 
 %% Set up simulation options
 opt = HelmholtzSimOptions(); % clear any previous options
-oversampling = 2;
+oversampling = 1;
 n_iron = 2.8954 + 2.9179i;  % Fe at 532nm https://refractiveindex.info/?shelf=main&book=Fe&page=Johnson
 %im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
 %n = 1 + n_iron * im(:,:,3) * 0.2; % iron
-close all
-side = 256;
-rng = ((1:side) - floor(1 + side / 2)) ./ side;
-[y, x] = ndgrid(rng, rng);
 y = sim.grid.coordinates(1);
 x = sim.grid.coordinates(2);
 grid_extent = sim.grid.pixel_size .* sim.grid.N;
@@ -22,12 +18,12 @@ im = repmat(im, [1, 1, 3]);
 im(:,:,1) = real(im(:,:,1));
 im(:,:,2) = imag(im(:,:,2));
 im(:,:,3) = 0;  % The object
-positions = [0 0; 1 1; -1 -1] * 5 + grid_center;
-radius = 2;
+positions = [0 0; 1 1; -1 -1] * 10 + grid_center;
+radius = 4;
 for pos_idx = 1:size(positions, 1)
     im(:,:,3) = im(:,:,3) + ((x - positions(pos_idx, 1)).^2 + (y - positions(pos_idx, 2)).^2 < radius^2);
 end
-n = 1 + (n_iron - 1) * im(:,:,3) * 0.2;
+n = 1 + (n_iron - 1) * im(:,:,3) * 0.2;  % A fra
 boundary_width = 0.1;
 n = n + 0.2i * max(0, max(abs(x - grid_center(1)) / grid_extent(1), abs(y - grid_center(2)) / grid_extent(2)) - (0.5 - boundary_width)) ./ boundary_width;  % Add absorbing boundary
 opt.N = [size(n,1), size(n,2)];   % Nx, Ny, Nz   (constant in z)
@@ -64,4 +60,12 @@ simulations = default_simulations("nonsymmetric", has_adjoint = true);
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
 [precond, table] = compare_simulations(sim, source, simulations);
+
+%% Compare with legacy method (wavesim)
+l_opt = opt;
+l_opt.legacy_mode = true;
+l_sim = HelmholtzSim(n, l_opt);
+l_source = l_sim.define_source(im(:,:,2));
+[l_precond, l_table] = compare_simulations(l_sim, l_source, simulations);
+table(end+1) = "legacy " + l_table(2);
 

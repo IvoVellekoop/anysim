@@ -7,6 +7,7 @@ classdef HelmholtzSimOptions < AnySimOptions & GridOptions
         % When empty, the size is determined automatically from n.
         N (1,:) {mustBePositive} = []
         wavelength (1,1) double = 1
+        legacy_mode (1,1) logical = false % for comparison with original wavesim algorithm
     end
     methods 
         function obj = HelmholtzSimOptions(opt)
@@ -27,7 +28,6 @@ classdef HelmholtzSimOptions < AnySimOptions & GridOptions
             if isempty(opt.N) 
                 opt.N = szn;
             end
-
             opt = validate@GridOptions(opt, opt.N);
         end
     end

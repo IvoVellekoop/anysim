@@ -56,7 +56,17 @@ classdef HelmholtzSim < GridSim
             % where V0 ~ -i k0^2
             % At this point, Vraw = V0 + Compute the minimum real part of that should be V.
             Vmin = imag((obj.k0 + 1i * max(obj.mu_min))^2); % minimum required absorption coefficient
-            [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
+
+            if obj.opt.legacy_mode
+                [V1, V2] = bounds(imag(V(:)));
+                obj.V0 = 1i * (V1 + V2) / 2;
+                V = V - obj.V0;
+                obj.Tl = 1;
+                obj.Tr = obj.opt.V_max/max(abs(V(:)));
+                V = obj.Tr * V;
+            else
+                [obj.Tl, obj.Tr, obj.V0, V] = center_scale(V, Vmin, obj.opt.V_max);
+            end
 
             % apply scaling
             B = obj.grid.pad(obj.data_array(1 - V), 0);

@@ -11,3 +11,5 @@ VTune*
 *.jpg
 log.txt
 *.log
+*.eps
+*.pdf
