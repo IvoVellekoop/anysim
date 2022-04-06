@@ -32,6 +32,7 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
     results(M+1).iter = state.iteration;
     results(M+1).residual = state.residuals(end);
     results(M+1).time = state.run_time;
+    results(M+1).flag = 0;
     
     if opt.preconditioned
         [A, state] = sim.preconditioned;

@@ -1,4 +1,4 @@
-kappa = 10;
+kappa = 1000;
 N = 1E5; 
 density = 1E-3;
 if ~exist('A', 'var') || ~exist('b', 'var')
