@@ -5,7 +5,7 @@ classdef AnySimOptions
     properties
         % flag to determine if simulation are run
         % on the GPU (default: run on GPU if we have one)
-        gpu_enabled (1,1) logical = gpuDeviceCount > 0;
+        gpu_enabled (1,1) logical = exist('gpuDeviceCount') && gpuDeviceCount > 0;
         gpu_device (1,1) {mustBeInteger} = 1;
 
         % flag to determine if single precision or 
