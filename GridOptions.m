@@ -29,7 +29,7 @@ classdef GridOptions
 		boundaries_extend logical = []
 
         % function that is used to compute the absorbing boundary layer
-        boundaries_window = @wnd_nutall;
+        boundaries_window = @wnd_nuttall;
 
         % set to true (default) to remove boundary and padding layers
         % for instance in a call to coordinates
