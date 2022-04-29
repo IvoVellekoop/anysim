@@ -134,7 +134,7 @@ classdef DisplayCallback
             u = obj.grid.crop(u);
             u = real(fieldmultiply(obj.Tr, u));
             u = squeeze(subsref(u, obj.selection));
-
+            
             if obj.imageplot
                 imagesc(obj.coord1, obj.coord2, u.');
                 xlabel(obj.label1);
@@ -146,6 +146,11 @@ classdef DisplayCallback
                 plot(obj.coord1, u);
                 xlabel(obj.label1);
                 title(state.iteration);
+            end
+
+            nancount = sum(isnan(u(:)));
+            if nancount > 0
+                title(sprintf("\color{red}{%d NaNs encountered}", nancount));
             end
             drawnow();
         end
