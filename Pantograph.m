@@ -73,6 +73,10 @@ classdef Pantograph < GridSim
             
             Ba = 1-alpha;
             obj.medium = @(u) Ba .* u - beta .* interp1(u, coordinates, 'linear', 0);
+            
+            coordinates_adj = 1+(0:obj.grid.N(1)-1).' ./ lambda;
+            beta_adj = conj(beta) / lambda;
+            obj.medium_adj = @(u) conj(Ba) .* u - beta_adj .* interp1(u, coordinates_adj, 'linear', 0);
         end
 
         function obj = makePropagator(obj, start)
@@ -105,6 +109,7 @@ classdef Pantograph < GridSim
 
             %S = S - step;
             obj.propagator = @(u) Pantograph.convolve(start, rate, step, u, rate*(S+step), step-r); 
+            obj.propagator_adj = @(u) Pantograph.convolve_adj(start, conj(rate), step, u, step-r); 
         end
     end
     methods (Static)
@@ -117,6 +122,18 @@ classdef Pantograph < GridSim
             u(start) = S * u(start-1) + u(start) * step;
             for n=start+1:length(u)
                 u(n) = rate * u(n-1) + u(n) * step;
+            end
+            u(start:end) = u(start:end) - uorg * r;
+            u(1:start-1) = 0.5 * u(1:start-1);
+        end
+        function u = convolve_adj(start, rate_conj, step, u, r)
+            %%
+            % Operator (L^*+1)^{-1}
+            % Performs the iteration (per element):
+            uorg = u(start:end);
+            u(end) = u(end) * rate_conj;
+            for n=length(u)-1:-1:start
+                u(n) = rate_conj * u(n+1) + u(n) * step;
             end
             u(start:end) = u(start:end) - uorg * r;
             u(1:start-1) = 0.5 * u(1:start-1);

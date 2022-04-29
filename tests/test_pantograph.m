@@ -25,7 +25,7 @@ source = sim.define_source(src(:));
 %% Perform the different simulations and compare the results
 % note: the preconsitioned system has real eigenvalues, but it is
 % non-normal and nonsymmetric.
-simulations = default_simulations();
+simulations = default_simulations(has_adjoint = true);
 %no_precond = compare_simulations(sim, source, simulations, preconditioned = false);
 [precond, table] = compare_simulations(sim, source, simulations);
 %%
