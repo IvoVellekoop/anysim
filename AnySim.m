@@ -15,8 +15,8 @@ classdef (Abstract) AnySim
                     % mix_final(phi, prop_phi) = (V+1) prop_phi + phi
                     % also includes fields for preconditioning matrices Tl, V0 and Tr
         propagator  % operator (L-1)^-1
-        medium_adj
-        propagator_adj
+        medium_adj = @AnySim.medium_adj_err
+        propagator_adj = @AnySim.propagator_adj_err
         L           % Function handle or matrix for the 
                     % 'forward' operator L.
                     % Since this operators are not needed by anysim
@@ -61,7 +61,7 @@ classdef (Abstract) AnySim
             % u -> u + G (t1 - u)     Medium.mix_field
             [u, state] = obj.start;
             
-            while state.running()
+            while state.running
                 % t1 => B u + b
                 t1 = obj.medium(u) + b; 
                 
@@ -148,10 +148,18 @@ classdef (Abstract) AnySim
         end
     end
     methods (Abstract)
-        u = finalize(obj, u, state)
+        u = finalize(obj, u)
     end
     methods (Abstract, Access=protected)
         [u, state] = start(obj)
+    end
+    methods (Static, Access=private)
+        function u = medium_adj_err(u) %#ok<INUSD> 
+            error("B^* (adjoint medium operator) is not defined");
+        end
+        function u = propagator_adj_err(u) %#ok<INUSD> 
+            error("(L^*+1)^-1 (adjoint propagetor) is not defined");
+        end
     end
 end
 
