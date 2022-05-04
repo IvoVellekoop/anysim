@@ -150,7 +150,7 @@ classdef DisplayCallback
 
             nancount = sum(isnan(u(:)));
             if nancount > 0
-                title(sprintf("\color{red}{%d NaNs encountered}", nancount));
+                title(sprintf("\\color{red}{%d NaNs encountered}", nancount));
             end
             drawnow();
         end
