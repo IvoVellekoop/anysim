@@ -23,8 +23,7 @@ z = sim.grid.coordinates(1);
 % Define source
 f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
 src = f_init(z(1:t0-1));
-source = sim.define_source(shiftdim(src(:), -1), 2);
-source(2, t0) = source(2, t0-1) / opt.pixel_size;
+source = sim.define_source(src);
 
 %% Perform the different simulations and compare the results
 zdil = z(t0:end);

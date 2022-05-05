@@ -37,6 +37,11 @@ classdef GridSim < AnySim
         end
         
         function S = define_source(obj, values, position)
+            arguments
+                obj
+                values
+                position = []
+            end
             % SIM.DEFINE_SOURCE(VALUES, POSITION) Defines a source
             % with values specified in the VALUES array, and located
             % at POSITION (in grid points). 
@@ -56,9 +61,7 @@ classdef GridSim < AnySim
             %       but MATLAB's has poor support and performace for sparse
             %       arrays at the moment.
             
-            if nargin < 3 % defaults to pos = [1,1,1,1...]
-                position = [];
-            end
+            
 
             % extend position and size vectors to have length Ndim, and
             % apply offset due to boundaries
