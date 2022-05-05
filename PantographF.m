@@ -90,30 +90,16 @@ classdef PantographF < GridSim
             % construct L+1 inverse matrix:
             L1 = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
             Lh = obj.grid.fix_edges_hermitian(L1, 3);
-            %delta = obj.Tr/obj.grid.pixel_size;
-            %Tr = obj.Tr;
-            %dt = obj.grid.pixel_size;
-            %delta = Tr * (-exp(dt * obj.V0/2) + 4 * dt / (dt + 2 * Tr))/(dt - 2 * Tr) / dt;
             start_matrix = inv([1, -obj.Tr; obj.Tr, 1]);
-            %u = zeros(2,length(L));
-            %u(1,1) = 1;
-            %uk = ifftv(fieldmultiply(Lh, fftv(u)));
-            %delta = 1/step;%start_matrix(1,2) / uk(2,1);
-            delta = [0;1/obj.grid.pixel_size];
-            %delta = 1/mean(1./(L+1))/obj.Tr;
-            %delta(2, 1) = 0;
-            %disp(obj.Tr);
-            %delta = 1/mean(1./L) * start_matrix(1,2);
-            obj.propagator = @(u) PantographF.convolve(start, Lh, u, delta, start_matrix);
+            obj.propagator = @(u) PantographF.convolve(start, Lh, u, start_matrix);
         end
     end
     methods (Static)
-        function u = convolve(start, kernel, u, delta, start_matrix)
+        function u = convolve(start, kernel, u, start_matrix)
             s = u(:, 1:start-1);
-            u(:, 1:start-2) = 0;
-            u(:, start-1) = u(:, start-1) .* delta;
+            u(:, 1:start-1) = 0;
             u = ifftv(fieldmultiply(kernel, fftv(u)));
-            u(:, end/2:end) = 0; % boundary (fix!)
+            %u(:, end/2:end) = 0; % boundary (fix!)
             u(:, 1:start-1) = fieldmultiply(start_matrix, s);
         end
     end

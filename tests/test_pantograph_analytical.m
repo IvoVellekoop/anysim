@@ -14,7 +14,7 @@ opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
 a = ones(opt.N,1) * 3.5 + 1i;
-b = 2 + 1i; % note, factor sqrt(lambda) included in beta to make Λ unitary
+b = 3 + 1i; % note, factor sqrt(lambda) included in beta to make Λ unitary
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -24,6 +24,7 @@ z = sim.grid.coordinates(1);
 f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
 src = f_init(z(1:t0-1));
 source = sim.define_source(shiftdim(src(:), -1), 2);
+source(2, t0) = source(2, t0-1) / opt.pixel_size;
 
 %% Perform the different simulations and compare the results
 zdil = z(t0:end);
@@ -49,12 +50,15 @@ xlabel('t [s]');
 ylabel('f(t)');
 legend('computed', 'analytical');
 %%
-plot(comp(80:150));
-hold on;
-plot(analytical_solution(80:150));
+%plot(comp(80:150));
+%hold on;
+%plot(analytical_solution(80:150));
 %plot(abs(comp ./ analytical_solution));
 %plot(log(abs(comp-analytical_solution)));
 
+
 %%
+Linv = full_matrix(sim.propagator, [2, opt.N]);
+L = inv(Linv) - eye(2000);
 %[~, GL] = simulation_eigenvalues(sim);
 
