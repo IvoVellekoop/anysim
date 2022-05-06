@@ -2,7 +2,7 @@ function M = full_matrix(A, N)
 %FULL_MATRIX(A, N)
 %   Converts operator A to an N x N matrix. A should be a function taking
 %   a single column vector as input.
-    shape = N;
+    shape = [N, 1];
     Nf = prod(N);
     M = zeros(Nf, Nf);
     b = zeros(Nf, 1);

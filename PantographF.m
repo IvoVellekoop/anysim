@@ -70,7 +70,7 @@ classdef PantographF < GridSim
 
             ar = min(real(alpha(:)));
             if (max(abs(beta(:))) > ar)
-                warning('acrretivity of the system is not guaranteed');
+                warning('accretivity of the system is not guaranteed');
             end
 
             % note: we cannot use center_scale, because we also have to
@@ -106,8 +106,11 @@ classdef PantographF < GridSim
         function obj = makePropagator(obj)
             % L = Tl (i p + V0) Tr
             L = obj.Tr * (1i * shiftdim(obj.grid.coordinates_f(1), -2) + obj.V0);
+            
             % construct L+1 inverse matrix:
             L1 = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
+            
+            
             Lh = obj.grid.fix_edges_hermitian(L1, 3);
             start_matrix = inv([1, -obj.Tr; obj.Tr, 1]);
             obj.propagator = @(u) PantographF.convolve(obj.t0, Lh, u, start_matrix);

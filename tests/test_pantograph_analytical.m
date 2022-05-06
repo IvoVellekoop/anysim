@@ -1,6 +1,7 @@
 %   Simple test of the Pantograph toolbox
 %   (c) 2021. Ivo Vellekoop
 %   Test case for lambda = 1, where we have an analytical solution
+close all; clear all;
 
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options
@@ -14,7 +15,7 @@ opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
 a = ones(opt.N,1) * 3.5 + 1i;
-b = 3 + 1i; % note, factor sqrt(lambda) included in beta to make Λ unitary
+b = 3 + 10i; % note, factor sqrt(lambda) included in beta to make Λ unitary
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -49,15 +50,13 @@ xlabel('t [s]');
 ylabel('f(t)');
 legend('computed', 'analytical');
 %%
-%plot(comp(80:150));
-%hold on;
-%plot(analytical_solution(80:150));
+plot(comp(80:150));
+hold on;
+plot(analytical_solution(80:150));
 %plot(abs(comp ./ analytical_solution));
 %plot(log(abs(comp-analytical_solution)));
 
 
 %%
-Linv = full_matrix(sim.propagator, [2, opt.N]);
-L = inv(Linv) - eye(2000);
-%[~, GL] = simulation_eigenvalues(sim);
+inspect_sim(sim);
 

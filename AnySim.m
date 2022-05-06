@@ -68,7 +68,7 @@ classdef (Abstract) AnySim
                 % t1 => (L+1)^-1 t1
                 t1 = obj.propagator(t1);
                 
-                % u + G (t1-u)
+                % u + B (t1-u)
                 t1 = obj.medium(u - t1); % residual
                 state.next(u, t1);
                 u = u - obj.opt.alpha * t1;
