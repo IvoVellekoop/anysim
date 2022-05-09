@@ -12,6 +12,7 @@ function inspect_sim(sim)
     L1 = inv(propagator); % L+1
     B = full_matrix(sim.medium, N);
     A = L1 - B;
+    L = L1 - eye(size(L1, 1));
 
     % verify that norm V = 1-B < 1
     V = B - eye(size(B, 1));
@@ -24,7 +25,7 @@ function inspect_sim(sim)
     end
 
     % verify that A is accretive
-    eA = eig(A + A');
+    eA = eig(0.5 * (A + A'));
     if any(real(eA) < 0)
         warning(['A is not accretive, Re A = ' num2str(min(real(eA)))]);
     end
@@ -33,7 +34,7 @@ function inspect_sim(sim)
     figure;
     title('Eigenvalues');
     eA = eig(A);
-    eL = eig(L1);
+    eL = eig(L);
     plot(real(eA), imag(eA), '+', real(eL), imag(eL), '+');
     legend('A', 'L');
     niA = norm(inv(A));
@@ -42,7 +43,7 @@ function inspect_sim(sim)
 
     test_hermitian(V, "V");
     test_hermitian(A, "A");
-    test_hermitian(L1 - eye(size(L1, 1)), "L");
+    test_hermitian(L, "L");
 end
 
 function test_hermitian(M, name)
