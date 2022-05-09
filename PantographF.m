@@ -8,6 +8,7 @@ classdef PantographF < GridSim
     %
     properties
         t0
+        lambda
     end
     methods
         function obj = PantographF(alpha, beta, lambda, t0, opt)
@@ -19,7 +20,7 @@ classdef PantographF < GridSim
                 opt PantographOptions
             end
             % PANTOGRAPHF Simulation object for a solving the pantograph
-            % equation, fft-based.
+            % equation, fft-based
             % 
             % sim = PANTOGRAPHF(ALPHA, BETA, LAMBDA, T0, OPT)
             % contructs a new simulation object with the specified
@@ -38,7 +39,8 @@ classdef PantographF < GridSim
 
             %% Construct components: operators for medium, propagator and transform
             obj.t0 = t0;
-            obj = obj.makeMedium(alpha, beta, lambda);
+            obj.lambda = lambda;
+            obj = obj.makeMedium(alpha, beta);
             obj = obj.makePropagator();            
         end
 
@@ -48,22 +50,29 @@ classdef PantographF < GridSim
             u(obj.t0-1) = u(obj.t0-1) * 2; %compensate for finite pixel effect
         end
 
-        function S = define_source(obj, values, position)
+        function S = define_source(obj, values)
             arguments
                 obj
-                values
-                position = []
+                values (:, 1)
             end
-            % the source is placed in the second component of the vector, the
-            % adjoint part has source zero.
-            S = define_source@GridSim(obj, shiftdim(values, -1), [2 position]);
+            % Constructs the source term Λ x_0
+            % adds a delta at the first element to take into account the
+            % boundary condition.
+            if length(values) ~= obj.t0
+                error("Source data must have size %d", obj.t0);
+            end
 
+            % rescale by lambda. Note: simulation starts at t0
+            coordinates = (obj.t0 + (0:obj.grid.N-1)) * obj.lambda;
+            S = zeros(2, obj.grid.N);
+            S(2, :) = interp1(values, coordinates, 'linear', 0);
+            
             % the boundary condition at t0 is converted to a delta source
-            S(2, obj.t0-1) = S(2, obj.t0-1) / obj.grid.pixel_size;
+            S(2, 1) = S(2, 1) + values(end) / obj.grid.pixel_size;
         end
     end
     methods (Access = protected)        
-        function obj = makeMedium(obj, alpha, beta, lambda)
+        function obj = makeMedium(obj, alpha, beta)
             % Construct medium operator B=1-V
             % V includes the non-constant part of alpha, as well as the
             % effect of beta
@@ -81,25 +90,15 @@ classdef PantographF < GridSim
             obj.Tl = 1;
 
             alpha = (obj.data_array(alpha(:)) - obj.V0) * obj.Tr;
-            beta = obj.data_array(beta(:)) * obj.Tr * sqrt(lambda); %includes scaling factor of Λ
-            if (isscalar(alpha))
-                alpha = alpha * ones(obj.grid.N(1), 1);
-            end
-            if (isscalar(beta))
-                beta = beta * ones(obj.grid.N(1), 1);
-            end
-
-            beta(1:obj.t0-1) = 0;  % the part < t0 is included in L, so 
-            alpha(1:obj.t0-1) = 0; % V = 0 (meaning alpha=beta=0)
-            beta = beta.';
-            beta_adj = conj(beta) / lambda;
+            beta = obj.data_array(beta(:).') * obj.Tr * sqrt(obj.lambda); %includes scaling factor of Λ
+            beta_adj = conj(beta) / obj.lambda;
             
-            coordinates = 1+(0:obj.grid.N(1)-1).* lambda;
-            coordinates_adj = 1+(0:obj.grid.N(1)-1) ./ lambda;
+            coordinates = ((0:obj.grid.N - 1) + obj.t0) .* obj.lambda - obj.t0 + 1;
+            coordinates_adj = ((0:obj.grid.N - 1) + obj.t0) ./ obj.lambda - obj.t0 + 1;
             alpha = shiftdim(alpha, -2);
             B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
             obj.medium = @(u) fieldmultiply(B, u) + [...
-                beta_adj .* interp1(u(2,:), coordinates_adj, 'linear', 0);...
+                interp1(beta_adj .* u(2,:), coordinates_adj, 'linear', 0);...
                 -beta .* interp1(u(1,:), coordinates, 'linear', 0)];
         end
 
@@ -110,18 +109,10 @@ classdef PantographF < GridSim
             % construct L+1 inverse matrix:
             L1 = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
             
-            
-            Lh = obj.grid.fix_edges_hermitian(L1, 3);
-            start_matrix = inv([1, -obj.Tr; obj.Tr, 1]);
-            obj.propagator = @(u) PantographF.convolve(obj.t0, Lh, u, start_matrix);
-        end
-    end
-    methods (Static)
-        function u = convolve(start, kernel, u, start_matrix)
-            s = u(:, 1:start-2);
-            u(:, 1:start-2) = 0;
-            u = ifftv(fieldmultiply(kernel, fftv(u)));
-            u(:, 1:start-2) = fieldmultiply(start_matrix, s);
+            %Lh = obj.grid.fix_edges_hermitian(L1, 3);
+            Lh = L1;
+%            Lh(:,:,end/2) = 0;
+            obj.propagator = @(u) ifftv(fieldmultiply(Lh, fftv(u)));
         end
     end
 end

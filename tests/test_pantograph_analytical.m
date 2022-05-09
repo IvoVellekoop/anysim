@@ -23,22 +23,18 @@ sim = PantographF(a, b, lambda, t0, opt);
 z = sim.grid.coordinates(1);
 % Define source
 f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
-src = f_init(z(1:t0-1));
+src = f_init(z(1:t0));
 source = sim.define_source(src);
 
+%% construct the analytical solution
+analytical_solution = exp(-(a(1)+b) * z) * src(end);
+
 %% Perform the different simulations and compare the results
-zdil = z(t0:end);
-zdil = zdil - zdil(1) + opt.pixel_size * 0.5;
-analytical_solution = zeros([opt.N, 1]);
-analytical_solution(1:t0-1) = src;
-analytical_solution(t0:end) = exp(-(a(1)+b) * zdil) * src(end);
-
-[comp, state] = sim.exec(source);
+%[comp, state] = sim.exec(source);
 %disp(state.iteration);
-
-%simulations = default_simulations();%has_adjoint=true);
-%[precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
-%comp = precond(end).value;%sim.exec(source);
+simulations = default_simulations();%has_adjoint=true);
+[precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
+comp = precond(end).value;%sim.exec(source);
 %%
 %plot(abs(comp));
 plot(log(abs(comp)));
