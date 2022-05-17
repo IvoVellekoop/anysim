@@ -13,9 +13,9 @@ opt.termination_condition_interval = 1;
 opt.callback = DisplayCallback();
 opt.V_max = 0.5;
 %% Medium parameters
-lambda = 1;
-a = ones(opt.N,1) * 3.5 + 1i;
-b = 3 + 10i; % note, factor sqrt(lambda) included in beta to make Λ unitary
+lambda = 1;%0.5;
+a = ones(opt.N,1) * 1 + 8i;
+b = 8 / sqrt(lambda); % note, factor sqrt(lambda) included in beta to make Λ unitary
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
@@ -31,16 +31,15 @@ analytical_solution = exp(-(a(1)+b) * z) * src(end);
 
 %% Perform the different simulations and compare the results
 %[comp, state] = sim.exec(source);
-%disp(state.iteration);
 simulations = default_simulations();%has_adjoint=true);
 [precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
 comp = precond(end).value;%sim.exec(source);
 %%
 %plot(abs(comp));
-plot(log(abs(comp)));
+plot(z, log(abs(comp)));
 hold on;
 %plot(abs(analytical_solution));
-plot(log(abs(analytical_solution)));
+plot(z, log(abs(analytical_solution)));
 hold off;
 xlabel('t [s]');
 ylabel('f(t)');
@@ -54,5 +53,5 @@ plot(analytical_solution(80:150));
 
 
 %%
-inspect_sim(sim);
+%inspect_sim(sim);
 
