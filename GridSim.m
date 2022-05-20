@@ -74,7 +74,7 @@ classdef GridSim < AnySim
                 error('source does not fit inside simulation window, are you missing a leading singleton dimension? (shiftdim -1)');
             end
             if any(does_not_fit)
-                warning('source does not fit inside simulation window');
+                error('source does not fit inside simulation window');
             end
 
             % scale source with matrix Tl, and resize to fit full
