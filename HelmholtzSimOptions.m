@@ -27,8 +27,15 @@ classdef HelmholtzSimOptions < AnySimOptions & GridOptions
             % 'guess' size of simulation if it is not provided
             if isempty(opt.N) 
                 opt.N = szn;
-            elseif ~isequal(compatible_size(opt.N, szn), opt.N)
-                error("opt.N and size of refractive index array don't match");
+            else
+                % if a size is specified, check if the refractive index
+                % array has a compatible size
+                sz_len = max(length(szn), length(opt.N));
+                szpad = [szn(:); ones(1, sz_len - length(szn))];
+                Npad = [opt.N(:); ones(1, sz_len - length(opt.N))];
+                if any(Npad ~= szpad & szpad ~= 1)
+                    error("opt.N and size of refractive index array don't match");
+                end
             end
             opt = validate@GridOptions(opt, opt.N);
         end
