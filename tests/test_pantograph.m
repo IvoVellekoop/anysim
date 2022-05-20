@@ -5,17 +5,17 @@
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
-opt.N = round(5/opt.pixel_size);
+opt.N = round(15/opt.pixel_size);
 opt.boundaries_width = 0; % don't add boundaries
 
 %% Medium parameters
-lambda = 0.5; %1.5
-a = 10;
-b = 5;% / sqrt(lambda); % note, factor sqrt(lambda) included in beta to make Λ unitary
+lambda = 1;0.5; %0.5; %1.5
+a = -0.2;%+5i;
+b = 0.1;%-4.9;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
-sim = PantographF(a, b, lambda, t0, opt);
+sim = Pantograph(a, b, lambda, t0, opt);
 z = sim.grid.coordinates(1);
 % Define source
 f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
@@ -34,4 +34,4 @@ xlabel('t [s]');
 ylabel('f(t)');
 
 %%
-%inspect_sim(sim);
+inspect_sim(sim);

@@ -57,7 +57,7 @@ classdef Pantograph < GridSim
             beta_radius = max(abs(beta(:)));
             obj.Tl = 1;
             obj.Tr = 1;
-            obj.TrInternal = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E8 * ar);
+            obj.TrInternal = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E8 * abs(ar));
             coordinates = 1+(0:obj.grid.N(1)-1).'.* lambda;
             if (isscalar(alpha))
                 alpha = alpha * ones(obj.grid.N(1), 1);

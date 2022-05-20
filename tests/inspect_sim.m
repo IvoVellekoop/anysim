@@ -24,17 +24,23 @@ function inspect_sim(sim)
         warning('||V|| > V_max');
     end
 
+    % compute eigenvalues of the operators
+    eAh = eig(0.5 * (A + A'));
+    eA = eig(A);
+    eL = eig(L);
+
     % verify that A is accretive
-    eA = eig(0.5 * (A + A'));
-    if any(real(eA) < 0)
-        warning(['A is not accretive, Re A = ' num2str(min(real(eA)))]);
+    if any(real(eAh) < 0)
+        if any(real(eA) < 0)
+            warning('A has negative eigenvalues, min λ_A = %f', min(real(eA)));
+        else
+            warning("A is not accretive, but all eigenvalues are positive, Re A = %f", min(real(eAh)));
+        end
     end
 
     % plot eigenvalues of A
     figure;
     title('Eigenvalues');
-    eA = eig(A);
-    eL = eig(L);
     plot(real(eA), imag(eA), '+', real(eL), imag(eL), '+');
     legend('A', 'L');
     niA = norm(inv(A));

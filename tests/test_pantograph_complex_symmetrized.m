@@ -56,5 +56,5 @@ ylim(1.10 * value_range);
 print(gcf, '-depsc', 'pantograph.eps');
 
 %% compare different iterative methods (for b negative)
-simulations = default_simulations("symmetric");
+simulations = default_simulations("nonsymmetric");
 [precond, table] = compare_simulations(sim, source, simulations);
