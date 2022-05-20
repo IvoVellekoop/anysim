@@ -5,18 +5,18 @@
 %% Construct refractive index structure
 % load the logo image, we will use the different color channels for
 oversampling = 1;
-im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
+im = imresize(single(imread("natlogo.png"))/255, 2, "bilinear");
 n_iron = 2.8954 + 2.9179i;  % Fe at 532nm https://refractiveindex.info/?shelf=main&book=Fe&page=Johnson
 n_gold = 0.54386 + 2.2309i;
-n_material = n_gold;
+n_material = n_iron;
 %n = (im(:,:,3)-(im(:,:, 1)) > 0.25) * (n_gold-1) + 1;
 n = (im(:,:,3)+(im(:,:, 1)) > 0.25) * (n_material-1) + 1;
 
 %% Set up simulation options
 opt = HelmholtzSimOptions();
-tol = 1E-2;
-opt.boundaries_width = 30; % 0=periodic
-opt.callback = DisplayCallback();%plot_residual = true);
+tol = 0.05;
+opt.boundaries_width = 0; % 0=periodic
+%opt.callback = DisplayCallback();%plot_residual = true);
 opt.termination_condition = TerminationCondition(relative_limit = tol);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 opt.wavelength = 0.532;
@@ -41,7 +41,7 @@ print(gcf, '-depsc', 'helmholtz_logo.eps');
 %colormap hot;
 
 %% Compare to other methods and compute errors
-simulations = default_simulations("nonsymmetric", has_adjoint = true);
+simulations = default_simulations("nonsymmetric");
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
