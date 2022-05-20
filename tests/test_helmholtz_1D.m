@@ -8,7 +8,7 @@ opt.N = 256;
 opt.boundaries_width = 64;
 %opt.callback = DisplayCallback();
 %opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.crop_to_roi = false;
+%opt.crop_to_roi = false;
 %opt.legacy_mode = false; % makes both V and L accretive. No difference with new method if there is no absorption in the structure.
 
 

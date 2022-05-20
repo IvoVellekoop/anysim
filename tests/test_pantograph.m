@@ -7,11 +7,14 @@ opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(15/opt.pixel_size);
 opt.boundaries_width = 0; % don't add boundaries
+opt.callback = DisplayCallback();
+%opt.callback_interval = 1;
+%opt.termination_condition_interval = 1;
 
 %% Medium parameters
-lambda = 1;0.5; %0.5; %1.5
-a = -0.2;%+5i;
-b = 0.1;%-4.9;
+lambda = 1; %0.5; %1.5
+a = -.5;%+5i;
+b = -0.1;%-4.9;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation

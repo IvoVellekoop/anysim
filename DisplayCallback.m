@@ -56,7 +56,10 @@ classdef DisplayCallback
         cross_section (:,1) = {':', ':'}
 
         % true to draw a graph of magnitude of each update step
-        show_convergence logical = true
+        show_convergence (1,1) logical = true
+
+        % true to display residual, instead of current estimate
+        plot_residual (1,1) logical = false;
     end
     
     methods
@@ -123,13 +126,19 @@ classdef DisplayCallback
             obj.coord1 = sim.grid.coordinates(dims(1));
         end
         
-        function call(obj, u, ~, state)
+        function call(obj, u, r, state)
             if obj.show_convergence && ~isempty(state.residuals)
                 subplot(2, 1, 1);
                 semilogy(state.residual_its, state.residuals / max(state.residuals));
                 xlabel('Iteration');
                 ylabel('‖Δ𝜓‖^2 (normalized)'); 
                 subplot(2, 1, 2);
+            end
+            if obj.plot_residual
+                u = r;
+                tlabel = "r [%d]";
+            else
+                tlabel = "u [%d]";
             end
             u = obj.grid.crop(u);
             u = real(fieldmultiply(obj.Tr, u));
@@ -139,15 +148,14 @@ classdef DisplayCallback
                 imagesc(obj.coord1, obj.coord2, u.');
                 xlabel(obj.label1);
                 ylabel(obj.label2);
-                title(state.iteration);
                 colorbar;
                 axis image;
             else
                 plot(obj.coord1, u);
                 xlabel(obj.label1);
-                title(state.iteration);
             end
-
+            title(sprintf(tlabel, state.iteration));
+                
             nancount = sum(isnan(u(:)));
             if nancount > 0
                 title(sprintf("\\color{red}{%d NaNs encountered}", nancount));

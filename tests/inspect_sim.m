@@ -9,6 +9,7 @@ function inspect_sim(sim)
 %
     N = sim.grid.N_u;
     propagator = full_matrix(sim.propagator, N);
+    M = eye(size(propagator, 1)) - full_matrix(sim.preconditioned, N);
     L1 = inv(propagator); % L+1
     B = full_matrix(sim.medium, N);
     A = L1 - B;
@@ -24,6 +25,11 @@ function inspect_sim(sim)
         warning('||V|| > V_max');
     end
 
+    nM = norm(M);
+    if nM > 1
+        eM = eig(M);
+        warning('||M|| = %f > 1. Note: max |λ_M| = %f', nM, max(abs(eM)));
+    end
     % compute eigenvalues of the operators
     eAh = eig(0.5 * (A + A'));
     eA = eig(A);

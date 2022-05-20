@@ -4,7 +4,7 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
         source
         methods
         opt.analytical_solution = []; % no analytical solution given
-        opt.tol = 1E-3; % [] = auto: use residual of AnySim as tolerance.
+        opt.tol = 1E-3; % relative residual ‖Ax-b‖/‖b‖ termination condition. [] = auto: use residual of AnySim as tolerance.
         opt.iter = 1E4; % [] = auto: use same number of operator evaluations as AnySim
         opt.preconditioned logical = true;
     end
@@ -49,7 +49,7 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
 
 
 if isempty(opt.tol)
-    tol = results(M+1).residual * gather(norm(b));
+    tol = results(M+1).residual;
 else
     tol = opt.tol;
 end
@@ -77,7 +77,7 @@ for m_i = 1:M
 
     % run simulation and store results
     fprintf("\n" + m.name + ": ");
-    [val, flag, relres, ~] = m.function(A, b, tol / norm(b), max(ceil(Nit / itfactor - 1), 1));
+    [val, flag, relres, ~] = m.function(A, b, tol, max(ceil(Nit / itfactor - 1), 1));
     state.finalize();
     results(m_i).flag = flag;
     results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
