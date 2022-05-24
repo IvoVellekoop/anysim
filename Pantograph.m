@@ -67,16 +67,16 @@ classdef Pantograph < GridSim
             end
 
             alpha = (obj.data_array(alpha) - obj.V0) * obj.TrInternal;
-            beta = obj.data_array(beta) * obj.TrInternal * sqrt(lambda); %includes scaling factor of Λ
+            beta = obj.data_array(beta) * obj.TrInternal;
             beta(1:t0-1) = 0;  % the part < t0 is included in L, so 
             alpha(1:t0-1) = 0; % V = 0 (meaning alpha=beta=0)
             
             Ba = 1-alpha;
             obj.medium = @(u) Ba .* u - beta .* interp1(u, coordinates, 'linear', 0);
             
-            coordinates_adj = 1+(0:obj.grid.N(1)-1).' ./ lambda;
-            beta_adj = conj(beta) / lambda;
-            obj.medium_adj = @(u) conj(Ba) .* u - beta_adj .* interp1(u, coordinates_adj, 'linear', 0);
+            %coordinates_adj = 1+(0:obj.grid.N(1)-1).' ./ lambda;
+            %beta_adj = conj(beta);
+            %obj.medium_adj = @(u) conj(Ba) .* u - beta_adj .* interp1(u, coordinates_adj, 'linear', 0);
         end
 
         function obj = makePropagator(obj, start)

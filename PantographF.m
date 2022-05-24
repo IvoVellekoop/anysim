@@ -81,11 +81,11 @@ classdef PantographF < GridSim
             % account for the effect of beta.
             [obj.V0, alpha_radius] = smallest_circle(alpha);
             beta_radius = max(abs(beta(:)));
-            obj.Tr = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E3 * min(real(alpha)));
+            obj.Tr = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E3 * abs(min(real(alpha))));
             obj.Tl = 1;
 
             alpha = (obj.data_array(alpha(:)) - obj.V0) * obj.Tr;
-            obj.beta = obj.data_array(beta(:).') * obj.Tr * sqrt(obj.lambda); %includes scaling factor of Λ
+            obj.beta = obj.data_array(beta(:).') * obj.Tr; %includes scaling factor of Λ
             
             % construct a sparse 'sampling' matrix for scaling the signal
             before = 1:obj.grid.N;
