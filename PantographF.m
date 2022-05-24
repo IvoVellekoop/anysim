@@ -123,20 +123,23 @@ classdef PantographF < GridSim
             % there are two ways to do this: 
             rate = obj.V0 + 1/obj.Tr;
             G = exp(-rate * obj.grid.coordinates(1)) * obj.grid.pixel_size/obj.Tr;
+            G(end/2:end) = 0;
             %L = shiftdim(1./fft(G) - 1, -2);
             
-            L = obj.Tr * (1i * obj.grid.coordinates_f(1) + obj.V0);
-            Linv = 1./(L+1);
-            Lginv = fft(G);
-            Lcomb = real(Linv) + 1i * imag(Lginv);
-            L = 1./Lcomb-1;
-            
+            %L = obj.Tr * (1i * obj.grid.coordinates_f(1) + obj.V0);
+            %Linv = 1./(L+1);
+            %Lginv = fft(G);
+            %Lcomb = real(Linv) + 1i * imag(Lginv);
+            %L = 1./Lcomb-1;
+            L = 1./fft(G) - 1;
             
             % construct L+1 inverse matrix:
             %filt = shiftdim(fftshift(tukeywin(obj.grid.N, 0.1)), -2);
             if obj.opt.accretive
-                obj.propagator = @(u) ifft(Lcomb.' .* fft(u));
+                Lh = 1./(L.'+1);
+                obj.propagator = @(u) ifft(Lh .* fft(u));
             else
+                %L = 1./Lginv-1;
                 L = shiftdim(L, -2);
                 Lh = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
                 obj.propagator = @(u) ifftv(fieldmultiply(Lh, fftv(u)));

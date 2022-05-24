@@ -14,8 +14,8 @@ opt.callback = DisplayCallback();
 opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
-a = ones(opt.N,1) * 1 + 8i;
-b = -2;
+a = -2 * ones(opt.N,1);
+b = 0.5;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
