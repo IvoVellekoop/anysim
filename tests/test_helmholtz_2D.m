@@ -5,20 +5,20 @@
 %% Construct refractive index structure
 % load the logo image, we will use the different color channels for
 oversampling = 1;
-im = imresize(single(imread("natlogo.png"))/255, 0.5, "bilinear");
-n_iron = 2.8954 + 2.9179i;  % Fe at 532nm https://refractiveindex.info/?shelf=main&book=Fe&page=Johnson
-n_gold = 0.54386 + 2.2309i;
-n_material = (n_iron - 1) * 0.2 + 1;
-n = (im(:,:,3)-(im(:,:, 1)) > 0.25) * (n_material-1) + 1;
+im = imresize(single(imread("natlogo.png"))/255, 0.75*oversampling, "bilinear");
+n_gold = 0.54386 + 2.2309i; % Au at 532nm https://refractiveindex.info/?shelf=main&book=Au&page=Johnson
+n = (im(:,:,3)-(im(:,:, 1)) > 0.25) * (n_gold-1) + 1;
+%n = (im(:,:,3) > 0.25) * (n_gold-1) + 1;
+%n(im(:,:,1) > 0.2) = 1 + 0.2i;
+
 
 %% Set up simulation options
 opt = HelmholtzSimOptions();
-tol = 0.05;
-opt.boundaries_width = 0; % 0=periodic
+tol = 0.005;
+opt.boundaries_width = 30; % 0=periodic
 %opt.callback = DisplayCallback();%plot_residual = true);
-opt.termination_condition = TerminationCondition(relative_limit = tol);
-%opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-opt.wavelength = 1;%0.532;
+opt.termination_condition = TerminationCondition(relative_limit = tol / 10, iteration_count = 1E6);
+opt.wavelength = 0.532;
 opt.pixel_size = opt.wavelength/(3*oversampling);
 
 %% create the AnySim object
@@ -30,14 +30,14 @@ source = sim.define_source(im(:,:,2));
 
 %%
 I = abs(E).^2;
-x0 = (1400-200) * sim.grid.pixel_size / 2;
-close all; imagesc([-x0, x0], [-x0, x0], sqrt(I)); axis image; colorbar; colormap gray;
+x = sim.grid.coordinates(1);
+close all; imagesc(x-x(end)/2, x-x(end)/2, I.^0.25); axis image; colorbar; colormap gray;
 xlabel('x [\mum]');
 ylabel('y [\mum]');
 print(gcf, '-depsc', 'helmholtz_logo.eps');
 %xlim([-25 25]);
 %ylim([-25 25]);
-%colormap hot;
+colormap(viridis());
 
 %% Compare to other methods and compute errors
 simulations = default_simulations("nonsymmetric");
@@ -54,3 +54,9 @@ l_source = l_sim.define_source(im(:,:,2));
 [l_precond, l_table] = compare_simulations(l_sim, l_source, simulations, tol = tol);
 table(end+1) = "legacy " + l_table(2);
 
+%% 
+fprintf("Relative error compared to accurate simulation\n");
+nE = norm(E(:));
+for s = 1:length(precond)-1
+    fprintf("%s %f %f\n", precond(s).name, norm(precond(s).value(:)-E(:))/nE, norm(l_precond(s).value(:)-E(:))/nE);
+end

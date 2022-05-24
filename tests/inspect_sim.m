@@ -14,6 +14,10 @@ function inspect_sim(sim)
     B = full_matrix(sim.medium, N);
     A = L1 - B;
     L = L1 - eye(size(L1, 1));
+    A11 = A(1:2:end, 1:2:end);
+    A12 = A(1:2:end, 2:2:end);
+    A21 = A(2:2:end, 1:2:end);
+    A22 = A(2:2:end, 2:2:end);
 
     % verify that norm V = 1-B < 1
     V = B - eye(size(B, 1));

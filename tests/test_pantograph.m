@@ -13,12 +13,12 @@ opt.callback = DisplayCallback();
 
 %% Medium parameters
 lambda = 1; %0.5; %1.5
-a = -.5;%+5i;
+a = -0.5;%+5i;
 b = -0.1;%-4.9;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
-sim = Pantograph(a, b, lambda, t0, opt);
+sim = PantographF(a, b, lambda, t0, opt);
 z = sim.grid.coordinates(1);
 % Define source
 f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
