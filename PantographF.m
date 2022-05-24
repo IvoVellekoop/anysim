@@ -35,10 +35,10 @@ classdef PantographF < GridSim
             
             %% Construct base class
             opt = opt.validate(size(alpha), size(beta));
-            if opt.non_accretive
-                opt.N_components = 2;
-            else
+            if opt.accretive
                 opt.N_components = 1;
+            else
+                opt.N_components = 2;
             end
             obj = obj@GridSim(opt.N, opt); 
 
@@ -51,7 +51,7 @@ classdef PantographF < GridSim
 
         function u = finalize(obj, u)
             u = finalize@GridSim(obj, u).';
-            if obj.opt.non_accretive
+            if ~obj.opt.accretive
                 u = u(:, 1);
             end
         end
@@ -75,7 +75,7 @@ classdef PantographF < GridSim
             % the boundary condition at t0 is converted to a delta source
             S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size;
 
-            if obj.opt.non_accretive
+            if ~obj.opt.accretive
                 S = [zeros(1, obj.grid.N); S];
             end
         end
@@ -108,13 +108,13 @@ classdef PantographF < GridSim
             s2 = sparse(before(mask_c), ca(mask_c), 1 + after(mask_c) - ca(mask_c), N, N);
             sample = (obj.beta(:).' .* max(s1, s2)).';
             
-            if obj.opt.non_accretive
+            if obj.opt.accretive
+                B = 1 - alpha.';
+                obj.medium = @(u) B.*u - u * sample;
+            else
                 alpha = shiftdim(alpha, -2);
                 B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
                 obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];
-            else
-                B = 1 - alpha.';
-                obj.medium = @(u) B.*u - u * sample;
             end
         end
 
@@ -134,12 +134,12 @@ classdef PantographF < GridSim
             
             % construct L+1 inverse matrix:
             %filt = shiftdim(fftshift(tukeywin(obj.grid.N, 0.1)), -2);
-            if obj.opt.non_accretive
+            if obj.opt.accretive
+                obj.propagator = @(u) ifft(Lcomb.' .* fft(u));
+            else
                 L = shiftdim(L, -2);
                 Lh = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
                 obj.propagator = @(u) ifftv(fieldmultiply(Lh, fftv(u)));
-            else
-                obj.propagator = @(u) ifft(Lcomb.' .* fft(u));
             end
         end
     end

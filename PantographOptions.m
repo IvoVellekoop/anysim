@@ -7,9 +7,9 @@ classdef PantographOptions < AnySimOptions & GridOptions
         % When empty, the size is determined automatically from D and a.
         N (1,:) {mustBePositive} = []
 
-        % Set to true to solve the normal equations (anti-symmetrized system)
-        % instead, ensuring convergence even for non-accretive systems
-        non_accretive (1, 1) logical = false
+        % Set to false to solve a non-accretive system. This solves
+        % the normal equations (anti-symmetrized system) instead.
+        accretive (1, 1) logical = true
     end
     methods 
         function obj = PantographOptions(opt)
