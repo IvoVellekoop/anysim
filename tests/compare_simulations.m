@@ -91,6 +91,9 @@ end
 
 %% Compare with analytical theory
 if ~isempty(opt.analytical_solution)
+    if size(opt.analytical_solution) ~= size(results(end).value)
+        error("Size of the analytical solution does not match size of the simulation");
+    end
     mask = ~isnan(opt.analytical_solution(:));
     a = opt.analytical_solution(mask);
     for r_i = 1:length(results)

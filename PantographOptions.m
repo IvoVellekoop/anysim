@@ -6,6 +6,10 @@ classdef PantographOptions < AnySimOptions & GridOptions
         % Dimensions of the grid in voxels, excluding boundaries.
         % When empty, the size is determined automatically from D and a.
         N (1,:) {mustBePositive} = []
+
+        % Set to true to solve the normal equations (anti-symmetrized system)
+        % instead, ensuring convergence even for non-accretive systems
+        non_accretive (1, 1) logical = false
     end
     methods 
         function obj = PantographOptions(opt)

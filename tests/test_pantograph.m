@@ -13,7 +13,9 @@ opt.callback = DisplayCallback();
 
 %% Medium parameters
 lambda = 1; %0.5; %1.5
-a = -0.5;%+5i;
+a = 0.5;%+5i;
+a = a * ones(1, opt.N);
+a(100:200) = -0.3;
 b = -0.1;%-4.9;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 

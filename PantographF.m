@@ -35,7 +35,11 @@ classdef PantographF < GridSim
             
             %% Construct base class
             opt = opt.validate(size(alpha), size(beta));
-            opt.N_components = 2;
+            if opt.non_accretive
+                opt.N_components = 2;
+            else
+                opt.N_components = 1;
+            end
             obj = obj@GridSim(opt.N, opt); 
 
             %% Construct components: operators for medium, propagator and transform
@@ -46,8 +50,10 @@ classdef PantographF < GridSim
         end
 
         function u = finalize(obj, u)
-            u = finalize@GridSim(obj, u);
-            u = u(1, :).';
+            u = finalize@GridSim(obj, u).';
+            if obj.opt.non_accretive
+                u = u(:, 1);
+            end
         end
 
         function S = define_source(obj, values)
@@ -64,11 +70,14 @@ classdef PantographF < GridSim
 
             % rescale by lambda. Note: simulation starts at t0
             coordinates = (obj.t0 + (0:obj.grid.N-1)) * obj.lambda;
-            S = zeros(2, obj.grid.N);
-            S(2, :) = obj.beta(:) .* interp1(values, coordinates(:), 'linear', 0) * (obj.Tl/obj.Tr);
+            S = obj.beta(:).' .* interp1(values, coordinates(:).', 'linear', 0) * (obj.Tl/obj.Tr);
             
             % the boundary condition at t0 is converted to a delta source
-            S(2, 1) = S(2, 1) + values(end) / obj.grid.pixel_size;
+            S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size;
+
+            if obj.opt.non_accretive
+                S = [zeros(1, obj.grid.N); S];
+            end
         end
     end
     methods (Access = protected)        
@@ -99,9 +108,14 @@ classdef PantographF < GridSim
             s2 = sparse(before(mask_c), ca(mask_c), 1 + after(mask_c) - ca(mask_c), N, N);
             sample = (obj.beta(:).' .* max(s1, s2)).';
             
-            alpha = shiftdim(alpha, -2);
-            B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
-            obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];
+            if obj.opt.non_accretive
+                alpha = shiftdim(alpha, -2);
+                B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
+                obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];
+            else
+                B = 1 - alpha.';
+                obj.medium = @(u) B.*u - u * sample;
+            end
         end
 
         function obj = makePropagator(obj)
@@ -116,12 +130,17 @@ classdef PantographF < GridSim
             Lginv = fft(G);
             Lcomb = real(Linv) + 1i * imag(Lginv);
             L = 1./Lcomb-1;
-            L = shiftdim(L, -2);
+            
             
             % construct L+1 inverse matrix:
             %filt = shiftdim(fftshift(tukeywin(obj.grid.N, 0.1)), -2);
-            Lh = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
-            obj.propagator = @(u) ifftv(fieldmultiply(Lh, fftv(u)));
+            if obj.opt.non_accretive
+                L = shiftdim(L, -2);
+                Lh = ([0 1; 0 0] .* conj(L) + [0 0; -1 0] .* L + [1 0; 0 1]) ./ (1+abs(L).^2);
+                obj.propagator = @(u) ifftv(fieldmultiply(Lh, fftv(u)));
+            else
+                obj.propagator = @(u) ifft(Lcomb.' .* fft(u));
+            end
         end
     end
 end

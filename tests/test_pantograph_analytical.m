@@ -13,12 +13,13 @@ opt.termination_condition_interval = 1;
 opt.callback = DisplayCallback();
 opt.V_max = 0.5;
 %% Medium parameters
-lambda = 1;%0.5;
+lambda = 1;
 a = ones(opt.N,1) * 1 + 8i;
-b = 8 / sqrt(lambda); % note, factor sqrt(lambda) included in beta to make Λ unitary
+b = 1;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation
+opt.non_accretive = true;
 sim = PantographF(a, b, lambda, t0, opt);
 z = sim.grid.coordinates(1);
 % Define source
