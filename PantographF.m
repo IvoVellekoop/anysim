@@ -123,7 +123,7 @@ classdef PantographF < GridSim
             % there are two ways to do this: 
             rate = obj.V0 + 1/obj.Tr;
             G = exp(-rate * obj.grid.coordinates(1)) * obj.grid.pixel_size/obj.Tr;
-            G(end/2:end) = 0;
+            %G(end/2:end) = 0;
             %L = shiftdim(1./fft(G) - 1, -2);
             
             %L = obj.Tr * (1i * obj.grid.coordinates_f(1) + obj.V0);

@@ -1,6 +1,9 @@
 %   Simple test of the Pantograph toolbox
-%   (c) 2021. Ivo Vellekoop
-%   Test case for lambda = 1, where we have an analytical solution
+%   (c) 2022. Ivo Vellekoop
+%   In this example, the Pantograph equation is not accretive and the method diverges.
+%   However, by setting the option 'accretive=false', the Pantograph toolbox
+%   solves the the anti-symmetrized system instead, which is accretive.
+%
 close all; clear all;
 
 %% Simulation parameters
