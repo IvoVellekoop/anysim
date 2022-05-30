@@ -93,8 +93,8 @@ classdef PantographF < GridSim
             obj.Tr = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E3 * abs(min(real(alpha))));
             obj.Tl = 1;
 
-            alpha = (obj.data_array(alpha(:)) - obj.V0) * obj.Tr;
-            obj.beta = obj.data_array(beta(:).') * obj.Tr; %includes scaling factor of Λ
+            alpha = obj.grid.pad((obj.data_array(alpha(:)) - obj.V0) * obj.Tr, 0);
+            obj.beta = obj.grid.pad(obj.data_array(beta(:)) * obj.Tr, 0); %includes scaling factor of Λ
             
             % construct a sparse 'sampling' matrix for scaling the signal
             before = 1:obj.grid.N;
@@ -106,10 +106,11 @@ classdef PantographF < GridSim
             mask_c = (ca <= N) & (ca > 1);
             s1 = sparse(before(mask_f), fa(mask_f), fa(mask_f) - after(mask_f) + 1, N, N);
             s2 = sparse(before(mask_c), ca(mask_c), 1 + after(mask_c) - ca(mask_c), N, N);
-            sample = (obj.beta(:).' .* max(s1, s2)).';
+            sample = (spdiags(obj.beta, 0, N, N) * max(s1, s2)).';
             
             if obj.opt.accretive
-                B = 1 - alpha.';
+                alpha = shiftdim(alpha, -1);
+                B = 1 - alpha;
                 obj.medium = @(u) B.*u - u * sample;
             else
                 alpha = shiftdim(alpha, -2);
@@ -122,7 +123,7 @@ classdef PantographF < GridSim
             % constructs the Green's function
             % there are two ways to do this: 
             rate = obj.V0 + 1/obj.Tr;
-            G = exp(-rate * obj.grid.coordinates(1)) * obj.grid.pixel_size/obj.Tr;
+            G = exp(-rate * obj.grid.coordinates(1, "full")) * obj.grid.pixel_size/obj.Tr;
             %G(end/2:end) = 0;
             %L = shiftdim(1./fft(G) - 1, -2);
             
