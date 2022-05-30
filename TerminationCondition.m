@@ -3,22 +3,24 @@ classdef TerminationCondition
     %   Terminates the algorithm if any of the following conditions is true:
     %       * The maximum number of iterations (specified in
     %         OPT.iteration_count) is reached
-    %       * The 'magnitude' of the change in solution 'u'
-    %         is below a certain absolute limit (specified in 
+    %       * The residual is below a certain absolute limit (specified in 
     %         OPT.absolute_error). The strength of the update
     %         is calculated by the function OPT.quantify_update.
     %         For grid-based simulations, by default this function
     %         crops 'u' to the roi and computes the norm squared.
-    %       * The 'magnitude' of the change in solution 'u'
-    %         is below a certain relative limit (specified in 
-    %         OPT.relative_error). The value is relative to the
-    %         largest update magnitude encountere so far. (should be the
-    %         1st!)
+    %       * The residual is below a certain relative limit (specified in 
+    %         OPT.relative_error). The value is relative to the norm of
+    %         the source vector. This is the typical 'tolerance' used in
+    %         MATLAB builtin functions.
+    %       * The residual is above a certain relative limit, or it is a NaN.
+    %         this may happen if the system to be solved is not accretive,
+    %         or if there is a bug in the implementation.
     %
     properties
         iteration_count (1,1) double = 1E4
         absolute_limit (1,1) double = 1E-12
         relative_limit (1,1) double = 1E-3
+        divergence_limit (1,1) double = 1E12
     end
     
     methods
@@ -36,7 +38,9 @@ classdef TerminationCondition
             current_residual = state.residuals(end);
             terminate = state.iteration >= obj.iteration_count ||...
                 current_residual <= obj.absolute_limit || ...
-                current_residual / max(state.residuals) <= obj.relative_limit;
+                current_residual / state.normb <= obj.relative_limit || ...
+                current_residual / state.normb >= obj.divergence_limit || ...
+                ~isfinite(state.residuals(end));
         end
     end
 end

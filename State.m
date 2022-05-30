@@ -46,7 +46,7 @@ classdef State < dynamicprops
                 end
                 obj.residuals = [obj.residuals, norm(r(:))/obj.normb];
                 obj.residual_its = [obj.residual_its, obj.iteration];
-                obj.running = ~obj.termination_condition.call(obj) && isfinite(obj.residuals(end));
+                obj.running = ~obj.termination_condition.call(obj);
             end
             if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
                 obj.callback.call(u, r, obj);

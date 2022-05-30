@@ -129,7 +129,7 @@ classdef DisplayCallback
         function call(obj, u, r, state)
             if obj.show_convergence && ~isempty(state.residuals)
                 subplot(2, 1, 1);
-                semilogy(state.residual_its, state.residuals / max(state.residuals));
+                semilogy(state.residual_its, state.residuals / state.residuals(1));
                 xlabel('Iteration');
                 ylabel('‖Δ𝜓‖^2 (normalized)'); 
                 subplot(2, 1, 2);
