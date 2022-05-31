@@ -20,7 +20,6 @@ classdef PantographOptions < AnySimOptions & GridOptions
             obj.pixel_unit = 's';
             %opt.gpu_enabled = false; % disable gpu by default because 'Pantograph.convolve' is not efficient on gpu
             opt.precision = 'double'; % needed because we work with sparse matrices in PantographF
-            opt.boundaries_width = 0; % by default, don't add absorbing boundaries
             obj = copy_properties(obj, opt);
         end
         function opt = validate(opt, sza, szb)

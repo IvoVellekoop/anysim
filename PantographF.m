@@ -5,7 +5,10 @@ classdef PantographF < GridSim
     %   x = b                   for t < t0
     %
     %   (c) 2021. Ivo Vellekoop & Tom Vettenburg
-    %
+    % KNOWN BUGS:
+    % * scaling of V is not adjusted to norm of the resampling
+    %   matrix (which can be slightly over 1)
+    % * adding boundaries does not work as expected (causes divergence!?)
     properties
         t0
         lambda
@@ -70,10 +73,11 @@ classdef PantographF < GridSim
 
             % rescale by lambda. Note: simulation starts at t0
             coordinates = (obj.t0 + (0:obj.grid.N-1)) * obj.lambda;
-            S = obj.beta(:).' .* interp1(values, coordinates(:).', 'linear', 0) * (obj.Tl/obj.Tr);
-            
+            S = obj.beta(:).' .* interp1(values, coordinates(:).', 'linear', 0) * obj.Tl;
+           
             % the boundary condition at t0 is converted to a delta source
-            S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size;
+            %S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size * obj.Tl;
+            S(1, 1) = values(end) / obj.grid.pixel_size * obj.Tl;
 
             if ~obj.opt.accretive
                 S = [zeros(1, obj.grid.N); S];
@@ -93,7 +97,7 @@ classdef PantographF < GridSim
             obj.Tr = min(obj.opt.V_max/(alpha_radius + beta_radius), 1E3 * abs(min(real(alpha))));
             obj.Tl = 1;
 
-            alpha = obj.grid.pad((obj.data_array(alpha(:)) - obj.V0) * obj.Tr, 0);
+            alpha = (obj.data_array(alpha(:)) - obj.V0) * obj.Tr;
             obj.beta = obj.grid.pad(obj.data_array(beta(:)) * obj.Tr, 0); %includes scaling factor of Λ
             
             % construct a sparse 'sampling' matrix for scaling the signal
@@ -102,19 +106,27 @@ classdef PantographF < GridSim
             fa = floor(after);
             ca = ceil(after);
             N = obj.grid.N;
-            mask_f = (fa <= N) & (fa > 1);
-            mask_c = (ca <= N) & (ca > 1);
+            mask_f = (fa <= N) & (fa >= 1);
+            mask_c = (ca <= N) & (ca >= 1);
             s1 = sparse(before(mask_f), fa(mask_f), fa(mask_f) - after(mask_f) + 1, N, N);
             s2 = sparse(before(mask_c), ca(mask_c), 1 + after(mask_c) - ca(mask_c), N, N);
-            sample = (spdiags(obj.beta, 0, N, N) * max(s1, s2)).';
+            if numel(obj.beta) == 1
+                sample = obj.beta * max(s1, s2).';
+            else
+                % the following line is a workaround for a MATLAB bug
+                % (case 05553718)
+                b = spdiags(real(obj.beta), 0, N, N) + 1i * spdiags(imag(obj.beta), 0, N, N);
+                sample = b * max(s1, s2).';
+            end
             
             if obj.opt.accretive
                 alpha = shiftdim(alpha, -1);
-                B = 1 - alpha;
+                B = obj.grid.pad(1 - alpha, 1);
                 obj.medium = @(u) B.*u - u * sample;
             else
                 alpha = shiftdim(alpha, -2);
                 B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
+                B = obj.grid.pad(B, 2);
                 obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];
             end
         end

@@ -10,14 +10,17 @@ close all; clearvars;
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
-opt.boundaries_width = 30; % absorbing boundaries
+opt.boundaries_width = 0; % boundaries are broken at the moment!
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
-%opt.callback = DisplayCallback();
+opt.V_max = 0.5;
+opt.callback = DisplayCallback();
 
 %% Medium parameters
 lambda = 0.5;
-a = 0.1 + 5i;
-b = 5*cos(1:opt.N);
+a = (0.1 + 2i) * ones(opt.N, 1);
+b = -5*cos(0.1 * (1:opt.N));
+a(end-500:end) = 3; % 'manual' boundary conditions
+b(end-500:end) = 0;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation. 
@@ -33,22 +36,24 @@ src = f_init(z(1:t0));
 source = sim.define_source(src);
 
 %% Perform the different simulations and compare the results
-[precond, ~] = compare_simulations(sim, source, default_simulations);
+[precond, ~] = compare_simulations(sim, source, []);%default_simulations);
 
 %% Repeat with (anti-)symmetrized equation
 s_opt = opt;
-s_opt.accretive = false; % pretend that the equation is accretive, even though it is not
+s_opt.accretive = false; % symmetrize system
 s_sim = PantographF(a, b, lambda, t0, s_opt);
 s_source = s_sim.define_source(src);
-[s_precond, table] = compare_simulations(s_sim, s_source, default_simulations);
+[s_precond, table] = compare_simulations(s_sim, s_source, []);%default_simulations);
 
 %%
-plot(z, real(s_precond(end).value));
-hold on;
-plot(z, real(precond(end).value)); %note: BiCGStab converges even though system is not accretive
+signal = [src; s_precond(end).value];
+full_z = [z(1:t0); z+z(t0+1)];
+plot(full_z, real(signal));
+%hold on;
+%plot(z, real(precond(end).value)); %note: BiCGStab has small residue but completely diverges! (machine precision effect?)
 xlabel('t [s]');
 ylabel('x(t)');
-legend('Anysim symmetrized', 'BiCGStab non-symmetrized');
+%legend('Anysim symmetrized', 'BiCGStab non-symmetrized');
 
 %%
 %inspect_sim(sim);
