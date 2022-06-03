@@ -16,7 +16,7 @@ opt.V_max = 0.5;
 %% Medium parameters
 lambda = 1;
 a = 2 * ones(opt.N, 1);
-b = 1i * ones(opt.N, 1);
+b = -1i * ones(opt.N, 1);
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation

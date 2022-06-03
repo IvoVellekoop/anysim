@@ -10,15 +10,15 @@ close all; clearvars;
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
-opt.boundaries_width = 200; % boundaries are broken at the moment!
+opt.boundaries_width = 200;
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
 opt.V_max = 0.5;
 opt.callback = DisplayCallback();
 
 %% Medium parameters
-lambda = 0.5;
-a = (0.1 + 2i) * ones(opt.N, 1);
-b = -5*cos(0.1 * (1:opt.N));
+lambda = 0.9;
+a = 0.1;%ones(opt.N,1);0.1;%(-0.1 + 2i) * ones(opt.N, 1); %(-0.1 + 2i) * ones(opt.N, 1);
+b = -5;%-5*exp(0.1i * (1:opt.N));
 %a(end-500:end) = 6; % 'manual' boundary conditions
 %b(end-500:end) = 0;
 t0 = round(1/opt.pixel_size); % first second is starting condition
@@ -46,11 +46,12 @@ s_source = s_sim.define_source(src);
 [s_precond, table] = compare_simulations(s_sim, s_source, []);%default_simulations);
 
 %%
-signal = [src; s_precond(end).value];
+signal = [src; precond(end).value];
+s_signal = [src; s_precond(end).value];
 full_z = [z(1:t0); z+z(t0+1)];
-plot(full_z, real(signal));
+%plot(full_z, real(signal));
 %hold on;
-%plot(z, real(precond(end).value)); %note: BiCGStab has small residue but completely diverges! (machine precision effect?)
+plot(full_z, real(s_signal));
 xlabel('t [s]');
 ylabel('x(t)');
 %legend('Anysim symmetrized', 'BiCGStab non-symmetrized');

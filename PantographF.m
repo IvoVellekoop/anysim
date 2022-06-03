@@ -78,7 +78,6 @@ classdef PantographF < GridSim
             S = obj.beta(:).' .* interp1(values, coordinates(:).', 'linear', 0) * obj.Tl;
            
             % the boundary condition at t0 is converted to a delta source
-            %S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size * obj.Tl;
             S(obj.first) = values(end) / obj.grid.pixel_size * obj.Tl;
 
             if ~obj.opt.accretive
@@ -121,8 +120,9 @@ classdef PantographF < GridSim
                 obj.medium = @(u) B.*u - u * sample;
             else
                 alpha = shiftdim(alpha, -2);
+                alpha = 1 - obj.grid.pad(1 - alpha, 2);
                 B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
-                B = obj.grid.pad(B, 2);
+                %B = obj.grid.pad(B, 2);
                 obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];
             end
         end
