@@ -120,7 +120,7 @@ classdef PantographF < GridSim
                 obj.medium = @(u) B.*u - u * sample;
             else
                 alpha = shiftdim(alpha, -2);
-                alpha = 1 - obj.grid.pad(1 - alpha, 2);
+                alpha = 0.95 - obj.grid.pad(0.95 - alpha, 2);
                 B = [0 1; 0 0] .* conj(alpha) + [0 0; -1 0] .* alpha + [1 0; 0 1];
                 %B = obj.grid.pad(B, 2);
                 obj.medium = @(u) fieldmultiply(B, u) + [u(2,:) * sample'; -u(1,:) * sample];

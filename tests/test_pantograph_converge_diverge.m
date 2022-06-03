@@ -10,17 +10,15 @@ close all; clearvars;
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
-opt.boundaries_width = 200;
+opt.boundaries_width = 800;
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
 opt.V_max = 0.5;
-opt.callback = DisplayCallback();
+opt.callback = DisplayCallback(plot_residual = true);
 
 %% Medium parameters
 lambda = 0.9;
-a = 0.1;%ones(opt.N,1);0.1;%(-0.1 + 2i) * ones(opt.N, 1); %(-0.1 + 2i) * ones(opt.N, 1);
-b = -5;%-5*exp(0.1i * (1:opt.N));
-%a(end-500:end) = 6; % 'manual' boundary conditions
-%b(end-500:end) = 0;
+a = 0.1 * ones(opt.N,1);
+b = -5 * ones(opt.N,1);
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation. 

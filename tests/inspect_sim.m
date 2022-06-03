@@ -42,7 +42,7 @@ function inspect_sim(sim)
     % verify that A is accretive
     if any(real(eAh) < 0)
         if any(real(eA) < 0)
-            warning('A has negative eigenvalues, min λ_A = %f', min(real(eA)));
+            warning('A has negative eigenvalues, min λ_A = %f, Re A = %f', min(real(eA)), min(real(eAh)));
         else
             warning("A is not accretive, but all eigenvalues are positive, Re A = %f", min(real(eAh)));
         end
