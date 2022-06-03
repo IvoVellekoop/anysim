@@ -10,7 +10,7 @@ close all; clearvars;
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
-opt.boundaries_width = 0; % boundaries are broken at the moment!
+opt.boundaries_width = 200; % boundaries are broken at the moment!
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
 opt.V_max = 0.5;
 opt.callback = DisplayCallback();
@@ -19,8 +19,8 @@ opt.callback = DisplayCallback();
 lambda = 0.5;
 a = (0.1 + 2i) * ones(opt.N, 1);
 b = -5*cos(0.1 * (1:opt.N));
-a(end-500:end) = 3; % 'manual' boundary conditions
-b(end-500:end) = 0;
+%a(end-500:end) = 6; % 'manual' boundary conditions
+%b(end-500:end) = 0;
 t0 = round(1/opt.pixel_size); % first second is starting condition
 
 %% Set up AnySim simulation. 

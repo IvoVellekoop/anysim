@@ -18,7 +18,11 @@ classdef PantographOptions < AnySimOptions & GridOptions
             end
             %% Set defaults
             obj.pixel_unit = 's';
-            %opt.gpu_enabled = false; % disable gpu by default because 'Pantograph.convolve' is not efficient on gpu
+            opt.gpu_enabled = false;
+            % disable gpu. For 'Pantograph.convolve' is is very inefficient, and
+            % for PantographF we run into MATLAB bugs (case 05553718)
+            % involving sparse gpu matrices.
+            %
             opt.precision = 'double'; % needed because we work with sparse matrices in PantographF
             obj = copy_properties(obj, opt);
         end

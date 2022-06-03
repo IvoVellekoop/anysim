@@ -11,6 +11,7 @@ classdef PantographF < GridSim
     % * adding boundaries does not work as expected (causes divergence!?)
     properties
         t0
+        first
         lambda
         beta
     end
@@ -47,6 +48,7 @@ classdef PantographF < GridSim
 
             %% Construct components: operators for medium, propagator and transform
             obj.t0 = t0;
+            obj.first = obj.grid.roi_ranges{1}(1);
             obj.lambda = lambda;
             obj = obj.makeMedium(alpha, beta);
             obj = obj.makePropagator();            
@@ -67,17 +69,17 @@ classdef PantographF < GridSim
             % Constructs the source term Λ x_0
             % adds a delta at the first element to take into account the
             % boundary condition.
-            if length(values) ~= obj.t0
-                error("Source data must have size %d", obj.t0);
-            end
+            %if length(values) ~= obj.t0
+            %    error("Source data must have size %d", obj.t0);
+            %end
 
             % rescale by lambda. Note: simulation starts at t0
-            coordinates = (obj.t0 + (0:obj.grid.N-1)) * obj.lambda;
+            coordinates = [zeros(1, obj.first - 1), (obj.t0 + (0:obj.grid.N-obj.first)) * obj.lambda];
             S = obj.beta(:).' .* interp1(values, coordinates(:).', 'linear', 0) * obj.Tl;
            
             % the boundary condition at t0 is converted to a delta source
             %S(1, 1) = S(1, 1) + values(end) / obj.grid.pixel_size * obj.Tl;
-            S(1, 1) = values(end) / obj.grid.pixel_size * obj.Tl;
+            S(obj.first) = values(end) / obj.grid.pixel_size * obj.Tl;
 
             if ~obj.opt.accretive
                 S = [zeros(1, obj.grid.N); S];
@@ -102,7 +104,7 @@ classdef PantographF < GridSim
             
             % construct a sparse 'sampling' matrix for scaling the signal
             before = 1:obj.grid.N;
-            after = (before - 1 + obj.t0) .* obj.lambda - obj.t0 + 1;
+            after = (before - obj.first + obj.t0) .* obj.lambda - obj.t0 + obj.first;
             fa = floor(after);
             ca = ceil(after);
             N = obj.grid.N;
@@ -110,14 +112,8 @@ classdef PantographF < GridSim
             mask_c = (ca <= N) & (ca >= 1);
             s1 = sparse(before(mask_f), fa(mask_f), fa(mask_f) - after(mask_f) + 1, N, N);
             s2 = sparse(before(mask_c), ca(mask_c), 1 + after(mask_c) - ca(mask_c), N, N);
-            if numel(obj.beta) == 1
-                sample = obj.beta * max(s1, s2).';
-            else
-                % the following line is a workaround for a MATLAB bug
-                % (case 05553718)
-                b = spdiags(real(obj.beta), 0, N, N) + 1i * spdiags(imag(obj.beta), 0, N, N);
-                sample = b * max(s1, s2).';
-            end
+            boundaries = obj.grid.pad(1, 0);
+            sample = obj.beta .* max(s1, s2).' .* boundaries.';
             
             if obj.opt.accretive
                 alpha = shiftdim(alpha, -1);
@@ -135,7 +131,8 @@ classdef PantographF < GridSim
             % constructs the Green's function
             % there are two ways to do this: 
             rate = obj.V0 + 1/obj.Tr;
-            G = exp(-rate * obj.grid.coordinates(1, "full")) * obj.grid.pixel_size/obj.Tr;
+            t = obj.grid.coordinates(1, "full");
+            G = exp(-rate * (t-t(1))) * obj.grid.pixel_size/obj.Tr;
             %G(end/2:end) = 0;
             %L = shiftdim(1./fft(G) - 1, -2);
             

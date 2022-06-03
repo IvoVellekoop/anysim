@@ -15,7 +15,7 @@ classdef State < dynamicprops
         running;
         residuals;
         residual_its; % iteration numbers at which residuals were reported
-        normb; % norm of the source (for normalizing 'residual')
+        normb; % norm of the preconditioned source (for normalizing 'residual')
     end
     properties
         source = []; % for use in matlab-style iterative schemes 
@@ -47,6 +47,10 @@ classdef State < dynamicprops
                 obj.residuals = [obj.residuals, norm(r(:))/obj.normb];
                 obj.residual_its = [obj.residual_its, obj.iteration];
                 obj.running = ~obj.termination_condition.call(obj);
+                if ~isfinite(obj.residuals(end))
+                    warning("Terminating simulation, found non-finite residual %f", obj.residuals(end));
+                    obj.running = false;
+                end
             end
             if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)
                 obj.callback.call(u, r, obj);

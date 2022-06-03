@@ -8,7 +8,7 @@ opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
 opt.gpu_enabled = false;
-opt.boundaries_width = 0; % don't add boundaries
+opt.boundaries_width = 100; % absorbing boundaries
 opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
 opt.termination_condition_interval = 1;
 opt.callback = DisplayCallback();

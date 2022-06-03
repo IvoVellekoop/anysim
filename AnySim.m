@@ -59,7 +59,7 @@ classdef (Abstract) AnySim
             % t1 = G u + s            Medium.mix_source
             % t1 -> Li t1             Propagator.propagate
             % u -> u + G (t1 - u)     Medium.mix_field
-            [u, state] = obj.start;
+            [u, state] = obj.start();
             
             while state.running
                 % t1 => B u + b
