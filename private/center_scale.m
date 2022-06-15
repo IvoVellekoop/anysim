@@ -81,6 +81,7 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             V = diag(Tr) .* (Vraw - diag(V0));
         case 2  % potential is a field of full matrices, stored as pages
             % check if Vraw is accretive
+            % to do: make test optional? (may be slow)
             offset = 1024 * max(eps(Vraw(:)));
             ReV = pagesvd(Vraw + eye(N) * offset).^2 - pagesvd(Vraw).^2 - offset^2;
             if any(ReV(:) + eps(ReV(:)) < 0)

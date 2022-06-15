@@ -51,8 +51,7 @@ function [center, radius] = smallest_circle(points, tolerance)
     % real (it could otherwise have a small imaginary component due to rounding errors)
     %    
     if isreal(points)
-        pmin = min(points);
-        pmax = max(points);
+        [pmin, pmax] = bounds(points);
         center = (pmin + pmax) / 2;
         radius = pmax - center;
         return;
