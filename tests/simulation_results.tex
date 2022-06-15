@@ -1,10 +1,10 @@
-& \rotatebox{90}{pcg}\\\\
-matrix & 82\\\\
+& \rotatebox{90}{GMRES5}& \rotatebox{90}{GMRES20}& \rotatebox{90}{CG}\\
+matrix & 110& 69& 64\\
 
 
-& \rotatebox{90}{rich ($\alpha$ = 1.0)}& \rotatebox{90}{rich ($\alpha$ = 0.75)}& \rotatebox{90}{rich ($\alpha$ = 0.5)}& \rotatebox{90}{gmres (restart = 5)}& \rotatebox{90}{gmres (restart = 20)}& \rotatebox{90}{bicgstab}& \rotatebox{90}{lsqr}& \rotatebox{90}{cgs}\\\\
-diffusion diagonal & 63& 82& 123& 30& 23& 29& 488& 28\\\\
-diffusion tensor & 513& 683& 1025& 341& 118& 77& 444& -\\\\
-helmholtz 1D & 581& 351& 456& 331& 352& 472& 624& -\\\\
-helmholtz 2D & 1804& 2107& 3081& -& 1507& -& 4598& -\\\\
-pantograph complex & 27& 36& 56& 27& 23& 24& 30\\\\
+& \rotatebox{90}{Rich100}& \rotatebox{90}{Rich90}& \rotatebox{90}{Rich80}& \rotatebox{90}{Rich70}& \rotatebox{90}{Rich60}& \rotatebox{90}{Rich50}& \rotatebox{90}{GMRES5}& \rotatebox{90}{GMRES20}& \rotatebox{90}{BiCGSTAB}& \rotatebox{90}{qmr}& \rotatebox{90}{lsqr}\\
+diffusion diagonal & 22& 24& 27& 31& 36& 43& 15& 14& 17& 24& 254\\
+diffusion tensor & -& -& -& -& -& -& -& -& -& -& 796\\
+helmholtz 1D & 464& 324& 306& 315& 352& 413& 301& 306& 432& -& 598\\
+helmholtz 2D & -& 8000& 7554& 8055& 8978& -& 3878& 2330& 5329\\
+pantograph complex & 24& 27& 30& 34& 40& 49& 25& 21& 22\\
