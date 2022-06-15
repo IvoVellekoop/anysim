@@ -24,8 +24,8 @@ opt.accretive = true;
 sim = PantographF(a, b, lambda, t0, opt);
 z = sim.grid.coordinates(1);
 % Define source
-f_init = @(t) 0.1 + exp(-(0.5 .* (t(:)-0.85)./0.02).^2) - 0.5*exp(-(0.5 .* (t(:)-0.80)./0.05).^2); 
-src = f_init(z(1:t0));
+src = zeros(t0, 1);
+src(end) = 1;
 source = sim.define_source(src);
 
 %% construct the analytical solution
