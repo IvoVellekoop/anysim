@@ -5,11 +5,19 @@
 %% Construct refractive index structure
 % load the logo image, we will use the different color channels for
 oversampling = 1;
-im = imresize(single(imread("natlogo.png"))/255, 0.75*oversampling, "bilinear");
+im = imresize(single(imread("natlogo.png"))/255, oversampling, "bilinear");
 n_gold = 0.54386 + 2.2309i; % Au at 532nm https://refractiveindex.info/?shelf=main&book=Au&page=Johnson
-n = (im(:,:,3)-(im(:,:, 1)) > 0.25) * (n_gold-1) + 1;
-%n = (im(:,:,3) > 0.25) * (n_gold-1) + 1;
-%n(im(:,:,1) > 0.2) = 1 + 0.2i;
+n_silver = 0.054007 + 3.4290i;
+n_copper = 1.1159 + 2.5956i;
+n_iron = 2.8954 + 2.9179i;
+n_contrast = n_iron - 1;
+
+% this version has a slight dominance for the new method, at Rich60.
+%n = (im(:,:,3)-(im(:,:, 1)) > 0.25) * n_contrast + 1;
+
+% this version has a very clear dominance for the new method, at Rich80.
+% difference may be caused by treatment of boundaries?
+n = (im(:,:,3) > 0.25) * n_contrast + 1;
 
 
 %% Set up simulation options
@@ -19,7 +27,7 @@ opt.boundaries_width = 30; % 0=periodic
 %opt.callback = DisplayCallback();%plot_residual = true);
 opt.termination_condition = TerminationCondition(relative_limit = tol / 10, iteration_count = 1E6);
 opt.wavelength = 0.532;
-opt.pixel_size = opt.wavelength/(3*oversampling);
+opt.pixel_size = opt.wavelength/(3*max(abs(n_contrast+1)))/oversampling;
 
 %% create the AnySim object
 sim = HelmholtzSim(n, opt);
