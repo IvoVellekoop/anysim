@@ -63,10 +63,11 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
             if any(Vraw(:) < 0)
                 error('Vraw is not accretive');
             end
-            Tl = 1;
-            Tr = Vmax/radii;
+            Ttot = Vmax/radii;
+            Tl = sqrt(Ttot);
+            Tr = Tl;
             V0 = centers;
-            V = Tr * (Vraw - V0);
+            V = Ttot * (Vraw - V0);
         case 1  % potential is a field of diagonal matrices, stored as column vectors
             if any(Vraw(:) < 0)
                 error('Vraw is not accretive');
@@ -76,10 +77,11 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
                 warning('At least one of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
             end
             % todo: should have Tl = Tr
-            Tl = eye(M);
-            Tr = diag(Vmax./radii(:));
+            TT = Vmax./radii(:);
+            Tl = sqrt(diag(TT));
+            Tr = Tl;
             V0 = diag(centers(:));
-            V = diag(Tr) .* (Vraw - diag(V0));
+            V = TT .* (Vraw - diag(V0));
         case 2  % potential is a field of full matrices, stored as pages
             % check if matrix is near-singular
             % and add a small offset to the singular values if it is
