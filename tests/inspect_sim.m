@@ -25,7 +25,7 @@ function inspect_sim(sim)
     fprintf("||V|| = %f\n", nV);
     if nV > 1
         warning('||V|| > 1');
-    elseif nV > sim.opt.V_max
+    elseif nV > sim.opt.V_max + 1024 * eps(sim.opt.V_max)
         warning('||V|| > V_max');
     end
 

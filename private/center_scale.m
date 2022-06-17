@@ -75,18 +75,12 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
                 radii = max(radii, abs(c) * 1E-6);
                 warning('At least one of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
             end
+            % todo: should have Tl = Tr
             Tl = eye(M);
             Tr = diag(Vmax./radii(:));
             V0 = diag(centers(:));
             V = diag(Tr) .* (Vraw - diag(V0));
         case 2  % potential is a field of full matrices, stored as pages
-            % check if Vraw is accretive
-            % to do: make test optional? (may be slow)
-            offset = 1024 * max(eps(Vraw(:)));
-            ReV = pagesvd(Vraw + eye(N) * offset).^2 - pagesvd(Vraw).^2 - offset^2;
-            if any(ReV(:) + eps(ReV(:)) < 0)
-                error('Vraw is not accretive');
-            end
             % check if matrix is near-singular
             % and add a small offset to the singular values if it is
             [U,S,V] = svd(radii);
@@ -96,9 +90,11 @@ function [Tl, Tr, V0, V] = center_scale(Vraw, Vrmin, Vmax)
                 radii = U*S*V';
                 warning('At least one of the components of the potential is (near-)constant, using threshold to avoid divergence in Tr');
             end
+
+            % compute scaling factor for the matrix. 
             [P,R,C] = equilibrate(radii);
-            Tl = R*P;
-            Tr = C;
+            Tl = sqrt(inv(P)*R*P*C);
+            Tr = Tl;
             V0 = centers;
             V = pagemtimes(pagemtimes(Tl, Vraw - V0), Tr);
                 
