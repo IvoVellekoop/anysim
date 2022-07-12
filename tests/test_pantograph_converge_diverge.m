@@ -4,16 +4,19 @@
 %   However, by setting the option 'accretive=false', the Pantograph toolbox
 %   solves the the anti-symmetrized system instead, which is accretive.
 %
-close all; clearvars;
+close all;
 
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
 opt.boundaries_width = 800;
-opt.termination_condition = TerminationCondition(relative_limit= 1E-6);
+opt.termination_condition = TerminationCondition(relative_limit= 1E-10, divergence_limit = 1E100);
+opt.termination_condition_interval = 1;
 opt.V_max = 0.5;
-opt.callback = DisplayCallback(plot_residual = true);
+%opt.callback = DisplayCallback(plot_residual = true);
+opt.forward_operator = true;
+opt.crop_to_roi = false;
 
 %% Medium parameters
 lambda = 0.9;
@@ -37,7 +40,8 @@ src = f_init(z(1:t0));
 source = sim.define_source(src);
 
 %% Perform the different simulations and compare the results
-[precond, ~] = compare_simulations(sim, source, []);%default_simulations);
+[precond, ~] = compare_simulations(sim, source, default_simulations);
+[no_precond, table_no_precond] = compare_simulations(sim, source, default_simulations, preconditioned=false);
 
 %% Repeat with (anti-)symmetrized equation
 s_opt = opt;
@@ -45,19 +49,38 @@ s_opt.accretive = false; % symmetrize system
 s_sim = PantographF(a, b, lambda, t0, s_opt);
 s_source = s_sim.define_source(src);
 
-[s_precond, table] = compare_simulations(s_sim, s_source, []);%default_simulations);
+[s_precond, table] = compare_simulations(s_sim, s_source, default_simulations);
 
 %%
-signal = [src; precond(end).value];
-s_signal = [src; s_precond(end).value];
-full_z = [z(1:t0); z+z(t0+1)];
+%signal = [src; precond(end).value];
+%s_signal = [src; s_precond(end).value];
+%full_z = [z(1:t0); z+z(t0+1)];
 %plot(full_z, real(signal));
 %hold on;
-plot(full_z, real(s_signal));
-xlabel('t [s]');
-ylabel('x(t)');
+%plot(full_z, real(s_signal));
+%xlabel('t [s]');
+%ylabel('x(t)');
 %legend('Anysim symmetrized', 'BiCGStab non-symmetrized');
 
+%%
+[signal, state] = sim.exec(source);
+[s_signal, s_state] = s_sim.exec(s_source);
+
+%%
+figure;
+range = 1:200;
+semilogy(state.residual_its(range), state.residuals(range), LineWidth = 2);
+hold on;
+semilogy(s_state.residual_its, s_state.residuals, LineWidth = 2);
+hold off;
+set(gca, FontSize=16);
+xlabel('iteration');
+ylabel('residual');
+xlim([1, 200]);
+ylim([1E-9, 1E18]);
+yticks(10.^(-6:6:18));
+legend(["original", "anti-symmetrized"], Location = "northwest", Box="off");
+print(gcf, '-dpdf', 'converge_diverge_pantograph.pdf');
 %%
 %inspect_sim(sim);
 

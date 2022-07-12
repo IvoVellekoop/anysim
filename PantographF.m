@@ -148,6 +148,9 @@ classdef PantographF < GridSim
             if obj.opt.accretive
                 Lh = 1./(L.'+1);
                 obj.propagator = @(u) ifft(Lh .* fft(u));
+                if obj.opt.forward_operator
+                    obj.L = @(u) ifftn(L.' .* fftn(u));
+                end
             else
                 %L = 1./Lginv-1;
                 L = shiftdim(L, -2);

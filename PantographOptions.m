@@ -31,9 +31,6 @@ classdef PantographOptions < AnySimOptions & GridOptions
             if sza(2) > 1 || szb(2) > 1 || length(sza) > 2 || length(szb) > 2 || length(opt.N)>1
                 error('alpha and beta must be 1-D arrays or scalars');
             end
-            if opt.forward_operator
-                error('The forward operator for the pantograph equation is not implemented');
-            end
             opt.N_components = [];
 
             % 'guess' size of simulation if it is not provided

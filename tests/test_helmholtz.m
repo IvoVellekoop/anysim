@@ -44,7 +44,7 @@ small = abs(k*x)<1E-10;
 E_theory(small) = 1.0i * h/(2*k) * (1+2i*atanh(h*k/pi)/pi); %exact value at 0.
 
 %% Compare to other methods and compute errors
-simulations = default_simulations("nonsymmetric");
+simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=E_theory);

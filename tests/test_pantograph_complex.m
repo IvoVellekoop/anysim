@@ -50,16 +50,17 @@ plots(2) = plot(z, real(xn), Color = [0, 0.75, 0], LineWidth = 3);
 plots(3) = plot(z, imag(xn), Color = [0, 0.75, 0], LineStyle = ':', LineWidth = 3);
 plots(4) = plot(z, real(xp), Color = [1.0, 0, 0], LineWidth = 1);
 plots(5) = plot(z, imag(xp), Color = [1.0, 0, 0], LineStyle = ':', LineWidth = 1);
-set(gca, FontSize = 12, XTick = [0:ceil(max(z))], LineWidth = 2, FontSize = 12);
 
 xlabel('t [s]', FontSize = 14);
 ylabel('x', FontSize = 14);
-legend(plots([2, 4]), 'b = -5 s^{-1}', 'b = +5 s^{-1}', FontSize = 14)
+legend(plots([2, 4]), 'b = -5 s^{-1}', 'b = +5 s^{-1}', FontSize = 16, Location="northeast", Box="off");
 ylim(1.10 * value_range);
-print(gcf, '-depsc', 'pantograph.eps');
+set(gca, XTick = [0:ceil(max(z))], LineWidth = 2, FontSize = 16);
+print(gcf, '-dpdf', 'pantograph.pdf');
 
 %% compare different iterative methods (for b negative)
-simulations = default_simulations("nonsymmetric");
+simulations = default_simulations();
+%[bare, table] = compare_simulations(sim, source, simulations, preconditioned=false);
 [precond, table] = compare_simulations(sim, source, simulations);
 
 %%

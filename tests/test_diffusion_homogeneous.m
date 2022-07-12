@@ -54,7 +54,7 @@ figure;
 u_th = zeros(4, length(I_th)) + nan;
 u_th(4, :) = I_th;
 
-simulations = default_simulations("symmetric", has_adjoint = true);
+simulations = default_simulations();
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=u_th);
 

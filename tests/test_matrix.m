@@ -34,7 +34,7 @@ opt.gpu_enabled = false;
 opt.alpha = 1;
 sim = MatrixSolve(A, opt);
 
-simulations = default_simulations("symmetric");
+simulations = default_simulations();
 simulations(1:6) = []; % only execute AnySim original and conjugate gradient
 [precond, table] = compare_simulations(sim, b, simulations, tol=tol, analytical_solution=xcorrect);
 disp(norm(A * precond(1).value - b)/norm(b))

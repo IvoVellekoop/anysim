@@ -33,7 +33,7 @@ analytical_solution = exp(-(a(1)+b(1)) .* z) * src(end);
 
 %% Perform the different simulations and compare the results
 %[comp, state] = sim.exec(source);
-simulations = default_simulations();%has_adjoint=true);
+simulations = default_simulations();
 [precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
 comp = precond(end).value;%sim.exec(source);
 %%

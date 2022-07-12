@@ -45,7 +45,9 @@ D(1,2,:,:) = (Dmax-Dmin) * c .* s;
 D(2,1,:,:) = D(1,2,:,:);
 
 % outside/inside ring: just low D
-mask = r<0.2 | r > 0.3;
+rmin = 0.2;
+rmax = 0.3;
+mask = r<rmin | r > rmax;
 D(1,1, mask) = 2;
 D(2,2, mask) = 2;
 D(3,3, mask) = 2;
@@ -68,28 +70,36 @@ source = sim.define_source(shiftdim(s, -1), 4);
 figure;
 x = sim.grid.coordinates(1);
 y = sim.grid.coordinates(2);
-imagesc(x, y, squeeze(u(4,:,:)).');
+I = squeeze(u(4,:,:)).';
+imagesc(x, y, I/max(I(:)), [0 1]);
+colormap(parula());
 hold on;
 [X, Y] = meshgrid(x, y);
 U = squeeze(u(1,:,:));
 V = squeeze(u(2,:,:));
 r = 16:16:240;
 %r = 16:5:240;
-quiver(X(r,r), Y(r,r), U(r,r).', V(r,r).', 1, 'k');
-
-rectangle("Position",[0.2 * x(end), 0.2* y(end), 0.6 * x(end), 0.6 * y(end)], 'Curvature', 1);
-rectangle("Position",[0.3 * x(end), 0.3* y(end), 0.4 * x(end), 0.4 * y(end)], 'Curvature', 1);
+ring = squeeze(mask);
+overlay = imshow(zeros([size(ring), 3]), XData=x, YData=y);
+overlay.AlphaData = 0.3 * ~ring;
+rectangle("Position",[0.2 * x(end), 0.2* y(end), 0.6 * x(end), 0.6 * y(end)], 'Curvature', 1, 'EdgeColor', [1,1,1]*.0, 'LineWidth', 2);
+rectangle("Position",[0.3 * x(end), 0.3* y(end), 0.4 * x(end), 0.4 * y(end)], 'Curvature', 1, 'EdgeColor', [1,1,1]*.0, 'LineWidth', 2);
 axis image;
 xlim([x(16) x(240)]);
 ylim([y(16) y(240)]);
-xlabel('x [mm]');
-ylabel('y [mm]');
-colorbar;
+%text(x(180), y(227), "10 mm", FontSize=14);
+cb = colorbar; cb.FontSize = 14;
+quiver(X(r,r), Y(r,r), U(r,r).', V(r,r).', 1.5, 'w', 'LineWidth', 1);
+scalebar_width = 10;
+rectangle("Position", [x(190), y(220), scalebar_width, y(10)], FaceColor='w', LineWidth=1.5);
+axis on;
+xticks([]);
+yticks([]);
 hold off;
-print(gcf, '-depsc', 'diffusion_ring.eps');
+print(gcf, '-dpdf', 'diffusion_ring.pdf');
 
 
 %% Compare accuracies between simulation methods
-sims = default_simulations(has_adjoint = true);
-%bare = compare_simulations(sim, source, default_simulations, preconditioned = false);
+sims = default_simulations();
+bare = compare_simulations(sim, source, default_simulations, preconditioned = false);
 [results, table] = compare_simulations(sim, source, sims);

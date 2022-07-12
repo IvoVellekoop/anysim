@@ -4,7 +4,7 @@
 
 % Note: in this simulation, all axes (including the time axis)
 % are in micrometers. The absorbtion coefficient and the diffusion
-% coeffecient both given in unit [um] and [1/um], respectively.
+% coefficient both given in unit [um] and [1/um], respectively.
 % To scale to time in seconds and diffusion coefficient in um^2/s just
 % divide or multiply by c (in um/s)
 %
@@ -65,7 +65,7 @@ analytical_solution = nan([4, opt.N]);
 analytical_solution(4, z_indices) = I_th(:);
 
 %% Compare to other methods and compute errors
-simulations = default_simulations(has_adjoint = true);
+simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
 bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=analytical_solution);
