@@ -6,7 +6,6 @@ classdef State < dynamicprops
     properties (SetAccess = private)
         iteration;
         start_time;
-        end_time;
         run_time;
         termination_condition_interval;
         termination_condition;
@@ -60,15 +59,14 @@ classdef State < dynamicprops
         end
         function reset(obj)
             obj.iteration = 1; %current iteration number
-            obj.start_time = cputime; %only measure time actually used by MATLAB
+            obj.start_time = tic; % using 'tic' and not 'cputime' because we need to include the gputime
             obj.running = true;
             obj.normb = [];
             obj.residuals = [];
             obj.residual_its = [];
         end
         function finalize(obj)
-            obj.end_time = cputime;
-            obj.run_time = obj.end_time - obj.start_time;
+            obj.run_time = toc(obj.start_time);
         end
     end
     

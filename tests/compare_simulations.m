@@ -122,7 +122,7 @@ header = header + "\\";
 data = sprintf("%s ", strrep(filename, '_', ' '));
 for r = rstore
     if r.iter < Nit && r.flag == 0
-        data = data + sprintf("& %d", r.iter);
+        data = data + sprintf("& %.1f (%d)", r.time, r.iter);
     elseif r.flag == 3
         data = data + sprintf("& s"); % stagnates, may be due too low machine precision
     else

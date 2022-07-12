@@ -12,7 +12,7 @@ opt.N = [256, 256];       % number of grid points in x,y
 opt.boundaries_width = 0; % all boundaries periodic
 opt.pixel_size = 0.25;
 opt.pixel_unit = 'mm';
-opt.callback = DisplayCallback(component = 4);
+%opt.callback = DisplayCallback(component = 4);
 opt.forward_operator = true;
 
 %% D is an anisotropic diffusion coefficient [10 0; 0 1], rotated over some angle

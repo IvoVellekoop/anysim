@@ -15,7 +15,7 @@ opt.N = 1024; %1-D simulation
 opt.pixel_size = 1;
 opt.pixel_unit = 'um';
 opt.boundaries_width = 0; %we manually define the boundaries inside the simulation domain
-opt.callback = DisplayCallback(component = 4);
+%opt.callback = DisplayCallback(component = 4);
 opt.termination_condition = TerminationCondition(relative_limit = 1E-5);
 opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
 
