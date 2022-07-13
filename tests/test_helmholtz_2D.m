@@ -22,10 +22,10 @@ src = imresize(im(:,:,2), oversampling, "bilinear");
 
 %% Set up simulation options
 opt = HelmholtzSimOptions();
-tol = 0.005;
+%tol = 0.005;
 opt.boundaries_width = 30; % 0=periodic
 %opt.callback = DisplayCallback();%plot_residual = true);
-opt.termination_condition = TerminationCondition(relative_limit = tol / 10, iteration_count = 1E6);
+opt.termination_condition = TerminationCondition(relative_limit = 1E-4, iteration_count = 1E6);
 opt.wavelength = 0.532;
 opt.pixel_size = opt.wavelength/(3*max(abs(n_contrast+1)));
 
@@ -67,14 +67,14 @@ simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations, tol = tol, iter=1E5);
+[precond, table] = compare_simulations(sim, source, simulations, iter=1E5);
 
 %% Compare with legacy method (wavesim)
 l_opt = opt;
 l_opt.legacy_mode = true;
 l_sim = HelmholtzSim(n, l_opt);
 l_source = l_sim.define_source(src);
-[l_precond, l_table] = compare_simulations(l_sim, l_source, simulations, tol = tol, iter=1E5);
+[l_precond, l_table] = compare_simulations(l_sim, l_source, simulations, iter=1E5);
 table(end+1) = "legacy " + l_table(2);
 
 %% 
