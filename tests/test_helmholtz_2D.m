@@ -67,7 +67,7 @@ simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations, tol = tol, iter=1E5);
+[precond, table] = compare_simulations(sim, source, simulations, tol = tol, iter=1E5, measure_time=true);
 
 %% Compare with legacy method (wavesim)
 l_opt = opt;
