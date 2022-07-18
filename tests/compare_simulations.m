@@ -145,7 +145,7 @@ for r = rstore
     end
 end
 if opt.measure_time
-    data = data + sprintf('\n\\\\%s, exec. time [s]', strrep(filename, '_', ' '));
+    data = data + sprintf('\\\\\n%s, exec. time [s]', strrep(filename, '_', ' '));
     for r = rstore
         if r.iter < Nit && r.flag == 0
             data = data + sprintf(" & %.1f", r.time);

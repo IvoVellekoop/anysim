@@ -15,8 +15,8 @@ all_results(end+1) = table(2); clear table;
 clearvars -except all_results;
 
 test_helmholtz_2D
-all_results(end+1) = table(2);
-all_results(end+1) = table(3); clear table;
+all_results(end+1) = table(3);  % Show the legacy (R-bias) before the C-bias
+all_results(end+1) = table(2); clear table;
 clearvars -except all_results;
 
 test_pantograph_complex

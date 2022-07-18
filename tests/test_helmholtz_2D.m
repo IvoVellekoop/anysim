@@ -77,7 +77,6 @@ l_sim = HelmholtzSim(n, l_opt);
 l_source = l_sim.define_source(src);
 [l_precond, l_table] = compare_simulations(l_sim, l_source, simulations, iter=1E5);
 table(end+1) = "legacy " + l_table(2);
-table([end-1, end]) = table([end, end-1]);  % Show legacy first
 
 %% 
 fprintf("Relative error compared to accurate simulation\n");
