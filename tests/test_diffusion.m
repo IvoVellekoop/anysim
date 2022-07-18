@@ -68,7 +68,7 @@ analytical_solution(4, z_indices) = I_th(:);
 simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
-bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=analytical_solution);
+bare = compare_simulations(sim, source, simulations, preconditioned=false, analytical_solution=analytical_solution);
 
 %%
 [precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);

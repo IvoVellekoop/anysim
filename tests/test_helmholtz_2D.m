@@ -28,6 +28,7 @@ opt.boundaries_width = 30; % 0=periodic
 opt.termination_condition = TerminationCondition(relative_limit = 1E-4, iteration_count = 1E6);
 opt.wavelength = 0.532;
 opt.pixel_size = opt.wavelength/(3*max(abs(n_contrast+1)));
+opt.gpu_enabled = false;
 
 %% create the AnySim object
 sim = HelmholtzSim(n, opt);
@@ -67,7 +68,7 @@ simulations = default_simulations();
 
 % without preconditioner, all methods diverge!
 %bare = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations, tol = tol, iter=1E5, measure_time=true);
+[precond, table] = compare_simulations(sim, source, simulations, iter=1E5, measure_time=true);
 
 %% Compare with legacy method (wavesim)
 l_opt = opt;
@@ -76,6 +77,7 @@ l_sim = HelmholtzSim(n, l_opt);
 l_source = l_sim.define_source(src);
 [l_precond, l_table] = compare_simulations(l_sim, l_source, simulations, iter=1E5);
 table(end+1) = "legacy " + l_table(2);
+table([end-1, end]) = table([end, end-1]);  % Show legacy first
 
 %% 
 fprintf("Relative error compared to accurate simulation\n");
