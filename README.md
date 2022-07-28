@@ -35,27 +35,21 @@ object fully describes the linear system and all details of the simulation.
 
 The constructor should check the validity of all inputs and fill in
 defaults for missing options. Importantly, it should set the properties
-`medium`, `propagator`, and `transform`. 
+`medium` and `propagator`. Note that the medium_adj and propagator_adj 
+properties are experimental at the moment. 
 
-`.medium`: An object deriving from the 'Medium' base class. This object
-  implements the operator `B:= 1-V = 1-Tl (V_raw-V0) Tr`, and typically is
-  implemented as a multiplication with a scattering potential in the 
+`.medium`: Returns a handle to a function implementing x -> (1-V) x.
+  Typically, this is implemented as a multiplication with a scattering potential in the 
   spatio-temporal domain.
-  For the diffusion equation, for example, a DiffusionMedium object is used,
-  which performs a multiplication with the absorption-(inverse)diffusion tensor.
+  For the diffusion equation, for example, the function
+  performs a multiplication with the absorption-(inverse)diffusion tensor.
   In preparing the medium, the scattering potential is first
   shifted by ~V0~ to minimze ‖V‖, and then scaled to have ‖V‖<1. The matrices
   responsible for this scaling (Tl and Tr) are stored in the Medium object.
 
-`.propagator`: This object corresponds to scaled operator `Tl (L+1)^(-1) Tr`, and typically
-  is implemented as a multiplication with a fixed function in the spatio-temporal frequency domain.
-  For the diffusion equation, the DiffusePropagator object corresponds
-  to a spatio-temporal differential operator, applied in the frequency
-  domain.
-
-`.transform`: This operator transforms between the domains of V and L
-  Typically, this is just a Fourier transform.
-
+`.propagator`: Returns a handle to a function implementing x -> (L+1)^{-1} x
+  Typically, this is implemented as a multiplication with a fixed function in the spatio-temporal frequency domain.
+ 
 
 ## Algorithm implementation
 ### Preconditioning
@@ -72,21 +66,18 @@ defaults for missing options. Importantly, it should set the properties
         % 3. ||V|| < 1 (but as close to 1 as conveniently possible)
     
     Implementation:
-    Tl, V0 and Tr are computed by the Medium object and stored in the
-    'scaling' structure property.
-    The Medium operator stores V'
-    The Source operator stores s'
-    The Propagator operator stores (L' + 1)^(-1)
-    After the iterations finishes, the algorithm returns u = Tr u'
+    Tl, V0 and Tr are computed using the center_scale function. Currently,
+    for vector potentials Tl = Tr are diagonal matrices, and for scalar
+    potentials Tl = 1 and Tr is a scalar.
 
 ### Iteration
 In the manuscript, the following iteration is derived:
     u -> (B Li B + 1 - B) u + B Li s
 
 which is implemented as:
-    t1 = B u + s            Medium.mix_source
-    t1 -> Li t1             Propagator.propagate
-    u -> u + alpha B (t1 - u)     Medium.mix_field
+    t1 = B u + s
+    t1 -> Li t1
+    u -> u + alpha B (t1 - u)
 
 requires:
 1 temporary storage (t1)
@@ -107,15 +98,9 @@ used to store diagnostics and debugging information.
 GridSim objects work with simulation data that can be represented on a
 regular grid. The data may be scalar, vector, or matrix-valued.
 
-Internally, all data is stored as a matrix field in an N-dimensional array 'u'.
-The first two dimensions of 'u' correspond to the size of a single value.
-For scalar simulations, these dimensions are [1,1]. For vector-valued
-data, the dimensions are [N_components,1], and for matrix-valued data
-they are [N, M]. Matrix-valued operators (B and V) follow the same data layout.
-
-When data is passed to the user (when returning from exec()), spurious
-dimensions are removed. So, a Nx x Ny scalar simulation will return a Nx x Ny
-array.
+When storing scalar fields, 'u' is an N-dimensional array. For vector fields
+or tensor fields, dimensions are added at the start of the array. For example
+to store a 3-element vector in a 3-D simulation: size(u) = [3, Nx, Ny, Nz]
 
 Each dimension may have a different pixel pitch and unit, this metadata
 is stored in a SimGrid object.

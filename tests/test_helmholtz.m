@@ -1,6 +1,8 @@
 %   Simple test of the HelmholtzSim toolbox
 %   (c) 2021. Ivo Vellekoop
 %
+%   This test simulates free-space propagation and compares the result to
+%   tha analytical solution.
 
 %% Set up simulation options
 opt = HelmholtzSimOptions();

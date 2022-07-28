@@ -1,6 +1,6 @@
 %   Simple test of the Pantograph toolbox
 %   (c) 2021. Ivo Vellekoop
-%
+%   Produces the figure in the manuscript.
 
 %% Simulation parameters
 opt = PantographOptions(); % clear any previous options

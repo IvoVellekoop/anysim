@@ -1,6 +1,7 @@
 %   Simple test of the HelmholtzSim toolbox
 %   (c) 2021. Ivo Vellekoop
 %
+%   Simulates propagation of light in a 2-D structure made of iron (uses the scalar wave equation)
 
 %% Construct refractive index structure
 % load the logo image

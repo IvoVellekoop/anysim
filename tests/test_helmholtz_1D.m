@@ -1,6 +1,7 @@
 %   Simple test of the HelmholtzSim toolbox
 %   (c) 2021. Ivo Vellekoop
 %
+%   Simulates 1-D propagation of light through a slab of glass
 
 %% Set up simulation options
 opt = HelmholtzSimOptions(); % clear any previous options

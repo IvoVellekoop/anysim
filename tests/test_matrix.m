@@ -1,3 +1,5 @@
+%% Experimental: tests solving a large matrix
+
 kappa = 1000;
 N = 1E5; 
 density = 1E-3;

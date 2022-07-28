@@ -1,3 +1,5 @@
+%% Runs the examples and produces the benchmark data and figures used in the manuscript
+
 clear all; close all;
 chdir(fileparts(mfilename('fullpath')));
 addpath("..");

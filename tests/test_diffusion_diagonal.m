@@ -1,8 +1,7 @@
 %   Simple test of the DiffuseSim toolbox
 %   (c) 2021. Ivo Vellekoop
 %
-% This test simulates steady state diffusion in a 1-D homogeneous medium
-% with absorption, and compares the result to the analytical solution
+% This test simulates diffusion in a medium with a diagonal diffusion tensor.
 %
 
 %% Set up simulation options
