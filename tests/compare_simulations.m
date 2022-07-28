@@ -7,6 +7,8 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
         opt.tol = 1E-3; % relative residual ‖Ax-b‖/‖b‖ termination condition. [] = auto: use residual of AnySim as tolerance.
         opt.iter = 25000; % [] = auto: use same number of operator evaluations as AnySim
         opt.preconditioned logical = true;
+        opt.measure_time logical = false;
+        opt.nb_time_measurements = 10;
     end
     %% Helper function to compare different simulation algorithms
     %   COMPARE_SIMULATIONS(SIM, SOURCE, METHODS, OPT) 
@@ -47,7 +49,6 @@ function [results, table] = compare_simulations(sim, source, methods, opt)
         results(M+1).residual = gather(norm(A(up(:))-b(:)) / norm(b(:))); % Residue = ‖Ax-b‖/‖b‖
     end
 
-
 if isempty(opt.tol)
     tol = results(M+1).residual;
 else
@@ -72,18 +73,32 @@ for m_i = 1:M
     else
         itfactor = 1;
     end
-    % reset interation count
-    state.reset();
+    % Repeat each calculation multiple times and make a table to compare the minimum execution times
+    if opt.measure_time
+        nb_time_measurements = opt.nb_time_measurements;
+    else
+        nb_time_measurements = 1;
+    end
+    run_times = zeros(1, nb_time_measurements);
+    for measurement_idx = 1:nb_time_measurements
+        % reset interation count
+        state.reset();
 
-    % run simulation and store results
-    fprintf("\n" + m.name + ": ");
-    [val, flag, relres, ~] = m.function(A, b, tol, max(ceil(Nit / itfactor - 1), 1));
-    state.finalize();
+        % run simulation and store results
+        fprintf("\n");
+        if opt.measure_time
+            fprintf("\n time measurement %d/%d ", measurement_idx, nb_time_measurements);
+        end
+        fprintf(m.name + ": ");
+        [val, flag, relres, ~] = m.function(A, b, tol, max(ceil(Nit / itfactor - 1), 1));
+        state.finalize();
+        run_times(measurement_idx) = state.run_time;
+    end
     results(m_i).flag = flag;
     results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
     results(m_i).name = m.name;
     results(m_i).value = sim.finalize(val);
-    results(m_i).time = state.run_time;
+    results(m_i).time = min(run_times); % state.run_time;
         
     % Relative residual =: ‖Ax-b‖/‖b‖
     results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);
@@ -112,21 +127,33 @@ S = dbstack();
 filename = S(2).file(6:end-2); % remove test_ and .m
 disp(filename)
 
-header = "";
+header = '';
 for r = rstore
     name = strrep(strrep(r.name, 'α', '$\alpha$'), '_', ' ');
     header = header + sprintf("& \\rotatebox{90}{%s}", name);
 end
-header = header + "\\";
+header = header + '\\';
 
 data = sprintf("%s ", strrep(filename, '_', ' '));
 for r = rstore
     if r.iter < Nit && r.flag == 0
-        data = data + sprintf("& %.1f (%d)", r.time, r.iter);
+        data = data + sprintf(" & %d", r.iter);
     elseif r.flag == 3
-        data = data + sprintf("& s"); % stagnates, may be due too low machine precision
+        data = data + sprintf(" & s"); % stagnates, may be due too low machine precision
     else
-        data = data + sprintf("& -");
+        data = data + sprintf(" & -");
+    end
+end
+if opt.measure_time
+    data = data + sprintf('\\\\\n%s, exec. time [s]', strrep(filename, '_', ' '));
+    for r = rstore
+        if r.iter < Nit && r.flag == 0
+            data = data + sprintf(" & %.1f", r.time);
+        elseif r.flag == 3
+            data = data + sprintf(" & s"); % stagnates, may be due too low machine precision
+        else
+            data = data + sprintf(" & -");
+        end
     end
 end
 data = data + "\\";

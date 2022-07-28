@@ -101,5 +101,5 @@ print(gcf, '-dpdf', 'diffusion_ring.pdf');
 
 %% Compare accuracies between simulation methods
 sims = default_simulations();
-bare = compare_simulations(sim, source, default_simulations, preconditioned = false);
+bare = compare_simulations(sim, source, default_simulations, preconditioned=false);
 [results, table] = compare_simulations(sim, source, sims);
