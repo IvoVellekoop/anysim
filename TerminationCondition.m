@@ -9,7 +9,7 @@ classdef TerminationCondition
     %         For grid-based simulations, by default this function
     %         crops 'u' to the roi and computes the norm squared.
     %       * The residual is below a certain relative limit (specified in 
-    %         OPT.relative_error). The value is relative to the norm of
+    %         OPT.tolerance). The value is relative to the norm of
     %         the source vector. This is the typical 'tolerance' used in
     %         MATLAB builtin functions.
     %       * The residual is above a certain relative limit, or it is a NaN.
@@ -19,7 +19,7 @@ classdef TerminationCondition
     properties
         iteration_count (1,1) double = 1E4
         absolute_limit (1,1) double = 1E-12
-        relative_limit (1,1) double = 1E-3
+        tolerance (1,1) double = 1E-3
         divergence_limit (1,1) double = 1E12
     end
     
@@ -38,7 +38,7 @@ classdef TerminationCondition
             current_residual = state.residuals(end);
             terminate = state.iteration >= obj.iteration_count ||...
                 current_residual <= obj.absolute_limit || ...
-                current_residual / state.normb <= obj.relative_limit || ...
+                current_residual / state.normb <= obj.tolerance || ...
                 current_residual / state.normb >= obj.divergence_limit;
         end
     end

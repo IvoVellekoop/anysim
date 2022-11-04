@@ -8,8 +8,7 @@ opt.pixel_size = 0.01;
 opt.N = round(15/opt.pixel_size);
 opt.boundaries_width = 0; % don't add boundaries
 opt.callback = DisplayCallback();
-%opt.callback_interval = 1;
-%opt.termination_condition_interval = 1;
+opt = override_options(opt); % globally override options when calling this simulation from a script (see test_all)
 
 %% Medium parameters
 lambda = 1; %0.5; %1.5
@@ -31,12 +30,11 @@ source = sim.define_source(src(:));
 % note: the preconsitioned system has real eigenvalues, but it is
 % non-normal and nonsymmetric.
 simulations = default_simulations();
-%no_precond = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations);
+results = compare_simulations(sim, source, simulations);
 %%
-plot(z, precond(end).value);
+plot(z, results(end).value);
 xlabel('t [s]');
 ylabel('f(t)');
 
 %%
-inspect_sim(sim);
+%inspect_sim(sim);

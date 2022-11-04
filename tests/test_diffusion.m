@@ -15,10 +15,9 @@ opt.N = 1024; %1-D simulation
 opt.pixel_size = 1;
 opt.pixel_unit = 'um';
 opt.boundaries_width = 0; %we manually define the boundaries inside the simulation domain
-%opt.callback = DisplayCallback(component = 4);
-opt.termination_condition = TerminationCondition(relative_limit = 1E-5);
-opt.forward_operator = true; % for testing and comparison with MATLAB algorithms
-
+opt.callback = DisplayCallback(component = 4);
+opt.termination_condition = TerminationCondition(tolerance = 1E-3);
+opt = override_options(opt); % globally override options when calling this simulation from a script (see test_all)
 
 %% Medium parameters
 N_boundary = 200;   % boundary width in pixels
@@ -67,16 +66,13 @@ analytical_solution(4, z_indices) = I_th(:);
 %% Compare to other methods and compute errors
 simulations = default_simulations();
 
-% without preconditioner, all methods diverge!
-bare = compare_simulations(sim, source, simulations, preconditioned=false, analytical_solution=analytical_solution);
+%%
+results = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
+%%
+%[L, GL] = simulation_eigenvalues(sim);
 
 %%
-[precond, table] = compare_simulations(sim, source, simulations, analytical_solution=analytical_solution);
-%%
-[L, GL] = simulation_eigenvalues(sim);
-
-%%
-semilogy(z, precond(end).value(4,:));
+semilogy(z, results(end).value(4,:));
 hold on;
 semilogy(z, analytical_solution);
 hold off;

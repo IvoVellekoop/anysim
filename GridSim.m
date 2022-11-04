@@ -112,7 +112,7 @@ classdef GridSim < AnySim
             Dscalar = obj.data_array(0); % avoid code duplication with data_array
             D = zeros([N 1], 'like', Dscalar);
         end
-        function u = preconditioner(obj, u)
+        function u = preconditioner(obj, u, state)
             % SIM.PRECONDITIONER(U) returns (1-V)(L+1)^(-1)U
             %
             % For compatibility with MATLAB built in algorithms
@@ -120,7 +120,7 @@ classdef GridSim < AnySim
             %
             % Also see AnySim.preconditioner
             u = reshape(u, [obj.grid.N_u, 1]); 
-            u = preconditioner@AnySim(obj, u);
+            u = preconditioner@AnySim(obj, u, state);
             u = u(:);
         end
         function [f, state] = preconditioned(obj)
@@ -131,16 +131,6 @@ classdef GridSim < AnySim
             % A
             % Also see AnySim.preconditioned
             [A, state] = preconditioned@AnySim(obj);
-            f = @(u, varargin) reshape(A(reshape(u, [obj.grid.N_u, 1]), varargin{:}), [], 1); 
-        end
-        function [f, state] = operator(obj)
-            % SIM.OPERATOR(U) Returns (L+V)U
-            %
-            % For compatibility with MATLAB built in algorithms
-            % such as GMRES, the input and output are column vectors
-            %
-            % Also see AnySim.operator
-            [A, state] = operator@AnySim(obj);
             f = @(u, varargin) reshape(A(reshape(u, [obj.grid.N_u, 1]), varargin{:}), [], 1); 
         end
         function u = finalize(obj, u)

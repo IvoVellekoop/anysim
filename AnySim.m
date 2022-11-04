@@ -18,7 +18,7 @@ classdef (Abstract) AnySim
         medium_adj = @AnySim.medium_adj_err
         propagator_adj = @AnySim.propagator_adj_err
         L           % Function handle or matrix for the 
-                    % 'forward' operator L.
+        L_adj       % 'forward' operator L.
                     % Since this operators are not needed by anysim
                     % itself, it is only generated when 
                     % opt.forward_operator == true
@@ -35,15 +35,41 @@ classdef (Abstract) AnySim
             obj.opt = opt;
         end
         
-        function x = preconditioner(obj, x)
-            % SIM.PRECONDITIONER(X) returns B(L+1)^(-1) X
+        function x = preconditioner(obj, x, state)
+            % SIM.PRECONDITIONER(X) applies the selected (inverse) preconditioner on X
+            % By default, this is B(L+1)^(-1) X
             %
             % Note: this function is not used by the anysim
             % algorithm itself, but it can be used to compare
             % anysim so other algoriths (such as GMRES)
             %
-            x = obj.propagator(x);
-            x = obj.medium(x);
+            switch obj.opt.preconditioner
+            case "none"
+                x = x;
+            case "shift" % Bai, Zhong-zhi, et al. “A SHIFT-SPLITTING PRECONDITIONER FOR NON-HERMITIAN POSITIVE DEFINITE MATRICES.” Journal of Computational Mathematics, vol. 24, no. 4, 2006, pp. 539–52.
+                x = obj.propagator(x);
+                [x,~] = gmres(@(u) shift(obj, u, state), x(:), 5, 1E-1);
+                x = 2 * reshape(x, [obj.grid.N_u, 1]);
+            case "hermitian"
+                error ("not implemented")
+            case "skew-hermitian"
+                error ("not implemented")
+            case "moborn"
+                x = obj.propagator(x);
+                x = obj.medium(x);
+            case "circulant"
+                x = obj.propagator(x);
+            end
+
+            function t1 = shift(obj, u, state)
+                % compute forward operator (L+1-B) plus offset
+                u = reshape(u, [obj.grid.N_u, 1]);
+                t1 = obj.L(u) + (obj.opt.preconditioner_shift + 1) * u - obj.medium(u);
+                t1 = obj.propagator(t1);
+                t1 = t1(:);
+               % state.next(u(:), t1(:)); % keep track of evaluations of operator L
+               % state.next(u(:), t1(:)); % keep track of evaluations of operator L
+            end
         end
         
         function [u, state] = exec(obj, b)
@@ -84,65 +110,36 @@ classdef (Abstract) AnySim
         function [f, state] = preconditioned(obj)
             % SIM.PRECONDITIONED(U) returns a function to evaluate the preconditioned operators
             % 
+            % For the AnySim proeconditioner, evaluation of the preconditioned operator is optimized
+            % so that the forward operator is eliminated. For other
+            % preconditioners, this function first applies the forward
+            % operator and then the preconditioner separately (see
+            % obj.preconditioner)
+
             % Usage:
             % A = sim.preconditioned
             % A(u)                      % computes (1-V)(L+1)^(-1) (L+V) u
             % 
-            % Note: (L+1)^(-1) L = 1-(L+1)^(-1)
-            % So: (1-V)(L+1)^(-1) (L+V)  
-            %  =  (1-V)[1 - (L+1)^(-1)] + (1-V)(L+1)^(-1) V 
-            %  =  (1-V)[1-(L+1)^(-1)(1-V)]
-            %  = B[1-(L+1)^{-1} B]
-            % 
-            % and the adjoint:
-            %  =  [1-(1-V*)(L*+1)^(-1)](1-V*)
-            %  =  (1-V*)[1-(L*+1)^(-1)](1-V*)
-            % (so we can just take the adjoint of V and L and perform the
-            % same sequence of operations)
-            %
             [~, state] = obj.start();
-            f = @(varargin) apply_preconditioned(obj, state, varargin{:}); 
+            if obj.opt.preconditioner == "moborn"
+                f = @(u) moborn(obj, state, u);
+            else
+                f = @(u) preconditioned(obj, state, u);
+            end
 
-            function t1 = apply_preconditioned(obj, state, u, transpose_flag)
-                if nargin == 4 && strcmp(transpose_flag,'transp')
-                    t1 = obj.medium_adj(u);         % (1-V*)u
-                    t1 = obj.propagator_adj(t1);    % (L*+1)^(-1) (1-V*)u
-                    t1 = obj.medium_adj(u - t1);    % (1-V*) (u-t1)
-                else
-                    t1 = obj.medium(u);         % (1-V)u
-                    t1 = obj.propagator(t1);    % (L+1)^(-1) (1-V)u
-                    t1 = obj.medium(u - t1);    % (1-V) (u-t1)
-                end
+            function t1 = forward(obj, state, u)
+                t1 = obj.L(u) + u - obj.medium(u); % L + V = L + 1 - (1-V)
                 state.next(u, t1);
             end
-        end
-        
-        function [f, state] = operator(obj)
-            % SIM.OPERATOR(U) Returns (L+V)U
-            %
-            % U should be in the domain of V (typically real space)
-            %
-            % Note: this function is not used by the anysim
-            % algorithm itself, but it can be used to compare
-            % anysim so other algoriths (such as GMRES), or to
-            % compute the final residual ‖(L+V)U - S‖
-            %
-            % Note: because this operator is usually not needed and 
-            % construction may be expensive, it is only constructed when
-            % the option .forward_operator == true
-            %
-            % Note: These are the scaled L and V, without
-            % preconditioner
-            %            
-            if isempty(obj.L) 
-                error('No forward operator was generated, set opt.forward_operator=true and verify that this simulation supports forward operator generation');
+
+            function t1 = preconditioned(obj, state, u)
+                t1 = obj.preconditioner(forward(obj, state, u), state);
             end
 
-            [~, state] = obj.start();
-            f = @(varargin) forward_operator(obj, state, varargin{:});
-
-            function t1 = forward_operator(obj, state, u, transpose_flag)
-                t1 = obj.L(u) + u - obj.medium(u); % L + V = L + 1 - (1-V)
+            function t1 = moborn(obj, state, u)
+                t1 = obj.medium(u);         % (1-V)u
+                t1 = obj.propagator(t1);    % (L+1)^(-1) (1-V)u
+                t1 = obj.medium(u - t1);    % (1-V) (u-t1)
                 state.next(u, t1);
             end
         end

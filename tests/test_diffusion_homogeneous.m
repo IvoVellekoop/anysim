@@ -56,10 +56,9 @@ u_th(4, :) = I_th;
 
 simulations = default_simulations();
 % without preconditioner, all methods diverge!
-%bare = compare_simulations(sim, source, simulations, preconditioned = false, analytical_solution=u_th);
 
 %% Repeat with preconditioner
-precond = compare_simulations(sim, source, simulations, analytical_solution = u_th);
+results = compare_simulations(sim, source, simulations, analytical_solution = u_th);
 
 
 

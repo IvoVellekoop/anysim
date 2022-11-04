@@ -29,7 +29,7 @@ tol = 1E-8;
 maxit = 1E3;
 opt = AnySimOptions;
 opt.precision = "double";
-opt.termination_condition.relative_limit = tol;
+opt.termination_condition.tolerance = tol;
 opt.termination_condition.iteration_count = maxit;
 opt.gpu_enabled = false;
 
@@ -38,5 +38,5 @@ sim = MatrixSolve(A, opt);
 
 simulations = default_simulations();
 simulations(1:6) = []; % only execute AnySim original and conjugate gradient
-[precond, table] = compare_simulations(sim, b, simulations, tol=tol, analytical_solution=xcorrect);
+results = compare_simulations(sim, b, simulations, tol=tol, analytical_solution=xcorrect);
 disp(norm(A * precond(1).value - b)/norm(b))

@@ -51,7 +51,4 @@ axis image;
 
 %% Compare to other methods and compute errors
 simulations = default_simulations();
-
-% without preconditioner, all methods diverge!
-% bare = compare_simulations(sim, source, simulations, preconditioned = false);
-[precond, table] = compare_simulations(sim, source, simulations);
+results = compare_simulations(sim, source, simulations);

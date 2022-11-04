@@ -60,8 +60,7 @@ print(gcf, '-dpdf', 'pantograph.pdf');
 
 %% compare different iterative methods (for b negative)
 simulations = default_simulations();
-%[bare, table] = compare_simulations(sim, source, simulations, preconditioned=false);
-[precond, table] = compare_simulations(sim, source, simulations);
+results = compare_simulations(sim, source, simulations);
 
 %%
 inspect_sim(sim);

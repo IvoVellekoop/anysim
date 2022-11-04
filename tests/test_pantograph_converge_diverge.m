@@ -11,7 +11,7 @@ opt = PantographOptions(); % clear any previous options
 opt.pixel_size = 0.01;
 opt.N = round(10/opt.pixel_size);
 opt.boundaries_width = 800;
-opt.termination_condition = TerminationCondition(relative_limit= 1E-10, divergence_limit = 1E100);
+opt.termination_condition = TerminationCondition(tolerance= 1E-10, divergence_limit = 1E100);
 opt.termination_condition_interval = 1;
 opt.V_max = 0.5;
 %opt.callback = DisplayCallback(plot_residual = true);
@@ -40,8 +40,8 @@ src = f_init(z(1:t0));
 source = sim.define_source(src);
 
 %% Perform the different simulations and compare the results
-[precond, ~] = compare_simulations(sim, source, default_simulations);
-[no_precond, table_no_precond] = compare_simulations(sim, source, default_simulations, preconditioned=false);
+precond = compare_simulations(sim, source, default_simulations);
+no_precond = compare_simulations(sim, source, default_simulations, preconditioned=false);
 
 %% Repeat with (anti-)symmetrized equation
 s_opt = opt;
@@ -49,7 +49,7 @@ s_opt.accretive = false; % symmetrize system
 s_sim = PantographF(a, b, lambda, t0, s_opt);
 s_source = s_sim.define_source(src);
 
-[s_precond, table] = compare_simulations(s_sim, s_source, default_simulations);
+s_precond = compare_simulations(s_sim, s_source, default_simulations);
 
 %%
 %signal = [src; precond(end).value];

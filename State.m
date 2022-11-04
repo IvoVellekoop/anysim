@@ -48,8 +48,11 @@ classdef State < dynamicprops
                 obj.residual_its = [obj.residual_its, obj.iteration];
                 obj.running = ~obj.termination_condition.call(obj);
                 if ~isfinite(nr)
-                    warning("Terminating simulation, found non-finite residual %f", nr);
-                    obj.running = false;
+                    if obj.running
+                        %warning("Terminating simulation, found non-finite residual %f", nr);
+                        error("Terminating simulation, found non-finite residual %f", nr);
+                        obj.running = false;
+                    end
                 end
             end
             if mod(obj.iteration-1, obj.callback_interval) == 0 && ~isempty(obj.callback)

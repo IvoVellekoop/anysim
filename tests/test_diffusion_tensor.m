@@ -14,6 +14,8 @@ opt.pixel_size = 0.25;
 opt.pixel_unit = 'mm';
 %opt.callback = DisplayCallback(component = 4);
 opt.forward_operator = true;
+opt = override_options(opt); % globally override options when calling this simulation from a script (see test_all)
+
 
 %% D is an anisotropic diffusion coefficient [10 0; 0 1], rotated over some angle
 x = shiftdim(((1:opt.N(1))-opt.N(1)/2) / opt.N(1), -1);
@@ -101,5 +103,4 @@ print(gcf, '-dpdf', 'diffusion_ring.pdf');
 
 %% Compare accuracies between simulation methods
 sims = default_simulations();
-bare = compare_simulations(sim, source, default_simulations, preconditioned=false);
-[results, table] = compare_simulations(sim, source, sims);
+results = compare_simulations(sim, source, sims);

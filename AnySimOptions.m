@@ -42,6 +42,15 @@ classdef AnySimOptions
         termination_condition_interval = 16;
         callback = TextCallback();
         callback_interval = 25;
+        
+        % for comparison with other preconditioners
+        % note that 'shift', 'hermitian' and 'skew-hermitian' represent the
+        % inner loop of a two-step preconditioner. That is, they return
+        % A+shift, H+shift and S+shift, respectively, which is then to be
+        % inverted by the outer algoritm. Therefore, these options do not
+        % solve the actual equation.
+        preconditioner string {mustBeTextScalar, mustBeMember(preconditioner, ["none", "moborn", "circulant", "shift", "hermitian", "skew-hermitian"])} = "moborn";
+        preconditioner_shift double; % shift for shifting preconditioner
     end
     methods
         function obj = validate(obj)

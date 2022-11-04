@@ -1,8 +1,65 @@
-& \rotatebox{90}{GMRES20}& \rotatebox{90}{GMRES5}& \rotatebox{90}{BiCGSTAB}& \rotatebox{90}{Rich100}& \rotatebox{90}{Rich90}& \rotatebox{90}{Rich80}& \rotatebox{90}{Rich70}\\
-diffusion  & 50 & 150 & 59 & 579 & 643 & 724 & 827\\
-diffusion tensor  & 87 & 249 & 69 & 372 & 413 & 465 & 531\\
-helmholtz 1D  & 306 & 301 & 431 & 464 & 324 & 306 & 315\\
-legacy helmholtz 2D  & 2139 & 3249 & 3097 & 8067 & 8856 & 9866 & 11179\\
-helmholtz 2D  & 1935 & 3140 & 3081 & 28818 & 7968 & 6026 & 6176\\
-helmholtz 2D, exec. time [s] & 71.3 & 48.1 & 16.6 & 117.2 & 32.5 & 24.5 & 25.2\\
-pantograph complex  & 21 & 25 & 22 & 24 & 27 & 30 & 34\\
+===
+{"preconditioner":"none"}
+===
+
+& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70& BiCGSTAB(l)\\
+\hline
+diffusion isotropic (homogeneous slab)  & - & - & - & - & - & - & - & -\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & - & - & - & - & - & - & - & -\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & - & - & - & - & - & - & - & -\\
+
+===
+{"preconditioner":"moborn"}
+===
+
+& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70& BiCGSTAB(l)\\
+\hline
+diffusion isotropic (homogeneous slab)  & 87 & 325 & 77 & - & - & - & - & 79\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 179 & 567 & 112 & 864 & 953 & - & - & 105\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & 398 & 372 & - & 726 & 418 & 391 & 401 & -\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & 19 & 27 & 26 & 160 & 41 & 46 & 53 & 25\\
+
+===
+{"preconditioner":"shift","preconditioner_shift":1}
+===
+
+& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70& BiCGSTAB(l)\\
+\hline
+diffusion isotropic (homogeneous slab)  & - & 228 & - & - & 874 & 970 & - & -\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & - & - & - & - & - & - & - & -\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & - & 30 & - & - & 56 & 24 & 18 & -\\
+
+===
+{"preconditioner":"shift","preconditioner_shift":0.5}
+===
+
+& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70& BiCGSTAB(l)\\
+\hline
+diffusion isotropic (homogeneous slab)  & - & 163 & - & - & - & - & 584 & -\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & - & - & - & - & - & - & - & -\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & - & 25 & 30 & - & 49 & 23 & 14 & -\\
+
+===
+{"preconditioner":"shift","preconditioner_shift":2}
+===
+
+& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70& BiCGSTAB(l)\\
+\hline
+diffusion isotropic (homogeneous slab)  & - & 284 & - & - & - & - & - & -\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & - & - & - & - & - & - & - & -\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & - & 536 & - & - & - & 729 & 449 & -\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & - & - & - & - & - & - & - & -\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & - & 34 & - & 74 & 33 & 28 & 29 & -\\
+
