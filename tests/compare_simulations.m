@@ -32,6 +32,7 @@ function results = compare_simulations(sim, source, methods, opt)
     results(M+1).residual = state.residuals(end);
     results(M+1).time = state.run_time;
     results(M+1).flag = 0;
+    results(M+1).iter_intern = 0;
     
     [A, state] = sim.preconditioned;
     b = sim.preconditioner(source, state);
@@ -73,16 +74,17 @@ function results = compare_simulations(sim, source, methods, opt)
                 [val, flag, relres, ~] = m.function(A, b, tol, max(ceil(Nit / itfactor - 1), 1));
             catch err
                 warning(err.message);
+                val = NaN * ones(sim.grid.N_u); flag = 5; relres = NaN;
             end
             state.finalize();
             run_times(measurement_idx) = state.run_time;
         end
         results(m_i).flag = flag;
-        results(m_i).iter = state.iteration + 1; %1 extra for computing preconditioned sources
+        results(m_i).iter = state.iteration;
         results(m_i).name = m.name;
         results(m_i).value = sim.finalize(val);
         results(m_i).time = min(run_times); % state.run_time;
-            
+        results(m_i).iter_intern = state.internal_iteration;    
         % Relative residual =: ‖Ax-b‖/‖b‖
         results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);
     end

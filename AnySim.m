@@ -46,9 +46,16 @@ classdef (Abstract) AnySim
             switch obj.opt.preconditioner
             case "none"
                 x = x;
-            case "shift" % Bai, Zhong-zhi, et al. “A SHIFT-SPLITTING PRECONDITIONER FOR NON-HERMITIAN POSITIVE DEFINITE MATRICES.” Journal of Computational Mathematics, vol. 24, no. 4, 2006, pp. 539–52.
+            case "shift" 
+                % Bai, Zhong-zhi, et al. “A SHIFT-SPLITTING PRECONDITIONER FOR NON-HERMITIAN POSITIVE DEFINITE MATRICES.” Journal of Computational Mathematics, vol. 24, no. 4, 2006, pp. 539–52.
+                % Γ = 1/2 (A + αI)
+                % The preconditioner is evaluated with a nested iterative algorithm.
+                % However, a preconditioner is needed for this nested algorithm too.
+                % For that, we use the circulant preconditioner
+                % therefore, here we solve:
+                % (L+1)^-1 y = (L+1)^-1 1/2 (A + αI) x
                 x = obj.propagator(x);
-                [x,~] = gmres(@(u) shift(obj, u, state), x(:), 5, 1E-1);
+                [x,flag] = bicgstab(@(u) shift(obj, u, state), x(:), 1E-3, 100);
                 x = 2 * reshape(x, [obj.grid.N_u, 1]);
             case "hermitian"
                 error ("not implemented")
@@ -62,11 +69,13 @@ classdef (Abstract) AnySim
             end
 
             function t1 = shift(obj, u, state)
-                % compute forward operator (L+1-B) plus offset
+                % compute preconditioned shifted forward operator:
+                % (L+1)^-1(A + α) = (L+1)^-1 (L+1+α-B) = 1 + (L+1)^-1 (α-B)
+                % preconditioned with 
                 u = reshape(u, [obj.grid.N_u, 1]);
-                t1 = obj.L(u) + (obj.opt.preconditioner_shift + 1) * u - obj.medium(u);
-                t1 = obj.propagator(t1);
+                t1 = u + obj.propagator(obj.opt.preconditioner_shift * u - obj.medium(u));
                 t1 = t1(:);
+                state.internal_iteration = state.internal_iteration + 1;
                % state.next(u(:), t1(:)); % keep track of evaluations of operator L
                % state.next(u(:), t1(:)); % keep track of evaluations of operator L
             end

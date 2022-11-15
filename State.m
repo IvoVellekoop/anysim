@@ -18,6 +18,7 @@ classdef State < dynamicprops
     end
     properties
         source = []; % for use in matlab-style iterative schemes 
+        internal_iteration;
     end
     
     methods
@@ -26,6 +27,7 @@ classdef State < dynamicprops
             obj.callback = opt.callback.prepare(sim);
             obj.termination_condition_interval = opt.termination_condition_interval; % how often to analyze the update du (for termination condition and/or visual feedback)
             obj.termination_condition = opt.termination_condition.prepare(sim);
+            obj.internal_iteration = 0;
             obj.reset();
         end
         function next(obj, u, r)
