@@ -1,60 +1,58 @@
-===
-{"preconditioner":"circulant"}
-===
 
-& GMRES20& GMRES5& BiCGSTAB& BiCGSTAB(l)& Rich100& Rich90& Rich80& Rich70\\
+
+
+\textbf{none}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70\\
 \hline
-diffusion isotropic (homogeneous slab)  & 47 & 137 & 57 & 54 & 1084 & 1204 & 1355 & 1548\\
-diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 119 & 252 & 116 & 114 & 841 & 934 & 1051 & 1201\\
-Helmholtz 1-D (glass plate, $n=1.5$)  & 1449 & m & s & d & d & d & d & d\\
-Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & 2861 & 5251 & 3926 & d & 16448 & 17357 & 18495 & 20315\\
-Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & 2842 & 5092 & 3568 & d & m & m & m & m\\
-Helmholtz 2-D $\bbR$ bias, low-contrast  & 306 & 702 & 582 & d & d & d & d & d\\
-Helmholtz 2-D $\bbC$ bias, low-contrast  & 294 & 659 & 606 & d & d & d & d & d\\
-pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & 9 & 10 & 10 & 12 & 10 & 12 & 14 & 16\\
+diffusion isotropic (homogeneous slab)  & m & m & d & d & d & d & d\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & \textbf{   6.8 k} &    9.8 k & d & d & d & d & d\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \textbf{   1.2 k} &    2.6 k &    3.7 k & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   9.5 k} &   26.7 k & d & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   9.5 k} &   26.3 k & d & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & \textbf{   3.2 k} &    7.1 k & s & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \textbf{   3.1 k} &    7.1 k & s & d & d & d & d\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & m & m & \textbf{   3.0 k} & d & d & d & d\\
+\end{tabular}
 
-===
-{"preconditioner":"none"}
-===
-
-& GMRES20& GMRES5& BiCGSTAB& BiCGSTAB(l)& Rich100& Rich90& Rich80& Rich70\\
+\textbf{circulant}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70\\
 \hline
-diffusion isotropic (homogeneous slab)  & m & m & d & i & d & d & d & d\\
-diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 6840 & 9835 & d & d & d & d & d & d\\
-Helmholtz 1-D (glass plate, $n=1.5$)  & 1155 & 2567 & 3680 & d & d & d & d & d\\
-Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & 9487 & 26706 & d & d & d & d & d & d\\
-Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & 9483 & 26314 & d & d & d & d & d & d\\
-Helmholtz 2-D $\bbR$ bias, low-contrast  & 3154 & 7080 & s & d & d & d & d & d\\
-Helmholtz 2-D $\bbC$ bias, low-contrast  & 3149 & 7138 & s & d & d & d & d & d\\
-pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & m & m & 2971 & d & d & d & d & d\\
+diffusion isotropic (homogeneous slab)  & \textbf{47} & 137 & 57 &    1.1 k &    1.2 k &    1.4 k &    1.5 k\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 119 & 252 & \textbf{116} & 841 & 934 &    1.1 k &    1.2 k\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \textbf{   1.4 k} & m & s & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   2.9 k} &    5.3 k &    3.9 k &   16.4 k &   17.4 k &   18.5 k &   20.3 k\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   2.8 k} &    5.1 k &    3.6 k & m & m & m & m\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & \textbf{306} & 702 & 582 & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \textbf{294} & 659 & 606 & d & d & d & d\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \textbf{9} & 10 & 10 & 10 & 12 & 14 & 16\\
+\end{tabular}
 
-===
-{"preconditioner":"moborn"}
-===
 
-& GMRES20& GMRES5& BiCGSTAB& BiCGSTAB(l)& Rich100& Rich90& Rich80& Rich70\\
+\textbf{shift}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70\\
 \hline
-diffusion isotropic (homogeneous slab)  & 49 & 149 & 60 & s & 578 & 642 & 722 & 826\\
-diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 86 & 248 & 68 & 68 & 371 & 412 & 464 & 530\\
-Helmholtz 1-D (glass plate, $n=1.5$)  & 305 & 300 & 430 & d & 463 & 323 & 305 & 314\\
-Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & 3175 & 4680 & 3513 & d & 11012 & 12121 & 13528 & 15361\\
-Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & 2785 & 4537 & 3438 & d & 29510 & 8437 & 7733 & 8388\\
-Helmholtz 2-D $\bbR$ bias, low-contrast  & 125 & 142 & 122 & d & 196 & 129 & 132 & 146\\
-Helmholtz 2-D $\bbC$ bias, low-contrast  & 124 & 140 & 121 & d & 173 & 127 & 132 & 146\\
-pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & 13 & 17 & 18 & 20 & 88 & 23 & 26 & 30\\
+diffusion isotropic (homogeneous slab)  & s & \textbf{   1.6 k (50)} & s & i &   12.3 k (195) &   17.4 k (210) &   23.3 k (240)\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & \textbf{801 (28)} &    2.1 k (52) &    3.0 k (36) &   92.4 k (   3.8 k) &   95.4 k (123) &   98.8 k (138) & i\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \textbf{   2.8 k (97)} &    5.3 k (106) & s & i &    0.7 M (67) &    0.7 M (65) &    0.7 M (75)\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & s & \textbf{   0.3 M (   2.7 k)} & s & m &    1.1 M (   3.5 k) &    1.2 M (   3.6 k) &    1.2 M (   3.9 k)\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & s & \textbf{   0.2 M (   1.4 k)} & s & i &    1.1 M (   1.6 k) &    1.1 M (   1.7 k) &    1.2 M (   1.9 k)\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & s & \textbf{   8.4 k (48)} &   12.6 k (41) & i &    0.3 M (67) &    0.3 M (31) &    0.3 M (38)\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \textbf{   3.2 k (35)} &    6.3 k (41) &    9.7 k (38) & i &    0.4 M (37) &    0.4 M (32) &    0.4 M (36)\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \textbf{92 (9)} & 184 (10) & 263 (9) &   20.1 k (   1.8 k) &   20.4 k (27) &   20.5 k (13) &   20.6 k (8)\\
+\end{tabular}
 
-===
-{"preconditioner":"shift","preconditioner_shift":0.5}
-===
 
-& GMRES20& GMRES5& BiCGSTAB& BiCGSTAB(l)& Rich100& Rich90& Rich80& Rich70\\
+\textbf{moborn}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& Rich100& Rich90& Rich80& Rich70\\
 \hline
-diffusion isotropic (homogeneous slab)  & s & 1640 (50) & s & s & i & 12294 (195) & 17441 (210) & 23317 (240)\\
-diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 801 (28) & 2150 (52) & 2983 (36) & s & 92387 (3824) & 95414 (123) & 98791 (138) & i\\
-Helmholtz 1-D (glass plate, $n=1.5$)  & 2775 (97) & 5276 (106) & s & i & i & 651858 (67) & 653337 (65) & 655047 (75)\\
-Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & s & 282611 (2726) & s & i & m & 1100685 (3543) & 1152304 (3591) & 1208608 (3913)\\
-Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & s & 156012 (1428) & s & i & i & 1093350 (1640) & 1134109 (1703) & 1179509 (1897)\\
-Helmholtz 2-D $\bbR$ bias, low-contrast  & s & 8403 (48) & 12624 (41) & s & i & 260842 (67) & 263199 (31) & 266074 (38)\\
-Helmholtz 2-D $\bbC$ bias, low-contrast  & 3232 (35) & 6328 (41) & 9721 (38) & i & i & 383960 (37) & 386199 (32) & 388737 (36)\\
-pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & 92 (9) & 184 (10) & 263 (9) & 364 (12) & 20123 (1795) & 20412 (27) & 20545 (13) & 20623 (8)\\
+diffusion isotropic (homogeneous slab)  & \textbf{49} & 149 & 60 & 578 & 642 & 722 & 826\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 86 & 248 & \textbf{68} & 371 & 412 & 464 & 530\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & 305 & \textbf{300} & 430 & 463 & 323 & 305 & 314\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   3.2 k} &    4.7 k &    3.5 k &   11.0 k &   12.1 k &   13.5 k &   15.4 k\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \textbf{   2.8 k} &    4.5 k &    3.4 k &   29.5 k &    8.4 k &    7.7 k &    8.4 k\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & 125 & 142 & \textbf{122} & 196 & 129 & 132 & 146\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & 124 & 140 & \textbf{121} & 173 & 127 & 132 & 146\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \textbf{13} & 17 & 18 & 88 & 23 & 26 & 30\\
+\end{tabular}
+
 

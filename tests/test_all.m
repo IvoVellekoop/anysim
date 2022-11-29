@@ -26,18 +26,16 @@ tests = {...
     "Helmholtz 1-D (glass plate, $n=1.5$)", "test_helmholtz_1D", default_options; ...
     "Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})", "test_helmholtz_2D", legacy_options;...
     "Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})", "test_helmholtz_2D", default_options;...
-    "Helmholtz 2-D $\bbR$ bias, low-contrast", "test_helmholtz_2D_low_contrast", legacy_options;...
-    "Helmholtz 2-D $\bbC$ bias, low-contrast", "test_helmholtz_2D_low_contrast", default_options;...
+    "Helmholtz 2-D $\bbR$ bias, dielectric", "test_helmholtz_2D_low_contrast", legacy_options;...
+    "Helmholtz 2-D $\bbC$ bias, dielectric", "test_helmholtz_2D_low_contrast", default_options;...
     "pantograph non-symmetrised (Fig.~\ref{fig:pantograph})", "test_pantograph", pantograph_options; ...
 };
 
 preconditioners = {...
-    struct(preconditioner = "circulant"),...
     struct(preconditioner = "none"),...
-    struct(preconditioner = "moborn"),...
     struct(preconditioner = "shift", preconditioner_shift = 0.5),...
-%    struct(preconditioner = "shift", preconditioner_shift = 1),...
-%    struct(preconditioner = "shift", preconditioner_shift = 2),...
+    struct(preconditioner = "circulant"),...
+    struct(preconditioner = "moborn"),...
 };
 %%
 
@@ -60,9 +58,12 @@ save test_all_results.mat
 f = fopen("simulation_results.tex", "w+");
 for p_i = 1:size(all_results, 1)
     pre = preconditioners{p_i};
-    fprintf(f, "===\n%s\n===\n\n", jsonencode(pre));
-    
+    fprintf(f, "\n\\textbf{%s}\\\\\n", pre.preconditioner);
+    fprintf(f, "\\begin{tabular}{l|c|c|c|c|c|c|c}");
     results = all_results{p_i, 1};
+    % temporary: remove bicgstab(l) column:
+    results(4) = [];
+
     for r_i = 1:numel(results)
         r = results(r_i);
         fprintf(f, "& %s", r.name);
@@ -73,35 +74,56 @@ for p_i = 1:size(all_results, 1)
         % write table data
         fprintf(f, "%s ", tests{t_i, 1});
         results = all_results{p_i, t_i};
+        % temporary: remove bicgstab(l) column:
+        results(4) = [];
+        
+        % find best
+        best_r_i = 0;
+        best_rit = inf;
         for r_i = 1:numel(results)
             r = results(r_i);
+            rit = max(r.iter_intern, r.iter);
+            if r.flag == 0 && rit < best_rit
+                best_rit = rit;
+                best_r_i = r_i;
+            end
+        end
+
+        for r_i = 1:numel(results)
+            r = results(r_i);
+            if r_i == best_r_i
+                fprintf(f, " & \\textbf{");
+            else
+                fprintf(f, " & ");
+            end
             if r.flag == 0
                 if (r.iter_intern == 0)
-                    fprintf(f, " & %d", r.iter);
+                    fprintf(f, "%s", format_number(r.iter));
                 else
-                    fprintf(f, " & %d (%d)", r.iter_intern, r.iter);
+                    fprintf(f, "%s (%s)", format_number(r.iter_intern), format_number(r.iter));
                 end
             else
-                
                 switch r.flag
                     case 1 
-                        fl = " & m"; % reached maximum number of iterations did not converge to tolerance
+                        fl = "m"; % reached maximum number of iterations did not converge to tolerance
                     case 2
-                        fl = " & c"; % ill conditioned
+                        fl = "c"; % ill conditioned
                     case 3
-                        fl = " & s"; % stagnated
+                        fl = "s"; % stagnated
                     case 4
-                        fl = " & d"; % quantity too large or too small
+                        fl = "d"; % quantity too large or too small
                     case 5
-                        fl = " & i"; % inner iteration did not converge
+                        fl = "i"; % inner iteration did not converge
                 end    
-
-
                 fprintf(f, fl); % stagnated or diverged
+            end
+            if r_i == best_r_i
+                fprintf(f, "}");
             end
         end
         fprintf(f, "\\\\\n");
     end
+    fprintf(f, "\\end{tabular}\n");
     fprintf(f, "\n");
 end
 fclose(f);
@@ -140,5 +162,12 @@ function r = run_test(test, pre)
     close all;
 end
 
-
-
+function str = format_number(num)
+    if num < 1000
+        str = sprintf("%d", num);
+    elseif num < 100000
+        str = sprintf("%6.1f k", num/1000);
+    else
+        str = sprintf("%6.1f M", num/1000000);
+    end
+end
