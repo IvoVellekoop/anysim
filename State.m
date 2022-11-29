@@ -18,7 +18,8 @@ classdef State < dynamicprops
     end
     properties
         source = []; % for use in matlab-style iterative schemes 
-        internal_iteration;
+        internal_iteration; % number of internal iterations for two-step preconditioners
+        internal_iteration_failed = false; % flag to indicate whether internal iteration failed to converge
     end
     
     methods

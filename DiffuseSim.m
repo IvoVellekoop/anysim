@@ -139,9 +139,9 @@ classdef DiffuseSim < GridSim
                 Lr = Lr + dd;
             end
             
-            % L' + 1 = Tl (L+V0) Tr + 1
-            % simplified to: L' = Tl L Tr + Tl V0 Tr + 1
-            Lr = pagemtimes(pagemtimes(Tl, Lr), Tr) + (Tl * V0 * Tr + eye(4));
+            % L' = Tl (L+V0) Tr
+            % simplified to: L' = Tl L Tr + Tl V0 Tr
+            Lr = pagemtimes(pagemtimes(Tl, Lr), Tr) + Tl * V0 * Tr;
                         
             % invert L to obtain dampened Green's operator
             % then make x,y,z,t dimensions hermitian (set kx,ky,kz,omega to 0)
@@ -150,17 +150,18 @@ classdef DiffuseSim < GridSim
             % taking the inverse and then taking the real partthen setting hermiIf we still need the forward operator Lr, 
             % we have to take special care at the the edges.
             % 
-            Lr = pageinv(Lr);
-            Lr = Grid.fix_edges_hermitian(Lr, 3:ndims(Lr));
             if obj.opt.forward_operator
                 % note: this is very inefficient, we only need to do this
                 % at the edges. However, the forward operator is only
                 % needed for debugging purposes and for showing that
                 % without preconditioner other methods (bicgstab, etc.) 
                 % perform badly. So we don't care about optimizing this.
-                LL = pageinv(Lr)-eye(4);
+                %LL = Grid.fix_edges_hermitian(Lr, 3:ndims(Lr));
+                LL = Lr;
                 obj.L = @(x) real(ifftv(fieldmultiply(LL, fftv(x))));
             end
+            Lr = pageinv(Lr + eye(4));
+            %Lr = Grid.fix_edges_hermitian(Lr, 3:ndims(Lr));
             
             % the propagator just performs a
             % page-wise matrix-vector multiplication in k-space

@@ -33,6 +33,7 @@ function results = compare_simulations(sim, source, methods, opt)
     results(M+1).time = state.run_time;
     results(M+1).flag = 0;
     results(M+1).iter_intern = 0;
+    results(M+1).rel_diff = 0;
     
     [A, state] = sim.preconditioned;
     b = sim.preconditioner(source, state);
@@ -74,7 +75,7 @@ function results = compare_simulations(sim, source, methods, opt)
                 [val, flag, relres, ~] = m.function(A, b, tol, max(ceil(Nit / itfactor - 1), 1));
             catch err
                 warning(err.message);
-                val = NaN * ones(sim.grid.N_u); flag = 5; relres = NaN;
+                val = NaN * ones([sim.grid.N_u, 1]); flag = 5; relres = NaN;
             end
             state.finalize();
             run_times(measurement_idx) = state.run_time;
@@ -87,6 +88,8 @@ function results = compare_simulations(sim, source, methods, opt)
         results(m_i).iter_intern = state.internal_iteration;    
         % Relative residual =: ‖Ax-b‖/‖b‖
         results(m_i).residual = gather(relres); %norm(A(val)-b)/norm(b);
+        anysim = results(M+1).value(:);
+        results(m_i).rel_diff = norm(anysim - results(m_i).value(:))/norm(anysim);
     end
     
     %% Compare with analytical theory

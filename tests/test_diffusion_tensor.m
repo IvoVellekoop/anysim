@@ -13,6 +13,8 @@ opt.boundaries_width = 0; % all boundaries periodic
 opt.pixel_size = 0.25;
 opt.pixel_unit = 'mm';
 %opt.callback = DisplayCallback(component = 4);
+opt.preconditioner = "shift";%"moborn";%
+opt.preconditioner_shift = 1;
 opt.forward_operator = true;
 opt = override_options(opt); % globally override options when calling this simulation from a script (see test_all)
 
