@@ -46,6 +46,9 @@ classdef (Abstract) AnySim
             switch obj.opt.preconditioner
             case "none"
                 x = x;
+                if (norm(x(:)) < 1E-4)
+                    warning("near-zero");
+                end
             case "shift" 
                 % Bai, Zhong-zhi, et al. “A SHIFT-SPLITTING PRECONDITIONER FOR NON-HERMITIAN POSITIVE DEFINITE MATRICES.” Journal of Computational Mathematics, vol. 24, no. 4, 2006, pp. 539–52.
                 % Γ = 1/2 (A + αI)

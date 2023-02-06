@@ -33,9 +33,9 @@ tests = {...
 
 preconditioners = {...
     struct(preconditioner = "none"),...
+    struct(preconditioner = "moborn"),...
     struct(preconditioner = "shift", preconditioner_shift = 0.5),...
     struct(preconditioner = "circulant"),...
-    struct(preconditioner = "moborn"),...
 };
 %%
 
@@ -57,16 +57,41 @@ save test_all_results.mat
 %%
 f = fopen("simulation_results.tex", "w+");
 for p_i = 1:size(all_results, 1)
+    tabulate_results(f, p_i, 0, preconditioners, all_results, tests);
+end
+for p_i = 1:size(all_results, 1)
+    if preconditioners{p_i}.preconditioner == "shift"
+        tabulate_results(f, p_i, 1, preconditioners, all_results, tests);
+    end
+end
+fclose(f);
+edit simulation_results.tex
+
+%%
+
+function tabulate_results(f, p_i, inner, preconditioners, all_results, tests)
+    % construct a table of the results for preconditioner with index p_i,
+    % and write that to file f. When inner = 1, shows the inner
+    % iterations in the table (for shift preconditioner only)
+    % marks the best result (fewest iterations) in bold.
+    
     pre = preconditioners{p_i};
-    fprintf(f, "\n\\textbf{%s}\\\\\n", pre.preconditioner);
-    fprintf(f, "\\begin{tabular}{l|c|c|c|c|c|c|c}");
     results = all_results{p_i, 1};
+
     % temporary: remove bicgstab(l) column:
     results(4) = [];
+    if inner
+        name = pre.preconditioner + " (inner iterations)";
+    else
+        name = pre.preconditioner;
+    end
+    fprintf(f, "\n\\textbf{%s}\\\\\n", name);
+    fprintf(f, "\\begin{tabular}{l|c|c|c|c|c|c|c}");
 
     for r_i = 1:numel(results)
         r = results(r_i);
-        fprintf(f, "& %s", r.name);
+        name = strrep(r.name, "Rich", "FP"); % temporary!
+        fprintf(f, "& %s", name);
     end
     fprintf(f, "\\\\\n\\hline\n");
 
@@ -77,31 +102,39 @@ for p_i = 1:size(all_results, 1)
         % temporary: remove bicgstab(l) column:
         results(4) = [];
         
-        % find best
-        best_r_i = 0;
+        % find best (fastest and lowest number of iterations)
         best_rit = inf;
+        best_t = inf;
         for r_i = 1:numel(results)
             r = results(r_i);
-            rit = max(r.iter_intern, r.iter);
-            if r.flag == 0 && rit < best_rit
-                best_rit = rit;
-                best_r_i = r_i;
-            end
-        end
-
-        for r_i = 1:numel(results)
-            r = results(r_i);
-            if r_i == best_r_i
-                fprintf(f, " & \\textbf{");
+            if inner
+                rit = r.iter_intern;
             else
-                fprintf(f, " & ");
+                rit = r.iter;
             end
             if r.flag == 0
-                if (r.iter_intern == 0)
-                    fprintf(f, "%s", format_number(r.iter));
+                best_rit = min(rit, best_rit);
+                best_t = min(r.time, best_t);
+            end
+        end
+        
+        for r_i = 1:numel(results)
+            fprintf(f, " & "); 
+            r = results(r_i);
+            if r.flag == 0
+                if inner
+                    rit = r.iter_intern;
                 else
-                    fprintf(f, "%s (%s)", format_number(r.iter_intern), format_number(r.iter));
+                    rit = r.iter;
                 end
+                str = format_number(rit);
+                if rit == best_rit
+                    str = "\minit{" + str + "}";
+                end
+                if r.time == best_t
+                    str = "\fast{" + str + "}";
+                end
+                fprintf(f, "%s", str);
             else
                 switch r.flag
                     case 1 
@@ -117,30 +150,12 @@ for p_i = 1:size(all_results, 1)
                 end    
                 fprintf(f, fl); % stagnated or diverged
             end
-            if r_i == best_r_i
-                fprintf(f, "}");
-            end
         end
         fprintf(f, "\\\\\n");
     end
     fprintf(f, "\\end{tabular}\n");
     fprintf(f, "\n");
 end
-fclose(f);
-edit simulation_results.tex
-
-%     if opt.measure_time
-%         data = data + sprintf('\\\\\n%s, exec. time [s]', strrep(filename, '_', ' '));
-%         for r = rstore
-%             if r.iter < Nit && r.flag == 0
-%                 data = data + sprintf(" & %.1f", r.time);
-%             elseif r.flag == 3
-%                 data = data + sprintf(" & s"); % stagnates, may be due too low machine precision
-%             else
-%                 data = data + sprintf(" & -");
-%             end
-%         end
-%     end
 
 
 function r = run_test(test, pre)
