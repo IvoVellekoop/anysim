@@ -1,0 +1,70 @@
+
+\textbf{circulant}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& FP100& FP90& FP80& FP70\\
+\hline
+diffusion isotropic (homogeneous slab)  & \minit{47} & 137 & \fast{57} &    1.1 k &    1.2 k &    1.4 k &    1.5 k\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 119 & 252 & \fast{\minit{116}} & 841 & 934 &    1.1 k &    1.2 k\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \fast{\minit{   1.4 k}} & m & s & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \minit{   2.9 k} &    5.3 k & \fast{   3.9 k} &   16.4 k &   17.4 k &   18.5 k &   20.3 k\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \minit{   2.8 k} &    5.1 k & \fast{   3.6 k} & m & m & m & m\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & \minit{306} & 702 & \fast{582} & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \minit{294} & 659 & \fast{606} & d & d & d & d\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \minit{9} & 10 & 10 & \fast{10} & 12 & 14 & 16\\
+\end{tabular}
+
+
+\textbf{none}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& FP100& FP90& FP80& FP70\\
+\hline
+diffusion isotropic (homogeneous slab)  & m & m & d & d & d & d & d\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & \minit{   6.8 k} & \fast{   9.8 k} & d & d & d & d & d\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \minit{   1.2 k} &    2.6 k & \fast{   3.7 k} & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \fast{\minit{   9.5 k}} &   26.7 k & d & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \fast{\minit{   9.5 k}} &   26.3 k & d & d & d & d & d\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & \minit{   3.2 k} & \fast{   7.1 k} & s & d & d & d & d\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \minit{   3.1 k} & \fast{   7.1 k} & s & d & d & d & d\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & m & m & \fast{\minit{   3.0 k}} & d & d & d & d\\
+\end{tabular}
+
+
+\textbf{moborn}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& FP100& FP90& FP80& FP70\\
+\hline
+diffusion isotropic (homogeneous slab)  & \minit{49} & 149 & \fast{60} & 578 & 642 & 722 & 826\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & 86 & 248 & \fast{\minit{68}} & 371 & 412 & 464 & 530\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & 305 & \minit{300} & 430 & 463 & 323 & \fast{305} & 314\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & \minit{   3.2 k} &    4.7 k & \fast{   3.5 k} &   11.0 k &   12.1 k &   13.5 k &   15.4 k\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & \minit{   2.8 k} &    4.5 k & \fast{   3.4 k} &   29.5 k &    8.4 k &    7.7 k &    8.4 k\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & 125 & 142 & \minit{122} & 196 & \fast{129} & 132 & 146\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & 124 & 140 & \minit{121} & 173 & \fast{127} & 132 & 146\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \minit{13} & 17 & 18 & 88 & 23 & \fast{26} & 30\\
+\end{tabular}
+
+
+\textbf{shift}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& FP100& FP90& FP80& FP70\\
+\hline
+diffusion isotropic (homogeneous slab)  & s & \fast{\minit{50}} & s & i & 195 & 210 & 240\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & \fast{\minit{28}} & 52 & 36 &    3.8 k & 123 & 138 & i\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & 97 & 106 & s & i & 67 & \fast{\minit{65}} & 75\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & s & \minit{   2.7 k} & s & m & \fast{   3.5 k} &    3.6 k &    3.9 k\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & s & \fast{\minit{   1.4 k}} & s & i &    1.6 k &    1.7 k &    1.9 k\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & s & 48 & 41 & i & 67 & \fast{\minit{31}} & 38\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & 35 & 41 & 38 & i & 37 & \fast{\minit{32}} & 36\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & 9 & 10 & \fast{9} &    1.8 k & 27 & 13 & \minit{8}\\
+\end{tabular}
+
+
+\textbf{shift (inner iterations)}\\
+\begin{tabular}{l|c|c|c|c|c|c|c}& GMRES20& GMRES5& BiCGSTAB& FP100& FP90& FP80& FP70\\
+\hline
+diffusion isotropic (homogeneous slab)  & s & \fast{\minit{   1.6 k}} & s & i &   12.3 k &   17.4 k &   23.3 k\\
+diffusion anisotropic (Fig.~\ref{fig:diffusion})  & \fast{\minit{801}} &    2.1 k &    3.0 k &   92.4 k &   95.4 k &   98.8 k & i\\
+Helmholtz 1-D (glass plate, $n=1.5$)  & \minit{   2.8 k} &    5.3 k & s & i &    0.7 M & \fast{   0.7 M} &    0.7 M\\
+Helmholtz 2-D $\bbR$ bias (Fig.~\ref{fig:helmholtz})  & s & \minit{   0.3 M} & s & m & \fast{   1.1 M} &    1.2 M &    1.2 M\\
+Helmholtz 2-D $\bbC$ bias (Fig.~\ref{fig:helmholtz})  & s & \fast{\minit{   0.2 M}} & s & i &    1.1 M &    1.1 M &    1.2 M\\
+Helmholtz 2-D $\bbR$ bias, low-contrast  & s & \minit{   8.4 k} &   12.6 k & i &    0.3 M & \fast{   0.3 M} &    0.3 M\\
+Helmholtz 2-D $\bbC$ bias, low-contrast  & \minit{   3.2 k} &    6.3 k &    9.7 k & i &    0.4 M & \fast{   0.4 M} &    0.4 M\\
+pantograph non-symmetrised (Fig.~\ref{fig:pantograph})  & \minit{92} & 184 & \fast{263} &   20.1 k &   20.4 k &   20.5 k &   20.6 k\\
+\end{tabular}
+
